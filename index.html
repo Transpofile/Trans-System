@@ -1,0 +1,235 @@
+<html>
+<head>
+	<title>Home</title>
+
+
+</head>
+<link rel="stylesheet" type="text/css" href="css/trans1.css"/>
+
+<body>
+
+<h1><span style="color:red;">G</span>-SYSTEM</h1>
+
+
+
+
+
+
+<script>
+var acc = document.getElementsByClassName("accordion");
+var i;
+
+for (i = 0; i < acc.length; i++) {
+  acc[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var panel = this.nextElementSibling;
+    if (panel.style.display === "block") {
+      panel.style.display = "none";
+    } else {
+      panel.style.display = "block";
+    }
+  });
+}
+
+var acc = document.getElementsByClassName("Mission");
+var i;
+
+for (i = 0; i < acc.length; i++) {
+  acc[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var panel = this.nextElementSibling;
+    if (panel.style.display === "block") {
+      panel.style.display = "none";
+    } else {
+      panel.style.display = "block";
+    }
+  });
+}
+
+
+
+function openCity(evt, cityName) {
+  var i, tabcontent, tablinks;
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  document.getElementById(cityName).style.display = "block";
+  evt.currentTarget.className += " active";
+}
+
+
+</script>
+
+
+
+
+<div class="tab">
+  <button class="tablinks" onclick="openCity(event, 'Trans-System')">Trans-System</button>
+  <button class="tablinks" onclick="openCity(event, 'Paris')">G.A-System</button>
+  <button class="tablinks" onclick="openCity(event, 'Tokyo')">H.R-System</button>
+  <button class="tablinks" onclick="openCity(event, 'Christmas')">G.A/HR|Personnel</button>
+ <button class="tablinks" onclick="openCity(event, 'Connect1')">Connect1</button>
+
+</div>
+<div id="connect1" class="tabcontent"></div>
+
+
+<div id="Trans-System" class="tabcontent">
+
+
+<div class="trans2">
+
+<div class="trans3" align="center"id="trans3-1">
+<a href=""/><img src="icon/bus-stop.png" width="100px"height="100px"/></a></br>
+Bus Stop Location
+</div>
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Dash-Cam.png" width="100px"height="100px"/></a></br>
+Dash Cam
+
+</div>
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/driver.png" width="100px"height="100px"/></a></br>
+Drivers
+</div>
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Inventory Record.png" width="100px"height="100px"/></a></br>
+Inventory Record
+</div>
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/JOB Orders.png" width="100px"height="100px"/></a></br>
+JOB Orders
+</div>
+
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Purchase Request.png" width="100px"height="100px"/></a></br>
+Purchase Request
+</div>
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Vehicle.png" width="100px"height="100px"/></a></br>
+Vehicle
+</div>
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Odo Meter.png" width="100px"height="100px"/></a></br>
+Odo Meter
+</div>
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Aircon.png" width="100px"height="100px"/></a></br>
+Car Aircon
+</div>
+
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Fuel.png" width="100px"height="100px"/></a></br>
+Fuel Reservation
+</div>
+
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Disposal.png" width="100px"height="100px"/></a></br>
+Disposal Record
+</div>
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Vehicle Checklist.png" width="100px"height="100px"/></a></br>
+Vehicle Checklist
+</div>
+
+
+<div class="trans3" align="center" id="trans3-1">
+<a href=""/><img src="icon/Spareparts.png" width="100px"height="100px"/></a></br>
+Spare Parts
+</div>
+
+<div class="trans3" align="center" id="trans3-1">
+<a href="https://s4hana-production.sap.smmph.local:44300/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html#Shell-home" onclick="S4hana()"/><img src="icon/S4HANA.png" width="100px"height="100px"id="s4hana"/></a></br>
+S4HANA
+</div>
+<script>
+function S4hana(){
+var s4hana1;
+if(alert("Authorized Person to Login, S4HANA")) {
+s4hana1 = "Click Ok!";
+} else {
+s4hana1 = "you Cancel!";
+}
+document.getElementById("s4hana").innerHTML = s4hana1;
+}
+
+</script>
+
+
+<div class="trans3" align="center" id="trans3-1">
+<a href="https://transpofile.github.io/Transpofile/index.html" onclick="transsystem()"/><img src="icon/Trans-Site.png" width="100px"height="100px"id="trans-system1"/></a></br>
+Trans-Site
+</div>
+<script>
+function transsystem(){
+	var trans;
+	if(alert("Authorized Person to Login ,Trans Site")) {
+	trans = "Click Ok!";
+	} else {
+	trans = "you Cancel";
+	}
+	document.getElementById("trans-system1").innerHTML = trans;
+}
+</script>
+
+
+<div class="trans3" align="center" id="trans3-1">
+<a href="http://www.novelnovelties.com/starcomm2/" onclick="gpstracker()"/><img src="icon/GPS Tracker.png" width="100px"height="100px" id="gps"/></a></br>
+Starcom Gps
+</div>
+<script>
+function gpstracker() {
+  var gps1;
+  if (alert("Authorized Person to Login , Starcom")) {
+    gps1 = "Click Ok!";
+  } else {
+    gps1 = "you Cancel!";
+  }
+  document.getElementById("gps").innerHTML = gps1;
+}
+</script></div>
+
+
+<div> 
+</br>
+
+
+<hr></hr>
+<span style="background-color:#000;padding:.5%;color:white;margin-left:-10px;font-family:calibri;">Display Information </h1></span>
+
+
+<div id="Paris" class="tabcontent">
+  
+</div>
+
+<div id="Tokyo" class="tabcontent">
+  
+</div>
+
+<div id="Christmas" class="tabcontent">
+
+</div>
+
+
+
+</body>
+
+
+
+</html>
