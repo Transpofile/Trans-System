@@ -6,6 +6,20 @@
 </head>
 <link rel="stylesheet" type="text/css" href="css/trans1.css"/>
 
+  <link rel="icon" type="image" href="/icon/Transpo.ico">
+
+
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBoSePhp_1tvRWw9qeneYYZzvWQC3DJtjM&callback=console.debug&libraries=maps,marker&v=beta"></script>
+
+
+
+
+
+
+
+
+
+
 <body>
 
 <h1><span style="color:red;">G</span>-SYSTEM</h1>
@@ -74,8 +88,8 @@ function openCity(evt, cityName) {
   <button class="tablinks" onclick="openCity(event, 'Tokyo')">H.R-System</button>
   <button class="tablinks" onclick="openCity(event, 'Christmas')">G.A/HR|Personnel</button>
  <button class="tablinks" onclick="openCity(event, 'Connect1')">Connect1</button>
-
 </div>
+
 <div id="connect1" class="tabcontent"></div>
 
 
@@ -84,29 +98,87 @@ function openCity(evt, cityName) {
 
 <div class="trans2">
 
-<div class="trans3" align="center"id="trans3-1">
-<a href=""/><img src="icon/bus-stop.png" width="100px"height="100px"/></a></br>
+
+<script>
+function Busstoplocation(){
+var text = document.getElementById("Busstop");
+  if (text.style.display === "none") {
+    text.style.display = "block";
+  } else {
+    text.style.display = "none";
+  }
+}
+</script>
+
+
+<div class="trans3" onclick="Busstoplocation()"align="center"id="trans3-1">
+<img src="icon/bus-stop.png" width="100px"height="100px"/></br>
 Bus Stop Location
 </div>
 
-<div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Dash-Cam.png" width="100px"height="100px"/></a></br>
-Dash Cam
+<script>
+function Dashcam(){
+var text = document.getElementById("Cam");
+  if (text.style.display === "none") {
+    text.style.display = "block";
+  } else {
+    text.style.display = "none";
+  }
+}
+</script>
 
+<div class="trans3" onclick="Dashcam()"onclick="Busstoplocation1" align="center" id="trans3-1">
+<img src="icon/Dash-Cam.png" width="100px"height="100px"/></br>
+Dash Cam
 </div>
 
-<div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/driver.png" width="100px"height="100px"/></a></br>
+
+<script>
+function Drivers(){
+var text = document.getElementById("Driver");
+  if (text.style.display === "none") {
+    text.style.display = "block";
+  } else {
+    text.style.display = "none";
+  }
+}
+</script>
+
+<div class="trans3" onclick="Drivers()" align="center" id="trans3-1">
+<img src="icon/driver.png" width="100px"height="100px"/></br>
 Drivers
 </div>
 
-<div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Inventory Record.png" width="100px"height="100px"/></a></br>
+<script>
+function Inventoryrecord(){
+var text = document.getElementById("Inventory");
+  if (text.style.display === "none") {
+    text.style.display = "block";
+  } else {
+    text.style.display = "none";
+  }
+}
+</script>
+
+
+<div class="trans3" onclick="Inventoryrecord()"align="center" id="trans3-1">
+<img src="icon/Inventory Record.png" width="100px"height="100px"/></br>
 Inventory Record
 </div>
 
-<div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/JOB Orders.png" width="100px"height="100px"/></a></br>
+<script>
+function Joborder(){
+var text = document.getElementById("Order");
+  if (text.style.display === "none") {
+    text.style.display = "block";
+  } else {
+    text.style.display = "none";
+  }
+}
+</script>
+
+<div class="trans3" onclick="Joborder()" align="center" id="trans3-1">
+<img src="icon/JOB Orders.png" width="100px"height="100px"/></br>
 JOB Orders
 </div>
 
@@ -158,6 +230,7 @@ Spare Parts
 <a href="https://s4hana-production.sap.smmph.local:44300/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html#Shell-home" onclick="S4hana()"/><img src="icon/S4HANA.png" width="100px"height="100px"id="s4hana"/></a></br>
 S4HANA
 </div>
+
 <script>
 function S4hana(){
 var s4hana1;
@@ -168,7 +241,6 @@ s4hana1 = "you Cancel!";
 }
 document.getElementById("s4hana").innerHTML = s4hana1;
 }
-
 </script>
 
 
@@ -176,6 +248,7 @@ document.getElementById("s4hana").innerHTML = s4hana1;
 <a href="https://transpofile.github.io/Transpofile/index.html" onclick="transsystem()"/><img src="icon/Trans-Site.png" width="100px"height="100px"id="trans-system1"/></a></br>
 Trans-Site
 </div>
+
 <script>
 function transsystem(){
 	var trans;
@@ -193,6 +266,8 @@ function transsystem(){
 <a href="http://www.novelnovelties.com/starcomm2/" onclick="gpstracker()"/><img src="icon/GPS Tracker.png" width="100px"height="100px" id="gps"/></a></br>
 Starcom Gps
 </div>
+
+
 <script>
 function gpstracker() {
   var gps1;
@@ -211,7 +286,7 @@ function gpstracker() {
 
 
 <hr></hr>
-<span style="background-color:#000;padding:.5%;color:white;margin-left:-10px;font-family:calibri;">Display Information </h1></span>
+<span style="background-color:#000;padding:.5%;color:white;margin-left:50px;font-family:calibri;">Display Information </h1></span>
 
 
 <div id="Paris" class="tabcontent">
@@ -227,6 +302,289 @@ function gpstracker() {
 </div>
 
 
+
+<!------------------------------------------------->
+
+
+<div>
+
+<div id="Busstop" style="display:none;">
+
+<h2>Bus Stop Location in Claver Surigao Del Norte</h2>
+
+
+<div>
+    <gmp-map center="9.539685249328613,125.81232452392578" zoom="14" map-id="DEMO_MAP_ID">
+      <gmp-advanced-marker position="9.539685249328613,125.81232452392578" title="My location"></gmp-advanced-marker>
+    </gmp-map>
+
+
+
+
+<div class="bustop" align="center">
+<p class="bustop1">CAGDIANAO</p>
+<p class="bustop1">| HAYANGABON</p>
+<p class="bustop1">| TAGANITO</p>
+<p class="bustop1">| URBIZTONDO</p>
+<p class="bustop1">| CABUGO</p>
+<p class="bustop1">| WANGKE</p>
+<p class="bustop1">| PANATAO</p>
+<p class="bustop1">| CLAVER</p>
+<p class="bustop1">| LADGARON</p>
+<p class="bustop1">| GIGAQUIT</p>
+<p class="bustop1">| BACUAG</p>
+</div>
+</div>
+
+
+
+
+
+</div>
+
+</div>
+
+
+<div id="Cam" style="display:none;">
+<div class="dashcam">
+<p><b>Dash Cam Record</b></p>
+
+<form action="src/video" method="post" enctype="multipart/form-data">
+
+<label for="Video" class="block"/>
+<input type="file" name="video"/>
+<button>Submit</button>
+</form>
+
+
+
+<form display="document" controls class="aspect-file w-full">
+this area for update, Please wait for an update
+</form>
+
+</div></div>
+
+
+<div #="inputdata">
+
+<div id="Driver" class="Driver" style="display:none;">
+    <h1> Driver Information Record </h1>
+    <h4>User Data Management</h2>
+<center>
+   <div id="formContainer">
+        <label for="nameInput">
+        </label>
+        <input type="text" id="nameInput" 
+            placeholder="Enter Name...">
+        <label for="emailInput">
+        </label>
+        <input type="email" id="emailInput" 
+            placeholder="Enter Email...">
+        <label for="numberInput">
+        </label>
+        <input type="text" id="numberInput" 
+            placeholder="Mobile Number..">
+        <label for="addressInput">
+        </label>
+        <textarea id="addressInput" 
+            placeholder="Address.."></textarea>
+        <br><br>
+
+ <button onclick="addData()">Submit</button>
+
+    </div>
+
+
+
+
+
+
+    <table id="outputTable" cellspacing="2"cellpadding="1">
+
+        <tr>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Address</th>
+            <th>Mobile</th>
+            <th>Date Hire</th>
+	    <th>License Number</th>
+            <th>Action</th>
+        </tr>
+    </table>
+</center>
+    <script>
+        function addData() {
+            // Get input values
+            let name = document.getElementById("nameInput").value;
+            let email = document.getElementById("emailInput").value;
+            let mobile = document.getElementById("numberInput").value;
+            let address = document.getElementById("addressInput").value;
+
+            // Get the table and insert a new row at the end
+            let table = document.getElementById("outputTable");
+            let newRow = table.insertRow(table.rows.length);
+
+            // Insert data into cells of the new row
+            newRow.insertCell(0).innerHTML = name;
+            newRow.insertCell(1).innerHTML = email;
+            newRow.insertCell(2).innerHTML = mobile;
+            newRow.insertCell(3).innerHTML = address;
+            newRow.insertCell(4).innerHTML =
+                '<button onclick="editData(this)">Edit</button>' +
+                '<button onclick="deleteData(this)">Delete</button>';
+
+            // Clear input fields
+            clearInputs();
+        }
+
+        function editData(button) {
+
+            // Get the parent row of the clicked button
+            let row = button.parentNode.parentNode;
+
+            // Get the cells within the row
+            let nameCell = row.cells[0];
+            let emailCell = row.cells[1];
+            let mobileCell = row.cells[2];
+            let addressCell = row.cells[3];
+
+            // Prompt the user to enter updated values
+            let nameInput =
+                prompt("Enter the updated name:",
+                    nameCell.innerHTML);
+            let emailInput =
+                prompt("Enter the updated email:",
+                    emailCell.innerHTML);
+            let numberInput =
+                prompt("Enter the updated mobile details:",
+                    mobileCell.innerHTML
+                );
+            let addressInput =
+                prompt("Enter the updated address:",
+                    addressCell.innerHTML
+                );
+
+            // Update the cell contents with the new values
+            nameCell.innerHTML = nameInput;
+            emailCell.innerHTML = emailInput;
+            mobileCell.innerHTML = numberInput;
+            addressCell.innerHTML = addressInput;
+        }
+
+        function deleteData(button) {
+
+            // Get the parent row of the clicked button
+            let row = button.parentNode.parentNode;
+
+            // Remove the row from the table
+            row.parentNode.removeChild(row);
+        }
+
+        function clearInputs() {
+
+            // Clear input fields
+            document.getElementById("nameInput").value = "";
+            document.getElementById("emailInput").value = "";
+            document.getElementById("numberInput").value = "";
+            document.getElementById("addressInput").value = "";
+        }
+    </script>
+
+
+
+
+</div>
+
+<!------------------------------------------------------------------------------------------>
+
+
+
+<center></br>
+<div id="Inventory" style="display:none;">
+<h2>Transpo Inventory Record</h2>
+</br>
+<div class="jotform-table-embed" style="width: 93%; height: auto;" data-id="242211415487048" data-iframesource="www.jotform.com" data-type="interactive"></div>
+<script>(function(doc, id){var scripts=doc.getElementsByTagName("script")[0]; if (!doc.getElementById(id)){var script=doc.createElement("script"); script.async=1; script.id=id; script.src="https://cdn.jotfor.ms/s/umd/latest/for-sheets-embed.js"; scripts.parentNode.insertBefore(script, scripts);}})(document, "jotform-async");</script>
+</div></center>
+
+
+
+<center></br>
+<div id="Order" style="display:none;">
+<h2>Maintenance Order Record</h2>
+</br>
+<!---<div class="jotform-table-embed" style="width: 100%; height: 600px;" data-id="242221898352055" data-iframesource="www.jotform.com" data-type="interactive"></div><script>(function(doc, id){var scripts=doc.getElementsByTagName("script")[0]; if (!doc.getElementById(id)){var script=doc.createElement("script"); script.async=1; script.id=id; script.src="https://cdn.jotfor.ms/s/umd/latest/for-sheets-embed.js"; scripts.parentNode.insertBefore(script, scripts);}})(document, "jotform-async");</script>-->
+
+
+<iframe style="width: 93%; height:100%;border:none;" src="https://script.google.com/macros/s/AKfycbw-dYcoYCjTRjDlFTYhtHlOky69VuewQ6UFuWQEyoY/dev"></iframe>
+
+
+</center>
+
+
+
+
+<div id="Reservation" style="display:none;">
+
+<h2>Fuel Reservation List S4HANA</h2>
+
+
+
+
+
+</div>
+
+
+
+<!---------------------------------->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--------------------------------------------------------------------------------->
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!------------------------------------------------->
+
+
+
+
+	
 
 </body>
 
