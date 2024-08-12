@@ -27,5 +27,57 @@ h1{background:#303030;
 	border-radius:10px;}
 .trans2>.trans3:hover{background:#00ff99;
 			cursor:pointer;
-			color:#070eee;}
+			color:#070eee;
+			}
+
+
 #trans3-1{font-size:3mm;font-family:arial;}
+
+#Busstop{margin-top:20px;margin-left:3%;margin-right:3%;
+	padding:1%;font-family:calibri, arial, arial-block;
+		background:whitesmoke;border-radius:1%;
+		height:100%;}
+
+h2{font-family:calibri;}
+
+gmp-map {
+        height: 70%;
+      }
+
+
+
+.bustop{ padding:1%;background:;color:#000;
+	border-radius:5px;font-size:5vm;display:flex;
+	flex-direction:row;margin:20px;}
+.bustop>.bustop1:hover{color:Whitesmoke;padding:%1;font-size:5vm;
+			cursor:pointer;background:red;}
+
+#Cam{margin:50px;}
+
+.dashcam{Background:whitesmoke;padding:1%;
+	border-radius:5px;font-family:calibri;
+	font-size:1rem;}
+
+.Driver{Background:whitesmoke;padding:1%;
+	border-radius:5px;font-family:calibri;
+	font-size:1rem;margin:30px;}
+
+#formContainer{background:#E2EDED; padding:1%;width:90%;
+		display:flex;}
+#formContainer>label{font-family:calibri;}
+#formContainer>input{border:none;padding:.5%;margin:2px;}
+#formContainer>textarea{padding:1%;width:61%;height:auto;
+			border:none;}
+#formContainer>button{background:#FAE80A;color:#000;
+			padding:1%;border:none;}
+#outputTable{background:#C2E4DA; color:#000;font-family:calibri;
+	     padding:1%;width:92.8%;margin:40px;
+	     border:2px;}
+
+
+#imgdriver{margin-left:50px;}
+
+#inventory{background:whitesmoke;padding:1%;width:91%;height:auto;border-radius:10px;}
+
+
+		
