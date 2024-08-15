@@ -1,4 +1,4 @@
-body{background:#cccf99;}
+body{background:#abb2b9 ;}
 h1{background:#303030;
 	padding:1%;
 	color:whitesmoke;
@@ -22,12 +22,15 @@ h1{background:#303030;
 	flex-flow: row wrap;
 	font-family:arial;}
 .trans2 >.trans3{padding:2%;
-	background:whitesmoke;
+	background:none;
+	opacity:90%;
 	margin:3px;
 	border-radius:10px;}
-.trans2>.trans3:hover{background:#00ff99;
+.trans2>.trans3:hover{background:whitesmoke;
+			box-shadow: 5px 50px 90px #fff;
 			cursor:pointer;
-			color:#070eee;
+			transition:0.7s;
+			color:#000;
 			}
 
 
@@ -79,5 +82,8 @@ gmp-map {
 
 #inventory{background:whitesmoke;padding:1%;width:91%;height:auto;border-radius:10px;}
 
+#Order{background:whitesmoke;padding:1%;width:91%;height:auto;border-radius:10px;
+	font-family:calibri;}
+#mp1{margin-left:10%;margin-Right:10%;}
 
 		
