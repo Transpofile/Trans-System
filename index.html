@@ -166,6 +166,8 @@ var text = document.getElementById("Inventory");
 Inventory Record
 </div>
 
+
+
 <script>
 function Joborder(){
 var text = document.getElementById("Order");
@@ -226,28 +228,44 @@ Vehicle Checklist
 Spare Parts
 </div>
 
-<div class="trans3" align="center" id="trans3-1">
-<a href="https://s4hana-production.sap.smmph.local:44300/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html#Shell-home" onclick="S4hana()"/><img src="icon/S4HANA.png" width="100px"height="100px"id="s4hana"/></a></br>
-S4HANA
-</div>
+
+
 
 <script>
-function S4hana(){
-var s4hana1;
-if(alert("Authorized Person to Login, S4HANA")) {
-s4hana1 = "Click Ok!";
-} else {
-s4hana1 = "you Cancel!";
-}
-document.getElementById("s4hana").innerHTML = s4hana1;
+function S4HANA(){
+var text = document.getElementById("S4HANAa");
+  if (text.style.display === "none") {
+    text.style.display = "block";
+  } else {
+    text.style.display = "none";
+  }
 }
 </script>
 
+<div class="trans3" onclick="S4HANA()" align="center" id="trans3-1">
+<img src="icon/S4HANA.png" width="100px"height="100px"id="s4hana"/></br>
+S4HANA
+</div>
+
+
+<script>
+function GPSs(){
+var text = document.getElementById("GPS");
+  if (text.style.display === "none") {
+    text.style.display = "block";
+  } else {
+    text.style.display = "none";
+  }
+}
+</script>
 
 <div class="trans3" align="center" id="trans3-1">
-<a href="https://transpofile.github.io/Transpofile/index.html" onclick="transsystem()"/><img src="icon/Trans-Site.png" width="100px"height="100px"id="trans-system1"/></a></br>
+<img src="icon/Trans-Site.png" width="100px"height="100px"id="trans-system1"/></br>
 Trans-Site
 </div>
+
+
+
 
 <script>
 function transsystem(){
@@ -262,23 +280,12 @@ function transsystem(){
 </script>
 
 
-<div class="trans3" align="center" id="trans3-1">
-<a href="http://www.novelnovelties.com/starcomm2/" onclick="gpstracker()"/><img src="icon/GPS Tracker.png" width="100px"height="100px" id="gps"/></a></br>
+<div class="trans3" onclick="GPSs()" align="center" id="trans3-1">
+<img src="icon/GPS Tracker.png" width="100px"height="100px" id="gps"/></br>
 Starcom Gps
 </div>
 
-
-<script>
-function gpstracker() {
-  var gps1;
-  if (alert("Authorized Person to Login , Starcom")) {
-    gps1 = "Click Ok!";
-  } else {
-    gps1 = "you Cancel!";
-  }
-  document.getElementById("gps").innerHTML = gps1;
-}
-</script></div>
+</div>
 
 
 <div> 
@@ -346,6 +353,7 @@ function gpstracker() {
 
 
 <div id="Cam" style="display:none;">
+<hr></hr>
 <div class="dashcam">
 <p><b>Dash Cam Record</b></p>
 
@@ -368,8 +376,12 @@ this area for update, Please wait for an update
 <div #="inputdata">
 
 <div id="Driver" class="Driver" style="display:none;">
+<hr></hr>
     <h1> Driver Information Record </h1>
     <h4>User Data Management</h2>
+
+<iframe style="width:100%; height:150%;border-radius:10px;border:none;" src="https://docs.google.com/spreadsheets/d/1IBC2hbzFdcm0kigIVT7Pe-FJKvfm_o3gWQ7llJEMNhs/edit?usp=sharing"></iframe>
+
 <center>
    <div id="formContainer">
         <label for="nameInput">
@@ -503,25 +515,49 @@ this area for update, Please wait for an update
 <div id="Inventory" style="display:none;">
 <h2>Transpo Inventory Record</h2>
 </br>
-<div class="jotform-table-embed" style="width: 93%; height: auto;" data-id="242211415487048" data-iframesource="www.jotform.com" data-type="interactive"></div>
+
+
+<!---<div class="jotform-table-embed" style="width: 93%; height: 200%;" data-id="242211415487048" data-iframesource="www.jotform.com" data-type="interactive"></div>
 <script>(function(doc, id){var scripts=doc.getElementsByTagName("script")[0]; if (!doc.getElementById(id)){var script=doc.createElement("script"); script.async=1; script.id=id; script.src="https://cdn.jotfor.ms/s/umd/latest/for-sheets-embed.js"; scripts.parentNode.insertBefore(script, scripts);}})(document, "jotform-async");</script>
+--->
+
+<iframe style="width:100%; height:300%;border:none;" src="https://docs.google.com/spreadsheets/d/18iZzOUXk1t5YANlcf5YG1_ULTBgSe3jB8r00oz7i68o/edit?usp=sharing&HideTabs=True"></iframe>
+
+
 </div></center>
 
-
-
-<center></br>
+<center>
 <div id="Order" style="display:none;">
+<hr></hr>
 <h2>Maintenance Order Record</h2>
-</br>
+<p align="left" id="mp1">The purpose of this record is to monitor the entry of maintenance Order, All Data here are base into S4HANA Web Application 
+	by downloading the data and transfer to this monitoring records, record mention below are same as S4HANA web application</p>
 <!---<div class="jotform-table-embed" style="width: 100%; height: 600px;" data-id="242221898352055" data-iframesource="www.jotform.com" data-type="interactive"></div><script>(function(doc, id){var scripts=doc.getElementsByTagName("script")[0]; if (!doc.getElementById(id)){var script=doc.createElement("script"); script.async=1; script.id=id; script.src="https://cdn.jotfor.ms/s/umd/latest/for-sheets-embed.js"; scripts.parentNode.insertBefore(script, scripts);}})(document, "jotform-async");</script>-->
 
 
-<iframe style="width: 93%; height:100%;border:none;" src="https://script.google.com/macros/s/AKfycbw-dYcoYCjTRjDlFTYhtHlOky69VuewQ6UFuWQEyoY/dev"></iframe>
+<iframe style="width: 93%; height:200%;border:none;border-radius:10px;" 
+src="https://docs.google.com/spreadsheets/d/1GiUbc7T--Ajg7waczyBDV9ZXZBD7j2adptGPonMDxCE/edit?usp=sharing&action=embedview&wdbipreview=true&wdAllowInteractivity=true&HideSheetTabs=True"></iframe>
+
+
+
 
 
 </center>
 
+<div id="S4HANAa" style="display:none;">
+<center>
+<iframe style="width:93%; height:130%;border:none;" src="https://s4hana-production.sap.smmph.local:44300/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html"></iframe>
+</center>
+</div>
 
+
+
+<div id="GPS" style="display:none;">
+<hr></hr>
+<center>
+<iframe style="width:93%; height:130%;border:none;"src="http://www.novelnovelties.com/starcomm2/" onclick="gpstracker()"></iframe>
+</center>
+</div>
 
 
 <div id="Reservation" style="display:none;">
