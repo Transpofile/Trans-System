@@ -1,4 +1,4 @@
-body{background:#abb2b9 ;}
+body{background:#76899c ;}
 h1{background:#303030;
 	padding:1%;
 	color:whitesmoke;
@@ -29,8 +29,8 @@ h1{background:#303030;
 .trans2>.trans3:hover{background:whitesmoke;
 			box-shadow: 5px 50px 90px #fff;
 			cursor:pointer;
-			transition:0.7s;
-			color:#000;
+			transition:2s;
+			color:green;
 			}
 
 
@@ -85,5 +85,12 @@ gmp-map {
 #Order{background:whitesmoke;padding:1%;width:91%;height:auto;border-radius:10px;
 	font-family:calibri;}
 #mp1{margin-left:10%;margin-Right:10%;}
-
-		
+#PR{background:whitesmoke;padding:1%;background:;color:#333;
+	border-radius:5px;font-size:5vm;display:flex;
+	flex-direction:row;margin:3%;}
+.Entryinput{background:#5ed;padding:2%;margin-left:5%;display:flex;font-size:1vw;font-family:calibri;}
+.Entryinput>.Entrydiv{padding:1%;}
+input{width:100%;height:auto;padding:2%;border:none;background:#ddd;border-radius:5px;	color:#666;}
+button{background:red;padding:1%;border:none;color:whitesmoke;font-size:1vw;}
+.Entryinput>input{border:none background:red;}
+#myForm{background:#0ed;}
