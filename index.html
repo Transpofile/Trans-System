@@ -15,12 +15,32 @@
 
 
 
+	<script
+		src="https://code.jquery.com/jquery-3.4.1.js"
+		integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+		crossorigin="anonymous"></script>
+	<script>
+		function SubForm (){
+			$.ajax({
+				url:"https://api.apispreadsheets.com/data/Pcb2rG6wWEXiDua2/",
+				type:"post",
+				data:$("#myForm").serializeArray(),
+				success: function(){
+					alert("Form Data Submitted :)")
+				},
+				error: function(){
+					alert("There was an error :(")
+				}
+			});
+		}
+	</script>
 
 
 
 
 
 <body>
+
 
 <h1><span style="color:red;">G</span>-SYSTEM</h1>
 
@@ -185,8 +205,22 @@ JOB Orders
 </div>
 
 
-<div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Purchase Request.png" width="100px"height="100px"/></a></br>
+
+<script>
+function PurchaseR(){
+var text = document.getElementById("PR");
+  if (text.style.display === "none") {
+    text.style.display = "block";
+  } else {
+    text.style.display = "none";
+  }
+}
+</script>
+
+
+
+<div class="trans3" onclick="PurchaseR()" align="center" id="trans3-1">
+<img src="icon/Purchase Request.png" width="100px"height="100px"/></br>
 Purchase Request
 </div>
 
@@ -537,12 +571,69 @@ this area for update, Please wait for an update
 
 <iframe style="width: 93%; height:200%;border:none;border-radius:10px;" 
 src="https://docs.google.com/spreadsheets/d/1GiUbc7T--Ajg7waczyBDV9ZXZBD7j2adptGPonMDxCE/edit?usp=sharing&action=embedview&wdbipreview=true&wdAllowInteractivity=true&HideSheetTabs=True"></iframe>
+</center></div>
 
 
+<div id="PR" style="display:none;">
+<h2>Request for Purchase Item</h2>
+<center>
+
+	<form id="myForm">
+	<div align="left" class="Entryinput">
+		<div class="Entrydiv">
+		<div><label>Material No</label>
+		<input type="number" name="Material No" /></div>
+		<div><label>Material</label>
+		<input name="Material" /></div>
+		<div><label>Description</label>
+		<input name="Description" /></div>
+		<div><label>Unit</label>
+		<input name="Unit" /></div>
+		</div>
+		<div class="Entrydiv">
+		<div><label>Quantity</label>
+		<input type="number"name="Quantity" /></div>
+		<div><label>Date Process</label>
+		<input type="date"name="Date Process" /></div>
+		<div><label>Date Recieved</label>
+		<input type="date"name="Date Recieved" /></div>
+		<div><label>Delivery Date</label>
+		<input type="date"name="Delivery Date" /></div>
+		</div>
+		<div class="Entrydiv">
+		<div><label>Status</label>
+		<input name="Status" /></div>
+		<div><label>PR No.</label>
+		<input type="number"name="PR No." /></div>
+		<div><label>PO No.</label>
+		<input type="number"name="PO No." /></div>
+		<div><label>ARF No.</label>
+		<input name="ARF No." /></div>
+		</div>
+		<div class="Entrydiv">
+		<div><label>RFS No.</label>
+		<input name="RFS No." /></div>
+		<div><label>Purchaser Assigned</label>
+		<input name="Purchaser Assigned" /></div>
+		<div><label>Name of Vendor</label>
+		<input name="Name of Vendor" /></div>
+		<div><label>Remarks</label>
+		<input name="Remarks" /></div></div>
+		
+	</form></div>
+	<button onclick='SubForm()'>Sent to Database</button>
+</br>
+
+
+
+
+<iframe style="width: 93%; height:200%;border:none;border-radius:10px;"  src="https://docs.google.com/spreadsheets/d/1ZjXPfYG0bNK3kRdQCXTcL6dOLpPVV4XqczDnDqMTpVM/edit?usp=sharing&action=embedview&wdbipreview=true&wdAllowInteractivity=true&HideSheetTabs=True"></iframe>
 
 
 
 </center>
+</div>
+
 
 <div id="S4HANAa" style="display:none;">
 <center>
@@ -616,8 +707,6 @@ src="https://docs.google.com/spreadsheets/d/1GiUbc7T--Ajg7waczyBDV9ZXZBD7j2adptG
 
 
 <!------------------------------------------------->
-
-
 
 
 	
