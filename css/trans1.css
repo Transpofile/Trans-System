@@ -32,6 +32,12 @@ h1{background:#303030;
 			transition:2s;
 			color:green;
 			}
+.trans2>.trans3:visited:hover{background:whitesmoke;
+			box-shadow: 5px 50px 90px #fff;
+			cursor:pointer;
+			transition:2s;
+			color:green;
+			}
 
 
 #trans3-1{font-size:3mm;font-family:arial;}
@@ -88,9 +94,23 @@ gmp-map {
 #PR{background:whitesmoke;padding:1%;background:;color:#333;
 	border-radius:5px;font-size:5vm;display:flex;
 	flex-direction:row;margin:3%;}
-.Entryinput{background:#5ed;padding:2%;margin-left:5%;display:flex;font-size:1vw;font-family:calibri;}
+.Entryinput{background:#7ff;padding:2%;margin-left:5%;display:flex;font-size:1vw;font-family:calibri;opactity:50%;}
 .Entryinput>.Entrydiv{padding:1%;}
-input{width:100%;height:auto;padding:2%;border:none;background:#ddd;border-radius:5px;	color:#666;}
+input{width:100%;height:auto;padding:2%;border:none;background:#eee;border-radius:5px;	color:#666;}
 button{background:red;padding:1%;border:none;color:whitesmoke;font-size:1vw;}
 .Entryinput>input{border:none background:red;}
 #myForm{background:#0ed;}
+
+#myForm1(background:whitesmoke;width:500px;}
+.Entryinput1{background:#7ff;padding:2%;margin-left:0;display:flex;font-size:1vw;font-family:calibri;opactity:50%;}
+.Entryinput1>.Entrydiv1{padding:1%;}
+input{width:100%;height:auto;padding:2%;border:none;background:#eee;border-radius:5px;	color:#666;}
+button{background:red;padding:1%;border:none;color:whitesmoke;font-size:1vw;}
+
+
+#maintenance{Display:flex;background:whitesmoke;}
+#form{background:red;}
+
+ 
+
+
