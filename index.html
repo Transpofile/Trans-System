@@ -8,6 +8,58 @@
 
   <link rel="icon" type="image" href="/icon/Transpo.ico">
 
+<style>
+
+
+/* Form Styles */
+  label { display: block; margin-bottom: 5px; }
+  input, textarea { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+  .error { color: red; }
+
+  /* Table Styles */
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background-color: #f2f2f2; }
+  .actions { text-align: center; }
+
+  /* Modal Styles */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+  }
+  .modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 300px;
+  }
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+  }
+  .close:hover, .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .modal-message.success { color: green; }
+  .modal-message.error { color: red; }
+
+
+
+</style>
+
+
 
 <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBoSePhp_1tvRWw9qeneYYZzvWQC3DJtjM&callback=console.debug&libraries=maps,marker&v=beta"></script>
 
@@ -36,6 +88,25 @@
 	</script>
 
 
+
+	<script src="https://code.jquery.com/jquery-3.4.1.js"integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="crossorigin="anonymous"></script>
+
+
+<script>
+		function SubForm (){
+			$.ajax({
+				url:"https://api.apispreadsheets.com/data/CFtkiKZ3Ht97Wj4u/",
+				type:"post",
+				data:$("#myForm1").serializeArray(),
+				success: function(){
+					alert("Form Data Submitted :)")
+				},
+				error: function(){
+					alert("There was an error :(")
+				}
+			});
+		}
+	</script>
 
 
 
@@ -104,17 +175,116 @@ function openCity(evt, cityName) {
 
 <div class="tab">
   <button class="tablinks" onclick="openCity(event, 'Trans-System')">Trans-System</button>
-  <button class="tablinks" onclick="openCity(event, 'Paris')">G.A-System</button>
-  <button class="tablinks" onclick="openCity(event, 'Tokyo')">H.R-System</button>
-  <button class="tablinks" onclick="openCity(event, 'Christmas')">G.A/HR|Personnel</button>
- <button class="tablinks" onclick="openCity(event, 'Connect1')">Connect1</button>
+  <button class="tablinks" onclick="openCity(event, 'G.A-System')">G.A-System</button>
+  <button class="tablinks" onclick="openCity(event, 'H.R-System')">H.R-System</button>
+  <button class="tablinks" onclick="openCity(event, 'G.A/HR|Personnel')">G.A/HR|Personnel</button>
+ <button class="tablinks" onclick="openCity(event, 'Transpo-Orientation')">Transpo Orientation</button>
 </div>
 
-<div id="connect1" class="tabcontent"></div>
+</br>
+
+<div id="G.A-System" class="tabcontent">
+<h1>G.A System</h1>
+
+
+<div id="maintenance" style="background:whitesmoke;padding:1%;">
+<h2>Maintenance Monitoring Records</h2>
+<div>
+
+<iframe align="right" width="75%" height="108%" style="border:none;"src="https://docs.google.com/spreadsheets/d/1iC2u5Yj4r8Ko8fQy4tDDfjp70o7AQV460201DsOQeDA/edit?usp=sharing"></iframe>
+</div>
+
+<div id="form">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+  function submitForm(event) {
+    event.preventDefault(); 
+
+    $.ajax({
+      url: "https://api.apispreadsheets.com/data/CFtkiKZ3Ht97Wj4u/",
+      type: "POST",
+      data: $("#myForm").serializeArray(),
+      success: function() {
+        showModal("Your Data Submitted Successfully!", "success");
+        $("#myForm")[0].reset();
+      },
+      error: function(xhr, status, error) {
+        showModal("Error submitting form: " + xhr.responseText, "error"); 
+      }
+    });
+  }
+
+  function showModal(message, type) {
+    const modal = document.getElementById("myModal");
+    const modalMessage = document.getElementById("modalMessage");
+    modalMessage.textContent = message;
+    modalMessage.classList.remove("success", "error"); 
+    modalMessage.classList.add(type); 
+    modal.style.display = "block";
+  }
+
+  function closeModal() {
+    document.getElementById("myModal").style.display = "none";
+  }
+</script>
+  <div id="myModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <p id="modalMessage" class="modal-message"></p>
+    </div>
+  </div>
+  <form id="myForm" style="width:20%;height:100%;padding:2%;font-size:2vh;">
+ 
+    <label for="No">No</label>
+    <input type="number" id="No" name="No" value="Please input your Reference Number here/>
+    <label for="AreaBldg">Area / Bldg.</label>
+    <input type="text" id="AreaBldg" name="Area / Bldg." required/>
+    <label for="Description">Description</label>
+    <input type="text" id="Description" name="Description" required/>
+    <label for="DateRequested">Date Requested</label>
+    <input type="date" id="DateRequested" name="Date Requested" required/>
+    <label for="CateredBy">Catered By</label>
+    <input type="text" id="CateredBy" name="Catered By" required/>
+     <label for="DateClosed">Date of Item Closed</label>
+    <input type="date" id="DateClosed" name="Date of Item Closed" required/>
+    <label for="Criteria">Criteria of the Request</label>
+    <input type="text" id="Criteria" name="Criteria of the Request" required/>
+    <label for="Measurement">Measurement / Criteria of the Request</label>
+    <select style="padding:2%;"type="text" id="Measurement" name="Measurement / Criteria of the Request" required>
+	<option>Very High</option>
+	<option>High</option>
+	<option>Medium</option>
+	<option>Low</option>
+	</select>
+	
+    <label  for="Remarks">Remarks</label>
+    <textarea id="Remarks" name="Remarks"></textarea>
+    <button style="padding:2%;" type="button" onclick="submitForm(event)">Submit</button>
+  </form></div>
+
+
+
+<div>
+
+</div>
+
+
+
+
+<hr></hr>
+
+</div></div>
+
+
+
+
+<div id="H.R-System" class="tabcontent"></div>
+<div id="G.A/HR|Personnel" class="tabcontent"></div>
+<div id="Transpo-Orientation" class="tabcontent"></div>
 
 
 <div id="Trans-System" class="tabcontent">
-
+<h1>TRANS-SYSTEM</h1>
 
 <div class="trans2">
 
@@ -132,7 +302,7 @@ var text = document.getElementById("Busstop");
 
 
 <div class="trans3" onclick="Busstoplocation()"align="center"id="trans3-1">
-<img src="icon/bus-stop.png" width="100px"height="100px"/></br>
+<img src="icon/bus-stop.png"  width="100px"height="100px"/></br>
 Bus Stop Location
 </div>
 
@@ -148,7 +318,7 @@ var text = document.getElementById("Cam");
 </script>
 
 <div class="trans3" onclick="Dashcam()"onclick="Busstoplocation1" align="center" id="trans3-1">
-<img src="icon/Dash-Cam.png" width="100px"height="100px"/></br>
+<img src="icon/Dash-Cam.png"  width="100px"height="100px"/></br>
 Dash Cam
 </div>
 
@@ -165,7 +335,7 @@ var text = document.getElementById("Driver");
 </script>
 
 <div class="trans3" onclick="Drivers()" align="center" id="trans3-1">
-<img src="icon/driver.png" width="100px"height="100px"/></br>
+<img src="icon/driver.png"  width="100px"height="100px"/></br>
 Drivers
 </div>
 
@@ -182,7 +352,7 @@ var text = document.getElementById("Inventory");
 
 
 <div class="trans3" onclick="Inventoryrecord()"align="center" id="trans3-1">
-<img src="icon/Inventory Record.png" width="100px"height="100px"/></br>
+<img src="icon/Inventory Record.png"  width="100px"height="100px"/></br>
 Inventory Record
 </div>
 
@@ -200,7 +370,7 @@ var text = document.getElementById("Order");
 </script>
 
 <div class="trans3" onclick="Joborder()" align="center" id="trans3-1">
-<img src="icon/JOB Orders.png" width="100px"height="100px"/></br>
+<img src="icon/JOB Orders.png"  width="100px"height="100px"/></br>
 JOB Orders
 </div>
 
@@ -219,46 +389,47 @@ var text = document.getElementById("PR");
 
 
 
+
 <div class="trans3" onclick="PurchaseR()" align="center" id="trans3-1">
-<img src="icon/Purchase Request.png" width="100px"height="100px"/></br>
+<img src="icon/Purchase Request.png"  width="100px"height="100px"/></br>
 Purchase Request
 </div>
 
 <div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Vehicle.png" width="100px"height="100px"/></a></br>
+<a href=""/><img src="icon/Vehicle.png"  width="100px"height="100px"/></a></br>
 Vehicle
 </div>
 
 <div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Odo Meter.png" width="100px"height="100px"/></a></br>
+<a href=""/><img src="icon/Odo Meter.png"  width="100px"height="100px"/></a></br>
 Odo Meter
 </div>
 
 <div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Aircon.png" width="100px"height="100px"/></a></br>
+<a href=""/><img src="icon/Aircon.png"  width="100px"height="100px"/></a></br>
 Car Aircon
 </div>
 
 
 <div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Fuel.png" width="100px"height="100px"/></a></br>
+<a href=""/><img src="icon/Fuel.png"  width="100px"height="100px"/></a></br>
 Fuel Reservation
 </div>
 
 
 <div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Disposal.png" width="100px"height="100px"/></a></br>
+<a href=""/><img src="icon/Disposal.png"  width="100px"height="100px"/></a></br>
 Disposal Record
 </div>
 
 <div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Vehicle Checklist.png" width="100px"height="100px"/></a></br>
+<a href=""/><img src="icon/Vehicle Checklist.png"  width="100px"height="100px"/></a></br>
 Vehicle Checklist
 </div>
 
 
 <div class="trans3" align="center" id="trans3-1">
-<a href=""/><img src="icon/Spareparts.png" width="100px"height="100px"/></a></br>
+<a href=""/><img src="icon/Spareparts.png"  width="100px"height="100px"/></a></br>
 Spare Parts
 </div>
 
@@ -277,7 +448,7 @@ var text = document.getElementById("S4HANAa");
 </script>
 
 <div class="trans3" onclick="S4HANA()" align="center" id="trans3-1">
-<img src="icon/S4HANA.png" width="100px"height="100px"id="s4hana"/></br>
+<a href="https://s4hana-production.sap.smmph.local:44300/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html"><img src="icon/S4HANA.png" width="100px"height="100px"id="s4hana"/></a></br>
 S4HANA
 </div>
 
@@ -294,7 +465,7 @@ var text = document.getElementById("GPS");
 </script>
 
 <div class="trans3" align="center" id="trans3-1">
-<img src="icon/Trans-Site.png" width="100px"height="100px"id="trans-system1"/></br>
+<img src="icon/Trans-Site.png"  width="100px"height="100px"id="trans-system1"/></br>
 Trans-Site
 </div>
 
@@ -315,7 +486,7 @@ function transsystem(){
 
 
 <div class="trans3" onclick="GPSs()" align="center" id="trans3-1">
-<img src="icon/GPS Tracker.png" width="100px"height="100px" id="gps"/></br>
+<img src="icon/GPS Tracker.png" width="100px"height="100px"width="10%"height="auto" id="gps"/></br>
 Starcom Gps
 </div>
 
@@ -414,7 +585,7 @@ this area for update, Please wait for an update
     <h1> Driver Information Record </h1>
     <h4>User Data Management</h2>
 
-<iframe style="width:100%; height:150%;border-radius:10px;border:none;" src="https://docs.google.com/spreadsheets/d/1IBC2hbzFdcm0kigIVT7Pe-FJKvfm_o3gWQ7llJEMNhs/edit?usp=sharing"></iframe>
+<iframe style="width:100%; height:70%;border-radius:10px;border:none;" src="https://docs.google.com/spreadsheets/d/1IBC2hbzFdcm0kigIVT7Pe-FJKvfm_o3gWQ7llJEMNhs/edit?usp=sharing"></iframe>
 
 <center>
    <div id="formContainer">
@@ -555,7 +726,7 @@ this area for update, Please wait for an update
 <script>(function(doc, id){var scripts=doc.getElementsByTagName("script")[0]; if (!doc.getElementById(id)){var script=doc.createElement("script"); script.async=1; script.id=id; script.src="https://cdn.jotfor.ms/s/umd/latest/for-sheets-embed.js"; scripts.parentNode.insertBefore(script, scripts);}})(document, "jotform-async");</script>
 --->
 
-<iframe style="width:100%; height:300%;border:none;" src="https://docs.google.com/spreadsheets/d/18iZzOUXk1t5YANlcf5YG1_ULTBgSe3jB8r00oz7i68o/edit?usp=sharing&HideTabs=True"></iframe>
+<iframe style="width:100%; height:90%;border:none;" src="https://docs.google.com/spreadsheets/d/18iZzOUXk1t5YANlcf5YG1_ULTBgSe3jB8r00oz7i68o/edit?usp=sharing&HideTabs=True"></iframe>
 
 
 </div></center>
@@ -569,20 +740,21 @@ this area for update, Please wait for an update
 <!---<div class="jotform-table-embed" style="width: 100%; height: 600px;" data-id="242221898352055" data-iframesource="www.jotform.com" data-type="interactive"></div><script>(function(doc, id){var scripts=doc.getElementsByTagName("script")[0]; if (!doc.getElementById(id)){var script=doc.createElement("script"); script.async=1; script.id=id; script.src="https://cdn.jotfor.ms/s/umd/latest/for-sheets-embed.js"; scripts.parentNode.insertBefore(script, scripts);}})(document, "jotform-async");</script>-->
 
 
-<iframe style="width: 93%; height:200%;border:none;border-radius:10px;" 
+<iframe style="width: 93%; height:70%;border:none;border-radius:10px;" 
 src="https://docs.google.com/spreadsheets/d/1GiUbc7T--Ajg7waczyBDV9ZXZBD7j2adptGPonMDxCE/edit?usp=sharing&action=embedview&wdbipreview=true&wdAllowInteractivity=true&HideSheetTabs=True"></iframe>
 </center></div>
 
 
 <div id="PR" style="display:none;">
 <h2>Request for Purchase Item</h2>
+<h4 style="font-family:calibri;font-size:1vw;">Data Entry</h4>
 <center>
 
 	<form id="myForm">
 	<div align="left" class="Entryinput">
 		<div class="Entrydiv">
 		<div><label>Material No</label>
-		<input type="number" name="Material No" /></div>
+		<input name="Material Nol" /></div>
 		<div><label>Material</label>
 		<input name="Material" /></div>
 		<div><label>Description</label>
@@ -627,7 +799,7 @@ src="https://docs.google.com/spreadsheets/d/1GiUbc7T--Ajg7waczyBDV9ZXZBD7j2adptG
 
 
 
-<iframe style="width: 93%; height:200%;border:none;border-radius:10px;"  src="https://docs.google.com/spreadsheets/d/1ZjXPfYG0bNK3kRdQCXTcL6dOLpPVV4XqczDnDqMTpVM/edit?usp=sharing&action=embedview&wdbipreview=true&wdAllowInteractivity=true&HideSheetTabs=True"></iframe>
+<iframe style="width: 93%; height:70%;border:none;border-radius:10px;"  src="https://docs.google.com/spreadsheets/d/1ZjXPfYG0bNK3kRdQCXTcL6dOLpPVV4XqczDnDqMTpVM/edit?usp=sharing&action=embedview&wdbipreview=true&wdAllowInteractivity=true&HideSheetTabs=True"></iframe>
 
 
 
@@ -637,7 +809,7 @@ src="https://docs.google.com/spreadsheets/d/1GiUbc7T--Ajg7waczyBDV9ZXZBD7j2adptG
 
 <div id="S4HANAa" style="display:none;">
 <center>
-<iframe style="width:93%; height:130%;border:none;" src="https://s4hana-production.sap.smmph.local:44300/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html"></iframe>
+<iframe style="width:93%; height:100%;border:none;" src="#"></iframe>
 </center>
 </div>
 
@@ -646,7 +818,7 @@ src="https://docs.google.com/spreadsheets/d/1GiUbc7T--Ajg7waczyBDV9ZXZBD7j2adptG
 <div id="GPS" style="display:none;">
 <hr></hr>
 <center>
-<iframe style="width:93%; height:130%;border:none;"src="http://www.novelnovelties.com/starcomm2/" onclick="gpstracker()"></iframe>
+<iframe style="width:93%; height:100%;border:none;"src="http://www.novelnovelties.com/starcomm2/" onclick="gpstracker()"></iframe>
 </center>
 </div>
 
