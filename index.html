@@ -54,9 +54,15 @@
         }
 
         /* Inventory Tabs */
-        .inv-tab { border-bottom: 2px solid transparent; color: #64748b; transition: all 0.3s; }
-        .inv-tab.active { border-color: #4f46e5; color: #4f46e5; font-weight: bold; }
+        .inv-tab { border-bottom: 2px solid transparent; color: #64748b; transition: all 0.3s; white-space: nowrap; padding: 0.5rem 1rem; }
+        .inv-tab:hover { background-color: rgba(99, 102, 241, 0.05); }
+        .inv-tab.active { border-color: #4f46e5; color: #4f46e5; font-weight: bold; background-color: rgba(99, 102, 241, 0.1); border-radius: 8px 8px 0 0; }
         .dark .inv-tab.active { border-color: #6366f1; color: #6366f1; }
+
+        /* Calendar Grid */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-day { aspect-ratio: 1; display: flex; flex-col; items-center; justify-center; border-radius: 8px; font-size: 0.8rem; position: relative; }
+        .has-event::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #ef4444; border-radius: 50%; }
 
         /* Modal */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.9); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem; opacity: 0; transition: opacity 0.2s ease; }
@@ -64,12 +70,6 @@
         .modal-content { transform: scale(0.95); transition: transform 0.2s ease; }
         .modal.open .modal-content { transform: scale(1); }
         
-        /* Calendar Grid */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .calendar-day { aspect-ratio: 1; display: flex; flex-col; items-center; justify-center; border-radius: 8px; font-size: 0.8rem; position: relative; }
-        .has-event::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #ef4444; border-radius: 50%; }
-
-        /* Print */
         @media print {
             body * { visibility: hidden; }
             #request-details-modal, #request-details-modal * { visibility: visible; }
@@ -121,46 +121,37 @@
             <section id="view-dashboard" class="view-section fade-in">
                 <h2 class="text-2xl font-bold dark:text-white mb-6">Dashboard</h2>
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <!-- Stats Cards (Same as before) -->
                     <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border-l-4 border-brand-500">
-                        <p class="text-xs font-bold text-slate-500 uppercase">Items</p><h3 class="text-3xl font-bold dark:text-white mt-2" id="dash-total-items">--</h3>
+                        <p class="text-xs font-bold text-slate-500 uppercase">Total Items</p><h3 class="text-3xl font-bold dark:text-white mt-2" id="dash-total-items">--</h3>
                     </div>
                     <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border-l-4 border-red-500 cursor-pointer" onclick="openLowStockTab()">
-                        <p class="text-xs font-bold text-slate-500 uppercase">Low Stock</p><h3 class="text-3xl font-bold text-red-600 mt-2" id="dash-low-stock">--</h3>
+                        <p class="text-xs font-bold text-slate-500 uppercase">Low Stock Alerts</p><h3 class="text-3xl font-bold text-red-600 mt-2" id="dash-low-stock">--</h3>
                     </div>
                     <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border-l-4 border-yellow-500">
-                        <p class="text-xs font-bold text-slate-500 uppercase">Pending</p><h3 class="text-3xl font-bold text-yellow-600 mt-2" id="dash-pending">--</h3>
+                        <p class="text-xs font-bold text-slate-500 uppercase">Pending Reqs</p><h3 class="text-3xl font-bold text-yellow-600 mt-2" id="dash-pending">--</h3>
                     </div>
                     <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500">
-                        <p class="text-xs font-bold text-slate-500 uppercase">PRs</p><h3 class="text-3xl font-bold text-emerald-600 mt-2" id="dash-pr-active">--</h3>
+                        <p class="text-xs font-bold text-slate-500 uppercase">Active PRs</p><h3 class="text-3xl font-bold text-emerald-600 mt-2" id="dash-pr-active">--</h3>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Distribution Chart -->
                     <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700">
-                        <h3 class="font-bold mb-4 dark:text-white">Inventory Distribution</h3>
+                        <h3 class="font-bold mb-4 dark:text-white">Inventory Overview</h3>
                         <div class="h-64"><canvas id="trading-chart"></canvas></div>
                     </div>
-                    <!-- Activity Calendar -->
                     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700">
-                        <h3 class="font-bold mb-4 dark:text-white flex justify-between items-center">
-                            <span>Activity Calendar</span>
-                            <span class="text-xs font-normal text-slate-500" id="calendar-month"></span>
-                        </h3>
-                        <div class="text-xs text-center grid grid-cols-7 mb-2 text-slate-400 font-bold">
-                            <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
-                        </div>
+                        <h3 class="font-bold mb-4 dark:text-white flex justify-between"><span>Activity Calendar</span><span id="calendar-month" class="text-xs font-normal text-slate-500"></span></h3>
+                        <div class="text-xs text-center grid grid-cols-7 mb-2 text-slate-400 font-bold"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
                         <div id="calendar-grid" class="calendar-grid text-slate-700 dark:text-slate-300"></div>
-                        <div class="mt-4 text-[10px] text-slate-400 text-center">Red dot indicates withdrawal or PR activity</div>
                     </div>
                 </div>
             </section>
 
-            <!-- INVENTORY (Tabs: All, Low Stock, Tires) -->
+            <!-- INVENTORY -->
             <section id="view-inventory" class="view-section hidden fade-in">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                    <h2 class="text-2xl font-bold dark:text-white">Inventory Management</h2>
+                    <h2 class="text-2xl font-bold dark:text-white">Inventory</h2>
                     <div class="flex w-full md:w-auto gap-3">
                         <div class="relative flex-1 md:w-64">
                             <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
@@ -170,19 +161,18 @@
                     </div>
                 </div>
 
-                <!-- Tabs -->
-                <div class="flex gap-6 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto">
-                    <button class="inv-tab active pb-2 px-2 whitespace-nowrap" onclick="switchInvTab('all', this)">All Items</button>
-                    <button class="inv-tab pb-2 px-2 whitespace-nowrap text-red-500" onclick="switchInvTab('low', this)">Low Stock List</button>
-                    <button class="inv-tab pb-2 px-2 whitespace-nowrap" onclick="switchInvTab('tires', this)">Tires (Trends)</button>
+                <!-- DYNAMIC TABS -->
+                <div id="inventory-tabs-container" class="flex gap-4 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto pb-1">
+                    <!-- Tabs injected by JS -->
                 </div>
                 
-                <!-- Tire Trends Graph (Visible only on Tire Tab) -->
-                <div id="tire-trends-container" class="hidden mb-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm h-64">
-                    <canvas id="tire-chart"></canvas>
+                <!-- DYNAMIC TRENDS GRAPH (Shown for Categories) -->
+                <div id="category-trends-container" class="hidden mb-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm h-64 border dark:border-slate-700">
+                    <h3 id="trends-title" class="text-sm font-bold dark:text-white mb-2">Category Trends</h3>
+                    <div class="h-full pb-6"><canvas id="category-chart"></canvas></div>
                 </div>
 
-                <!-- Table -->
+                <!-- TABLE -->
                 <div class="w-full">
                     <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300">
                         <thead class="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-bold text-slate-500 dark:text-slate-400">
@@ -213,26 +203,35 @@
                 </div>
             </section>
 
-            <!-- REQUESTS & PR (Standard Views) -->
+            <!-- WITHDRAWALS -->
             <section id="view-requests" class="view-section hidden fade-in">
-                <h2 class="text-2xl font-bold dark:text-white mb-6">Withdrawals</h2>
-                <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300"><tbody id="requests-body"></tbody></table>
+                <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold dark:text-white">Withdrawals</h2><button onclick="navTo('view-request-withdrawal')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow">New Request</button></div>
+                <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300">
+                     <thead class="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-bold text-slate-500 dark:text-slate-400"><tr><th class="px-4 py-3">ID / Date</th><th class="px-4 py-3">Requester</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Action</th></tr></thead>
+                     <tbody id="requests-body"></tbody>
+                </table>
             </section>
-
-             <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-3xl mx-auto">
-                 <!-- Form same as previous, ensured presence via JS nav -->
-                <h2 class="text-2xl font-bold dark:text-white mb-6">New Withdrawal</h2>
+            
+            <!-- NEW WITHDRAWAL FORM -->
+            <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-3xl mx-auto">
+                <h2 class="text-2xl font-bold dark:text-white mb-6">Create Withdrawal</h2>
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl">
                     <form id="form-withdrawal" class="space-y-4">
-                        <input id="req-name" placeholder="Name" class="w-full border p-2 rounded dark:bg-slate-700 dark:text-white">
-                        <select id="req-dept" class="w-full border p-2 rounded dark:bg-slate-700 dark:text-white"></select>
-                        <input id="req-reason" placeholder="Reason" class="w-full border p-2 rounded dark:bg-slate-700 dark:text-white">
-                        <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded"><div id="withdrawal-rows" class="space-y-2"></div><button type="button" onclick="addWithdrawalRow()" class="text-xs text-brand-600 font-bold">+ Add Item</button></div>
-                        <button type="submit" class="w-full bg-brand-600 text-white py-3 rounded-lg font-bold">Submit</button>
+                        <div class="grid grid-cols-2 gap-4">
+                            <input id="req-name" placeholder="Requester Name" class="w-full border p-2 rounded dark:bg-slate-700 dark:text-white" required>
+                            <select id="req-dept" class="w-full border p-2 rounded dark:bg-slate-700 dark:text-white" required></select>
+                        </div>
+                        <input id="req-reason" placeholder="Reason/Purpose" class="w-full border p-2 rounded dark:bg-slate-700 dark:text-white" required>
+                        <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded border dark:border-slate-700">
+                            <div class="flex justify-between mb-2"><span class="text-sm font-bold dark:text-white">Items</span><button type="button" onclick="addWithdrawalRow()" class="text-xs text-brand-600 font-bold">+ Add Item</button></div>
+                            <div id="withdrawal-rows" class="space-y-2"></div>
+                        </div>
+                        <button type="submit" class="w-full bg-brand-600 text-white py-3 rounded-lg font-bold">Submit Request</button>
                     </form>
                 </div>
-             </section>
+            </section>
 
+            <!-- PURCHASE REQUESTS -->
             <section id="view-pr-requests" class="view-section hidden fade-in">
                 <div class="flex justify-between mb-6"><h2 class="text-2xl font-bold dark:text-white">Purchase Requests</h2><button onclick="openPREditModal()" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-bold">New PR</button></div>
                 <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300"><tbody id="pr-requests-body"></tbody></table>
@@ -268,8 +267,8 @@
             <h2 class="text-xl font-bold dark:text-white mb-4">Item Details</h2>
             <div id="view-item-content" class="text-sm dark:text-slate-300 mb-4 space-y-2"></div>
             <div class="grid grid-cols-2 gap-4">
-                <a id="btn-view-image" target="_blank" class="block w-full text-center bg-blue-50 text-blue-600 py-3 rounded-lg font-bold hover:bg-blue-100 transition"><i class="fas fa-image mr-2"></i>View Image</a>
-                <a id="btn-view-sds" target="_blank" class="block w-full text-center bg-orange-50 text-orange-600 py-3 rounded-lg font-bold hover:bg-orange-100 transition"><i class="fas fa-file-pdf mr-2"></i>View SDS</a>
+                <a id="btn-view-image" target="_blank" class="block w-full text-center bg-blue-50 text-blue-600 py-3 rounded-lg font-bold hover:bg-blue-100 transition cursor-pointer"><i class="fas fa-image mr-2"></i>View Image</a>
+                <a id="btn-view-sds" target="_blank" class="block w-full text-center bg-orange-50 text-orange-600 py-3 rounded-lg font-bold hover:bg-orange-100 transition cursor-pointer"><i class="fas fa-file-pdf mr-2"></i>View SDS</a>
             </div>
         </div>
     </div>
@@ -305,9 +304,9 @@
         <p id="toast-msg">Success</p>
     </div>
 
-    <!-- THPAL/PR Modals (Kept hidden but present for functionality) -->
-    <div id="request-details-modal" class="modal"><div class="bg-white p-6 rounded-lg w-full max-w-4xl h-[90vh] overflow-auto"><button onclick="closeModal('request-details-modal')">Close</button><div id="print-area"></div></div></div>
-    <div id="pr-modal" class="modal"><div class="bg-white p-6 rounded-lg"><form id="form-pr"><input id="pr-id" type="hidden"><input id="pr-desc" placeholder="Desc" class="border p-2 w-full mb-2"><input id="pr-qty" type="number" placeholder="Qty" class="border p-2 w-full mb-2"><button type="submit" class="bg-blue-600 text-white p-2 rounded w-full">Save</button></form></div></div>
+    <!-- Hidden Utils: THPAL/PR Modals -->
+    <div id="request-details-modal" class="modal"><div class="bg-white p-6 rounded-lg w-full max-w-4xl h-[90vh] overflow-auto"><button onclick="closeModal('request-details-modal')" class="bg-gray-200 px-4 py-2 rounded mb-4">Close</button><div id="print-area"></div></div></div>
+    <div id="pr-modal" class="modal"><div class="bg-white p-6 rounded-lg w-full max-w-sm"><form id="form-pr" class="flex flex-col gap-3"><input id="pr-id" type="hidden"><input id="pr-desc" placeholder="Desc" class="border p-2 rounded"><input id="pr-qty" type="number" placeholder="Qty" class="border p-2 rounded"><button type="submit" class="bg-blue-600 text-white p-2 rounded">Save</button><button type="button" onclick="closeModal('pr-modal')" class="text-xs">Cancel</button></form></div></div>
 
     <script>
         const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
@@ -317,7 +316,7 @@
         let master = { categories: [], units: [], departments: [] };
         let activeInvTab = 'all';
         let chartInstance = null;
-        let tireChartInstance = null;
+        let categoryChartInstance = null;
 
         window.onload = async () => {
             setLoading(true);
@@ -372,14 +371,30 @@
             const c = d.find(x=>x.key==='config');
             if(c) master = c.data;
             else await supabase.from('master_data').insert({key:'config',data:{categories:['Tires','Parts'],units:['Pcs'],departments:['Ops']}});
+            
+            // Populate Dropdowns
             ['inv-cat','inv-unit','req-dept'].forEach(id=>{
                 const k = id.includes('cat')?'categories':id.includes('unit')?'units':'departments';
                 document.getElementById(id).innerHTML = '<option value="">Select...</option>' + master[k].map(x=>`<option value="${x}">${x}</option>`).join('');
             });
             renderMasterUI();
+            renderInventoryTabs();
         }
 
-        // --- INVENTORY TABS & LOGIC ---
+        // --- DYNAMIC TABS LOGIC ---
+        function renderInventoryTabs() {
+            const container = document.getElementById('inventory-tabs-container');
+            let html = `
+                <button class="inv-tab active" onclick="switchInvTab('all', this)">All Items</button>
+                <button class="inv-tab text-red-500" onclick="switchInvTab('low', this)">Low Stock</button>
+                <button class="inv-tab text-green-600" onclick="switchInvTab('high', this)">High Stock</button>
+            `;
+            master.categories.forEach(cat => {
+                html += `<button class="inv-tab" onclick="switchInvTab('${cat}', this)">${cat}</button>`;
+            });
+            container.innerHTML = html;
+        }
+
         function switchInvTab(tab, btn) {
             activeInvTab = tab;
             document.querySelectorAll('.inv-tab').forEach(b => b.classList.remove('active'));
@@ -389,7 +404,9 @@
 
         function openLowStockTab() {
             navTo('view-inventory');
-            switchInvTab('low', document.querySelectorAll('.inv-tab')[1]);
+            const tabs = document.querySelectorAll('.inv-tab');
+            // Assuming Low Stock is 2nd tab (index 1)
+            if(tabs[1]) switchInvTab('low', tabs[1]);
         }
 
         async function renderInventory() {
@@ -399,16 +416,21 @@
             
             // Filter Logic
             let filtered = items.filter(i => i.name.toLowerCase().includes(term) || i.code.toLowerCase().includes(term));
+            
             if(activeInvTab === 'low') filtered = filtered.filter(i => i.stock <= 5);
-            if(activeInvTab === 'tires') filtered = filtered.filter(i => i.category === 'Tires');
+            else if(activeInvTab === 'high') filtered = filtered.filter(i => i.stock > 5);
+            else if(activeInvTab !== 'all') filtered = filtered.filter(i => i.category === activeInvTab);
 
-            // Tire Trends Graph Logic
-            const tireContainer = document.getElementById('tire-trends-container');
-            if(activeInvTab === 'tires') {
-                tireContainer.classList.remove('hidden');
-                renderTireChart(filtered);
+            // Chart Update Logic (Show chart only if a specific category tab is selected)
+            const chartCont = document.getElementById('category-trends-container');
+            const isCategoryTab = activeInvTab !== 'all' && activeInvTab !== 'low' && activeInvTab !== 'high';
+            
+            if(isCategoryTab) {
+                chartCont.classList.remove('hidden');
+                document.getElementById('trends-title').innerText = `${activeInvTab} Stock Trends`;
+                renderCategoryChart(filtered);
             } else {
-                tireContainer.classList.add('hidden');
+                chartCont.classList.add('hidden');
             }
 
             if(filtered.length === 0) { document.getElementById('inv-empty').classList.remove('hidden'); return; }
@@ -433,14 +455,14 @@
             });
         }
 
-        function renderTireChart(items) {
-            const ctx = document.getElementById('tire-chart').getContext('2d');
-            if(tireChartInstance) tireChartInstance.destroy();
-            tireChartInstance = new Chart(ctx, {
+        function renderCategoryChart(items) {
+            const ctx = document.getElementById('category-chart').getContext('2d');
+            if(categoryChartInstance) categoryChartInstance.destroy();
+            categoryChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: items.map(i => i.code),
-                    datasets: [{ label: 'Tire Stock Levels', data: items.map(i => i.stock), backgroundColor: '#4f46e5' }]
+                    datasets: [{ label: 'Stock Level', data: items.map(i => i.stock), backgroundColor: '#6366f1', borderRadius: 4 }]
                 },
                 options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
             });
@@ -517,14 +539,11 @@
             // Collect events dates
             const eventDates = new Set();
             [...r, ...p].forEach(item => {
-                // Assuming date format is local date string or ISO
-                const d = new Date(item.date || item.created_at); // Fallback logic
+                const d = new Date(item.date || item.created_at);
                 if(d.getMonth() === month && d.getFullYear() === year) eventDates.add(d.getDate());
             });
 
-            // Empty slots
             for(let j=0; j<startDay; j++) calGrid.innerHTML += `<div></div>`;
-            // Days
             for(let d=1; d<=daysInMonth; d++) {
                 const hasEvent = eventDates.has(d) ? 'has-event' : '';
                 calGrid.innerHTML += `<div class="calendar-day ${hasEvent} bg-slate-100 dark:bg-slate-700">${d}</div>`;
@@ -549,6 +568,8 @@
         document.getElementById('form-withdrawal').onsubmit = async(e)=>{e.preventDefault(); setLoading(true); await db('requests','add',{requester:document.getElementById('req-name').value, department:document.getElementById('req-dept').value, status:'Pending', date: new Date().toLocaleDateString() }); setLoading(false); e.target.reset(); showToast('Sent'); }
         async function renderRequests(){const r=await db('requests','get'); document.getElementById('requests-body').innerHTML=r.map(x=>`<tr class="border-b dark:border-slate-700"><td class="p-3 text-xs">#${x.id}<br>${x.date}</td><td class="p-3 font-bold text-sm">${x.requester}</td><td class="p-3 text-xs">${x.status}</td><td class="p-3 text-right"><button onclick="db('requests','delete',${x.id}).then(renderRequests)" class="text-red-500"><i class="fas fa-trash"></i></button></td></tr>`).join('');}
         async function renderPRs(){const p=await db('pr_requests','get'); document.getElementById('pr-requests-body').innerHTML=p.map(x=>`<tr class="border-b dark:border-slate-700"><td class="p-3 font-bold text-sm">${x.materialDescription}</td><td class="p-3 text-sm">${x.quantity}</td><td class="p-3 text-xs">${x.status}</td><td class="p-3 text-right"><button onclick="db('pr_requests','delete',${x.id}).then(renderPRs)" class="text-red-500"><i class="fas fa-trash"></i></button></td></tr>`).join('');}
+        function openPREditModal() { document.getElementById('form-pr').reset(); document.getElementById('pr-id').value=''; document.getElementById('pr-modal').classList.add('open'); }
+        document.getElementById('form-pr').onsubmit = async (e)=>{e.preventDefault(); const d={materialDescription:document.getElementById('pr-desc').value,quantity:document.getElementById('pr-qty').value,status:'Pending'}; await db('pr_requests','add',d); closeModal('pr-modal'); renderPRs();}
     </script>
 </body>
 </html>
