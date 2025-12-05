@@ -54,7 +54,7 @@
         }
 
         /* Inventory Tabs */
-        .inv-tab { border-bottom: 2px solid transparent; color: #64748b; transition: all 0.3s; white-space: nowrap; padding: 0.5rem 1rem; }
+        .inv-tab { border-bottom: 2px solid transparent; color: #64748b; transition: all 0.3s; white-space: nowrap; padding: 0.5rem 1rem; font-size: 0.9rem; }
         .inv-tab:hover { background-color: rgba(99, 102, 241, 0.05); }
         .inv-tab.active { border-color: #4f46e5; color: #4f46e5; font-weight: bold; background-color: rgba(99, 102, 241, 0.1); border-radius: 8px 8px 0 0; }
         .dark .inv-tab.active { border-color: #6366f1; color: #6366f1; }
@@ -110,7 +110,7 @@
                 <button onclick="navTo('view-pr-requests')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i class="fas fa-file-invoice w-5"></i> Purchase Reqs</button>
                 <p class="text-xs font-bold uppercase text-slate-500 mt-6 mb-2 px-2">System</p>
                 <button onclick="navTo('view-audit-logs')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i class="fas fa-history w-5"></i> Audit Logs</button>
-                <button onclick="navTo('view-master-data')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i class="fas fa-cogs w-5"></i> Config</button>
+                <button onclick="navTo('view-master-data')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i class="fas fa-database w-5"></i> Config</button>
             </nav>
         </aside>
 
@@ -162,7 +162,7 @@
                 </div>
 
                 <!-- DYNAMIC TABS -->
-                <div id="inventory-tabs-container" class="flex gap-4 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto pb-1">
+                <div id="inventory-tabs-container" class="flex gap-2 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto pb-1">
                     <!-- Tabs injected by JS -->
                 </div>
                 
@@ -237,13 +237,49 @@
                 <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300"><tbody id="pr-requests-body"></tbody></table>
             </section>
 
-            <!-- MASTER DATA -->
+            <!-- MASTER DATA CONFIGURATION -->
             <section id="view-master-data" class="view-section hidden fade-in">
                 <h2 class="text-2xl font-bold dark:text-white mb-6">Configuration</h2>
+                
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl h-96 flex flex-col"><h3 class="font-bold mb-2 dark:text-white">Categories</h3><div class="flex gap-2 mb-2"><input id="new-cat" class="flex-1 border rounded px-2 dark:bg-slate-700 dark:text-white"><button onclick="addMaster('categories','new-cat')" class="text-brand-600 font-bold">+</button></div><div id="list-categories" class="flex-1 overflow-y-auto"></div></div>
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl h-96 flex flex-col"><h3 class="font-bold mb-2 dark:text-white">Units</h3><div class="flex gap-2 mb-2"><input id="new-unit" class="flex-1 border rounded px-2 dark:bg-slate-700 dark:text-white"><button onclick="addMaster('units','new-unit')" class="text-brand-600 font-bold">+</button></div><div id="list-units" class="flex-1 overflow-y-auto"></div></div>
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl h-96 flex flex-col"><h3 class="font-bold mb-2 dark:text-white">Departments</h3><div class="flex gap-2 mb-2"><input id="new-dept" class="flex-1 border rounded px-2 dark:bg-slate-700 dark:text-white"><button onclick="addMaster('departments','new-dept')" class="text-brand-600 font-bold">+</button></div><div id="list-departments" class="flex-1 overflow-y-auto"></div></div>
+                    <!-- Categories Config -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700 p-5 flex flex-col h-96">
+                        <div class="flex items-center gap-2 mb-4 pb-3 border-b dark:border-slate-700">
+                            <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fas fa-tags"></i></div>
+                            <h3 class="font-bold dark:text-white">Categories</h3>
+                        </div>
+                        <div class="flex gap-2 mb-3">
+                            <input id="add-master-categories" placeholder="Add Category" class="flex-1 border dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:bg-slate-700 dark:text-white">
+                            <button onclick="addMasterItem('categories')" class="bg-blue-600 text-white w-10 rounded-lg hover:bg-blue-700 transition"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div id="master-categories-list" class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar"></div>
+                    </div>
+
+                    <!-- Units Config -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700 p-5 flex flex-col h-96">
+                        <div class="flex items-center gap-2 mb-4 pb-3 border-b dark:border-slate-700">
+                            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fas fa-ruler"></i></div>
+                            <h3 class="font-bold dark:text-white">Units</h3>
+                        </div>
+                        <div class="flex gap-2 mb-3">
+                            <input id="add-master-units" placeholder="Add Unit" class="flex-1 border dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:bg-slate-700 dark:text-white">
+                            <button onclick="addMasterItem('units')" class="bg-purple-600 text-white w-10 rounded-lg hover:bg-purple-700 transition"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div id="master-units-list" class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar"></div>
+                    </div>
+
+                    <!-- Departments Config -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700 p-5 flex flex-col h-96">
+                        <div class="flex items-center gap-2 mb-4 pb-3 border-b dark:border-slate-700">
+                            <div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center"><i class="fas fa-building"></i></div>
+                            <h3 class="font-bold dark:text-white">Departments</h3>
+                        </div>
+                        <div class="flex gap-2 mb-3">
+                            <input id="add-master-departments" placeholder="Add Department" class="flex-1 border dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:bg-slate-700 dark:text-white">
+                            <button onclick="addMasterItem('departments')" class="bg-orange-600 text-white w-10 rounded-lg hover:bg-orange-700 transition"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div id="master-departments-list" class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar"></div>
+                    </div>
                 </div>
             </section>
 
@@ -321,7 +357,7 @@
         window.onload = async () => {
             setLoading(true);
             loadTheme();
-            await loadMaster();
+            await loadMasterData();
             await renderDashboard();
             setLoading(false);
         };
@@ -339,6 +375,7 @@
             if(id==='view-audit-logs') renderLogs();
             if(id==='view-dashboard') renderDashboard();
             if(id==='view-requests') renderRequests();
+            if(id==='view-master-data') renderMasterLists();
         }
 
         async function db(table, op, data) {
@@ -366,7 +403,8 @@
             await supabase.from('logs').insert({ timestamp: new Date().toLocaleString(), action, details });
         }
 
-        async function loadMaster() {
+        // --- MASTER DATA LOGIC ---
+        async function loadMasterData() {
             const d = await db('master_data', 'get');
             const c = d.find(x=>x.key==='config');
             if(c) master = c.data;
@@ -375,10 +413,50 @@
             // Populate Dropdowns
             ['inv-cat','inv-unit','req-dept'].forEach(id=>{
                 const k = id.includes('cat')?'categories':id.includes('unit')?'units':'departments';
-                document.getElementById(id).innerHTML = '<option value="">Select...</option>' + master[k].map(x=>`<option value="${x}">${x}</option>`).join('');
+                const el = document.getElementById(id);
+                if(el) el.innerHTML = '<option value="">Select...</option>' + master[k].map(x=>`<option value="${x}">${x}</option>`).join('');
             });
-            renderMasterUI();
+            
+            renderMasterLists();
             renderInventoryTabs();
+        }
+
+        function renderMasterLists() {
+            ['categories', 'units', 'departments'].forEach(key => {
+                const container = document.getElementById(`master-${key}-list`);
+                container.innerHTML = master[key].map(item => `
+                    <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg border border-slate-100 dark:border-slate-600 group">
+                        <span class="text-sm font-medium dark:text-slate-200">${item}</span>
+                        <button onclick="deleteMasterItem('${key}', '${item}')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times-circle"></i></button>
+                    </div>
+                `).join('');
+            });
+        }
+
+        async function addMasterItem(key) {
+            const inputId = `add-master-${key}`;
+            const input = document.getElementById(inputId);
+            const val = input.value.trim();
+            if(!val) return;
+            setLoading(true);
+            if(!master[key].includes(val)) {
+                master[key].push(val);
+                await supabase.from('master_data').update({data:master}).eq('key','config');
+                input.value = '';
+                await loadMasterData();
+                showToast('Added ' + val);
+            }
+            setLoading(false);
+        }
+
+        async function deleteMasterItem(key, val) {
+            if(!confirm(`Delete "${val}" from ${key}?`)) return;
+            setLoading(true);
+            master[key] = master[key].filter(i => i !== val);
+            await supabase.from('master_data').update({data:master}).eq('key','config');
+            await loadMasterData();
+            setLoading(false);
+            showToast('Deleted ' + val);
         }
 
         // --- DYNAMIC TABS LOGIC ---
@@ -405,7 +483,6 @@
         function openLowStockTab() {
             navTo('view-inventory');
             const tabs = document.querySelectorAll('.inv-tab');
-            // Assuming Low Stock is 2nd tab (index 1)
             if(tabs[1]) switchInvTab('low', tabs[1]);
         }
 
@@ -557,11 +634,6 @@
                 <tr class="border-b dark:border-slate-700"><td class="px-4 py-2 text-xs text-slate-500">${x.timestamp}</td><td class="px-4 py-2 font-bold text-sm dark:text-white">${x.action}</td><td class="px-4 py-2 text-sm dark:text-slate-300">${x.details}</td></tr>
             `).join('');
         }
-        
-        // --- MASTER DATA & OTHERS ---
-        function renderMasterUI() { ['categories','units','departments'].forEach(k=>document.getElementById(`list-${k}`).innerHTML=master[k].map(x=>`<div class="flex justify-between p-2 border-b dark:border-slate-700 text-sm dark:text-slate-200"><span>${x}</span><button onclick="delMaster('${k}','${x}')" class="text-red-400"><i class="fas fa-times"></i></button></div>`).join('')); }
-        async function addMaster(k,id){const v=document.getElementById(id).value; if(v){master[k].push(v); await supabase.from('master_data').update({data:master}).eq('key','config'); loadMaster(); document.getElementById(id).value='';}}
-        async function delMaster(k,v){if(confirm('Delete?')){master[k]=master[k].filter(x=>x!==v); await supabase.from('master_data').update({data:master}).eq('key','config'); loadMaster();}}
 
         // Withdrawal Form
         function addWithdrawalRow() { document.getElementById('withdrawal-rows').insertAdjacentHTML('beforeend', `<div class="flex gap-2"><input placeholder="Item" class="border p-2 w-full text-xs dark:bg-slate-800 dark:text-white rounded"><input type="number" placeholder="Qty" class="border p-2 w-20 text-xs dark:bg-slate-800 dark:text-white rounded"><button onclick="this.parentElement.remove()" class="text-red-500"><i class="fas fa-times"></i></button></div>`); }
