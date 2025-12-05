@@ -5,618 +5,465 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#312e81" />
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>TRANS-SYSTEM Pro | Logistics Management</title>
+    <title>TRANS-SYSTEM Pro | Logistics</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- Custom Config & Styles -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' },
-                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155', text: '#f1f5f9' }
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
+                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155' }
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Mobile Optimization: Prevent bounce/pull-to-refresh */
         body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
-        
-        /* Global Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .dark ::-webkit-scrollbar-thumb { background: #475569; }
-
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Glass Panel */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
         .glass-panel { background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(226, 232, 240, 0.8); }
         .dark .glass-panel { background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(51, 65, 85, 0.8); color: #f1f5f9; }
-
-        /* Modal Enhancements for Mobile */
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem; }
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.8); backdrop-filter: blur(2px); align-items: center; justify-content: center; padding: 1rem; }
         .modal.open { display: flex; }
-        
-        .badge { padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
-        .badge-pending { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
-        .badge-approved { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
-        .badge-rejected { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .badge-withdrawal { background-color: #bfdbfe; color: #1e40af; border: 1px solid #93c5fd; }
-        
-        #floating-calculator { position: fixed; bottom: 80px; right: 20px; z-index: 1500; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3); touch-action: none; }
-        
-        /* Sidebar Transitions */
         #sidebar { transition: transform 0.3s ease-in-out; }
-        .sidebar-mobile-closed { transform: translateX(-100%); }
-        .sidebar-mobile-open { transform: translateX(0); }
-        
-        /* Loading Spinner */
-        #loading-overlay { display: flex; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-        .dark #loading-overlay { background: rgba(15, 23, 42, 0.9); }
-        .loader { width: 48px; height: 48px; border: 5px solid #6366f1; border-bottom-color: transparent; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
+        .sidebar-closed { transform: translateX(-100%); }
+        .sidebar-open { transform: translateX(0); }
+        #loading-overlay { display: flex; position: fixed; inset: 0; background: rgba(255,255,255,0.7); z-index: 3000; align-items: center; justify-content: center; }
+        .loader { width: 48px; height: 48px; border: 5px solid #6366f1; border-bottom-color: transparent; border-radius: 50%; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Print Styles */
-        @media print {
-            body * { visibility: hidden; }
-            #request-details-modal, #request-details-modal * { visibility: visible; }
-            #request-details-modal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white; padding: 0; margin: 0; display: block; }
-            #modal-content-wrapper { box-shadow: none; border: none; width: 100%; max-width: 100%; height: auto; overflow: visible; }
-            .no-print { display: none !important; }
-            .thpal-bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-        }
-        
-        .thpal-form table { width: 100%; border-collapse: collapse; }
-        .thpal-form th, .thpal-form td { border: 1px solid black; padding: 4px; font-size: 11px; }
+        /* Table styles for mobile */
+        td { white-space: nowrap; }
     </style>
 </head>
 
 <body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans h-screen w-screen flex flex-col overflow-hidden select-none">
 
-    <!-- Loading Overlay -->
+    <!-- Loading -->
     <div id="loading-overlay" class="hidden"><span class="loader"></span></div>
 
     <!-- Header -->
-    <header class="bg-brand-900 dark:bg-slate-950 text-white shadow-xl z-30 shrink-0 border-b border-brand-800 dark:border-slate-800">
-        <div class="w-full mx-auto px-4 h-14 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <button onclick="toggleSidebar()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-white active:scale-95"><i class="fas fa-bars"></i></button>
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-white/10 rounded flex items-center justify-center border border-white/20"><i class="fas fa-truck-fast text-yellow-400 text-sm"></i></div>
-                    <div><h1 class="text-lg font-bold tracking-tight leading-none">TRANS-SYS</h1><p class="text-[9px] text-brand-200 uppercase tracking-widest hidden sm:block">Cloud Logistics</p></div>
-                </div>
+    <header class="bg-brand-900 dark:bg-slate-950 text-white shadow-md z-30 shrink-0 h-14 flex items-center justify-between px-4">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleSidebar()" class="p-2 rounded bg-white/10 active:scale-95"><i class="fas fa-bars"></i></button>
+            <div class="flex items-center gap-2">
+                <i class="fas fa-truck-fast text-yellow-400"></i>
+                <h1 class="font-bold tracking-tight">TRANS-SYS</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <div class="hidden md:flex flex-col items-end mr-2"><span id="header-time" class="text-sm font-mono font-bold leading-none">00:00</span><span id="header-date" class="text-[10px] text-brand-300">Loading...</span></div>
-                <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition active:scale-95"><i id="theme-icon" class="fas fa-moon"></i></button>
-                <button onclick="toggleCalculator()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition active:scale-95"><i class="fas fa-calculator"></i></button>
-                <div onclick="window.location.reload()" class="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-brand-900 font-bold border border-white shadow-lg cursor-pointer active:scale-95 text-xs">R</div>
-            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="toggleDarkMode()" class="p-2 rounded bg-white/10 active:scale-95"><i id="theme-icon" class="fas fa-moon"></i></button>
+            <div onclick="window.location.reload()" class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-brand-900 font-bold border border-white cursor-pointer active:scale-95 text-xs">R</div>
         </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden relative">
-        <!-- Sidebar Backdrop (Mobile) -->
-        <div id="sidebar-backdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/80 z-20 hidden md:hidden glass-panel border-0"></div>
-
         <!-- Sidebar -->
-        <aside id="sidebar" class="absolute md:relative inset-y-0 left-0 w-64 bg-slate-900 dark:bg-slate-950 text-slate-300 flex flex-col shrink-0 shadow-2xl z-20 border-r dark:border-slate-800 sidebar-mobile-closed md:transform-none">
-            <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Navigation</h3>
-                <button onclick="toggleSidebar()" class="md:hidden text-slate-400"><i class="fas fa-times"></i></button>
-            </div>
+        <div id="sidebar-backdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
+        <aside id="sidebar" class="absolute inset-y-0 left-0 w-64 bg-slate-900 text-slate-300 flex flex-col z-20 sidebar-closed md:relative md:transform-none md:translate-x-0 shadow-xl">
             <nav class="flex-1 overflow-y-auto p-3 space-y-1">
-                <button onclick="navTo('view-dashboard', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition active-nav bg-brand-700 text-white shadow-lg"><i class="fas fa-chart-line w-5 text-center"></i> <span class="nav-text">Dashboard</span></button>
-                <button id="nav-inventory" onclick="navTo('view-inventory', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-boxes-stacked w-5 text-center"></i> <span class="nav-text">Inventory</span></button>
-                <button id="nav-requests" onclick="navTo('view-requests', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-file-signature w-5 text-center"></i> <span class="nav-text">Requests</span> <span id="nav-pending-badge" class="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span></button>
-                <button onclick="navTo('view-pr-requests', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-list-check w-5 text-center"></i> <span class="nav-text">PR List</span></button>
-                
-                <div class="pt-4 pb-2 px-3 border-t border-slate-800 mt-2"><h3 class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Actions</h3></div>
-                <button onclick="navTo('view-add-item', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-plus-circle w-5 text-center text-green-400"></i> <span class="nav-text">Add Stock</span></button>
-                <button onclick="navTo('view-request-withdrawal', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-dolly w-5 text-center text-yellow-400"></i> <span class="nav-text">Withdraw</span></button>
-                
-                <div class="pt-4 pb-2 px-3 border-t border-slate-800 mt-2"><h3 class="text-[10px] font-bold uppercase tracking-wider text-slate-600">System</h3></div>
-                <button onclick="navTo('view-master-data', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-database w-5 text-center"></i> <span class="nav-text">Data Config</span></button>
-                <button onclick="navTo('view-logs', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-list-ol w-5 text-center"></i> <span class="nav-text">Audit Logs</span></button>
+                <button onclick="navTo('view-dashboard')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded hover:bg-slate-800 transition"><i class="fas fa-chart-line w-5 text-center"></i> Dashboard</button>
+                <button onclick="navTo('view-inventory')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded hover:bg-slate-800 transition"><i class="fas fa-boxes-stacked w-5 text-center"></i> Inventory</button>
+                <button onclick="navTo('view-requests')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded hover:bg-slate-800 transition"><i class="fas fa-file-signature w-5 text-center"></i> Requests <span id="nav-badge" class="ml-auto bg-red-500 text-white text-[10px] px-2 rounded-full hidden">0</span></button>
+                <button onclick="navTo('view-pr-requests')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded hover:bg-slate-800 transition"><i class="fas fa-list-check w-5 text-center"></i> PR List</button>
+                <div class="border-t border-slate-700 my-2 pt-2"><span class="text-[10px] uppercase font-bold text-slate-500 px-3">Actions</span></div>
+                <button onclick="navTo('view-add-item')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded hover:bg-slate-800 transition text-green-400"><i class="fas fa-plus-circle w-5 text-center"></i> Add Stock</button>
+                <button onclick="navTo('view-request-withdrawal')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded hover:bg-slate-800 transition text-yellow-400"><i class="fas fa-dolly w-5 text-center"></i> Withdraw</button>
+                <div class="border-t border-slate-700 my-2 pt-2"><span class="text-[10px] uppercase font-bold text-slate-500 px-3">System</span></div>
+                <button onclick="navTo('view-master-data')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded hover:bg-slate-800 transition"><i class="fas fa-database w-5 text-center"></i> Config</button>
             </nav>
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900 p-4 relative transition-colors duration-300 pb-20" id="main-container">
-            
-            <!-- VIEW: DASHBOARD -->
+        <main class="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900 p-4 pb-20" id="main-container">
+
+            <!-- DASHBOARD -->
             <section id="view-dashboard" class="view-section fade-in">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-slate-800 dark:text-white">Dashboard</h2>
-                    <button onclick="renderDashboard()" class="text-xs bg-white dark:bg-slate-800 dark:text-slate-300 border border-slate-300 px-3 py-2 rounded shadow-sm"><i class="fas fa-sync-alt mr-1"></i> Refresh</button>
-                </div>
-                <!-- Stats Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-brand-600 flex justify-between items-center" onclick="document.getElementById('nav-inventory').click()">
-                        <div><p class="text-xs text-slate-500 dark:text-slate-400">Total Items</p><h3 class="text-2xl font-bold text-slate-800 dark:text-white mt-1" id="dash-total-items">0</h3></div>
-                        <i class="fas fa-cubes text-brand-200 text-3xl"></i>
+                <h2 class="text-xl font-bold mb-4 dark:text-white">Dashboard</h2>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-l-4 border-brand-600">
+                        <p class="text-xs text-slate-500">Items</p><h3 class="text-2xl font-bold dark:text-white" id="dash-total-items">0</h3>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-red-500 flex justify-between items-center" onclick="filterInventoryByLowStock()">
-                        <div><p class="text-xs text-slate-500 dark:text-slate-400">Low Stock</p><h3 class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1" id="dash-low-stock">0</h3></div>
-                        <i class="fas fa-exclamation-triangle text-red-200 text-3xl"></i>
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-l-4 border-red-500">
+                        <p class="text-xs text-slate-500">Low Stock</p><h3 class="text-2xl font-bold text-red-600" id="dash-low-stock">0</h3>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-yellow-500 flex justify-between items-center" onclick="document.getElementById('nav-requests').click()">
-                        <div><p class="text-xs text-slate-500 dark:text-slate-400">Pending Req</p><h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1" id="dash-pending">0</h3></div>
-                        <i class="fas fa-clock text-yellow-200 text-3xl"></i>
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-l-4 border-yellow-500">
+                        <p class="text-xs text-slate-500">Pending</p><h3 class="text-2xl font-bold text-yellow-600" id="dash-pending">0</h3>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-emerald-500 flex justify-between items-center">
-                        <div><p class="text-xs text-slate-500 dark:text-slate-400">PR Value</p><h3 class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="dash-pr-value">₱0</h3></div>
-                        <i class="fas fa-coins text-emerald-200 text-3xl"></i>
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-l-4 border-emerald-500">
+                        <p class="text-xs text-slate-500">PR Active</p><h3 class="text-2xl font-bold text-emerald-600" id="dash-pr-active">0</h3>
                     </div>
                 </div>
-                <!-- Chart & Logs -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                        <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Inventory Trends</h3>
-                        <div class="h-48 w-full"><canvas id="trading-chart"></canvas></div>
-                    </div>
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                        <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Recent Activity</h3>
-                        <ul id="recent-logs-list" class="flex-1 overflow-y-auto text-xs space-y-2 max-h-48"></ul>
-                    </div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm h-64 w-full">
+                    <canvas id="trading-chart"></canvas>
                 </div>
             </section>
 
-            <!-- VIEW: INVENTORY -->
+            <!-- INVENTORY -->
             <section id="view-inventory" class="view-section hidden fade-in">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
-                    <h2 class="text-xl font-bold text-slate-800 dark:text-white">Inventory</h2>
-                    <div class="flex gap-2 w-full md:w-auto">
-                        <button onclick="navTo('view-add-item')" class="flex-1 bg-brand-600 text-white px-3 py-2 rounded-lg shadow-sm text-sm"><i class="fas fa-plus"></i> Add</button>
-                        <button onclick="exportToExcel('inventory')" class="bg-green-600 text-white px-3 py-2 rounded-lg shadow-sm text-sm"><i class="fas fa-file-excel"></i></button>
-                    </div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold dark:text-white">Inventory</h2>
+                    <button onclick="navTo('view-add-item')" class="bg-brand-600 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fas fa-plus"></i> Add</button>
                 </div>
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col h-[75vh]">
-                    <div class="p-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 gap-3 flex flex-col">
-                        <div class="flex overflow-x-auto gap-2 no-scrollbar" id="inventory-categories"></div>
-                        <input type="text" id="inv-search" onkeyup="renderInventory()" placeholder="Search..." class="w-full pl-3 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 flex flex-col h-[75vh]">
+                    <div class="p-3 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <input type="text" id="inv-search" onkeyup="renderInventory()" placeholder="Search Code, Name..." class="w-full px-3 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white text-sm">
                     </div>
                     <div class="flex-1 overflow-auto">
                         <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
                             <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-[10px] sticky top-0 z-10">
-                                <tr><th class="px-4 py-3">Item</th><th class="px-4 py-3 text-center">Stock</th><th class="px-4 py-3 text-right">Action</th></tr>
+                                <tr>
+                                    <th class="px-4 py-3">Code</th>
+                                    <th class="px-4 py-3">Description</th>
+                                    <th class="px-4 py-3">Category</th>
+                                    <th class="px-4 py-3">Stock / Unit</th>
+                                    <th class="px-4 py-3">Location</th>
+                                    <th class="px-4 py-3 text-center">Actions</th>
+                                </tr>
                             </thead>
                             <tbody id="inventory-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
                         </table>
-                        <div id="inventory-empty" class="p-8 text-center text-slate-400 hidden"><i class="fas fa-box-open text-4xl mb-2"></i><p>No items found.</p></div>
                     </div>
                 </div>
             </section>
 
-            <!-- VIEW: WITHDRAWAL REQUESTS -->
-            <section id="view-requests" class="view-section hidden fade-in">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-slate-800 dark:text-white">Requests</h2>
-                    <select id="req-filter-status" onchange="renderRequests()" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-2 py-1 text-xs"><option value="All">All</option><option value="Pending">Pending</option><option value="Approved">Approved</option></select>
-                </div>
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300 min-w-[600px]">
-                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs">
-                                <tr><th class="px-4 py-3">ID</th><th class="px-4 py-3">Who</th><th class="px-4 py-3">Items</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Action</th></tr>
-                            </thead>
-                            <tbody id="requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- VIEW: PR LIST -->
+            <!-- PR REQUESTS -->
             <section id="view-pr-requests" class="view-section hidden fade-in">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-slate-800 dark:text-white">PR List</h2>
-                    <button onclick="openPREditModal()" class="bg-brand-600 text-white px-3 py-2 rounded-lg shadow-sm text-sm"><i class="fas fa-plus"></i> New PR</button>
+                    <h2 class="text-xl font-bold dark:text-white">Purchase Requests</h2>
+                    <button onclick="openPREditModal()" class="bg-brand-600 text-white px-3 py-2 rounded-lg text-xs font-bold shadow"><i class="fas fa-plus"></i> New PR</button>
                 </div>
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden h-[75vh] flex flex-col">
-                    <div class="overflow-x-auto overflow-y-auto flex-1">
-                        <div class="min-w-[800px]">
-                            <div class="grid grid-cols-6 gap-2 bg-slate-100 dark:bg-slate-700 p-2 font-bold text-xs uppercase sticky top-0 z-10 border-b dark:border-slate-600">
-                                <div class="col-span-2">Item Details</div><div>Qty</div><div>Price</div><div>Tracking</div><div class="text-right">Action</div>
-                            </div>
-                            <div id="pr-requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
-                        </div>
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 overflow-hidden h-[75vh] flex flex-col">
+                    <div class="flex-1 overflow-auto">
+                        <div id="pr-requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
                     </div>
                 </div>
             </section>
+            
+            <!-- REQUESTS/WITHDRAWAL LOG -->
+            <section id="view-requests" class="view-section hidden fade-in">
+                <h2 class="text-xl font-bold mb-4 dark:text-white">Withdrawal Log</h2>
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 overflow-hidden overflow-x-auto">
+                     <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                        <thead class="bg-slate-100 dark:bg-slate-700 font-bold text-xs uppercase">
+                            <tr><th class="p-3">ID</th><th class="p-3">Requester</th><th class="p-3">Status</th><th class="p-3 text-right">Action</th></tr>
+                        </thead>
+                        <tbody id="requests-body"></tbody>
+                    </table>
+                </div>
+            </section>
 
-            <!-- VIEW: ADD ITEM FORM -->
-             <section id="view-add-item" class="view-section hidden fade-in max-w-lg mx-auto">
-                <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Add Inventory</h2>
-                <form id="form-add-item" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 space-y-4">
-                    <div><label class="block text-xs font-bold mb-1">Material Code</label><input type="text" id="add-code" required class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"></div>
-                    <div><label class="block text-xs font-bold mb-1">Description</label><input type="text" id="add-name" required class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"></div>
+            <!-- ADD ITEM FORM -->
+            <section id="view-add-item" class="view-section hidden fade-in max-w-lg mx-auto">
+                <h2 class="text-xl font-bold dark:text-white mb-4">Add New Item</h2>
+                <form id="form-add-item" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow space-y-4">
+                    <div><label class="text-xs font-bold block mb-1">Material Code</label><input type="text" id="add-code" required class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
+                    <div><label class="text-xs font-bold block mb-1">Description</label><input type="text" id="add-name" required class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-xs font-bold mb-1">Category</label><select id="add-category" required class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white bg-white"></select></div>
-                        <div><label class="block text-xs font-bold mb-1">Unit</label><select id="add-unit" required class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white bg-white"></select></div>
+                        <div><label class="text-xs font-bold block mb-1">Category</label><select id="add-category" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></select></div>
+                        <div><label class="text-xs font-bold block mb-1">Unit</label><select id="add-unit" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></select></div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-xs font-bold mb-1">Initial Stock</label><input type="number" id="add-stock" required class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"></div>
-                        <div><label class="block text-xs font-bold mb-1">Min Threshold</label><input type="number" id="add-threshold" value="5" class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"></div>
+                        <div><label class="text-xs font-bold block mb-1">Initial Stock</label><input type="number" id="add-stock" required class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
+                        <div><label class="text-xs font-bold block mb-1">Location</label><input type="text" id="add-location" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
                     </div>
-                    <div><label class="block text-xs font-bold mb-1">Location</label><input type="text" id="add-location" class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"></div>
-                    <button type="submit" class="w-full py-3 bg-brand-600 text-white rounded-lg font-bold shadow hover:bg-brand-700 transition">Save Item</button>
+                    <button type="submit" class="w-full bg-green-600 text-white py-3 rounded font-bold mt-4">Save to Inventory</button>
                 </form>
             </section>
-
-            <!-- VIEW: WITHDRAWAL FORM -->
+            
+            <!-- WITHDRAW FORM -->
             <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-lg mx-auto">
-                <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4">New Withdrawal</h2>
-                <form id="form-withdrawal" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 flex flex-col h-[75vh]">
-                    <div class="space-y-4 mb-4">
-                        <div><label class="block text-xs font-bold mb-1">Requester</label><input type="text" id="req-name" required class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"></div>
-                        <div><label class="block text-xs font-bold mb-1">Department</label><select id="req-dept" required class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white bg-white"></select></div>
-                        <div><label class="block text-xs font-bold mb-1">Purpose</label><input type="text" id="req-reason" class="w-full rounded-lg border p-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"></div>
+                <h2 class="text-xl font-bold dark:text-white mb-4">Withdraw Items</h2>
+                <form id="form-withdrawal" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow flex flex-col h-[75vh]">
+                    <div class="space-y-3 mb-4">
+                        <input type="text" id="req-name" placeholder="Requester Name" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white">
+                        <select id="req-dept" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></select>
+                        <input type="text" id="req-reason" placeholder="Purpose" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white">
                     </div>
-                    <div class="flex-1 overflow-y-auto border-t border-b dark:border-slate-700 py-2 mb-4">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-xs font-bold">Items List</span>
-                            <button type="button" onclick="addWithdrawalRow()" class="text-brand-600 text-xs font-bold">+ Add Item</button>
-                        </div>
-                        <div id="withdrawal-rows" class="space-y-2"></div>
+                    <div class="flex-1 overflow-y-auto border-t dark:border-slate-600 py-2">
+                         <button type="button" onclick="addWithdrawalRow()" class="text-brand-600 font-bold text-xs mb-2">+ Add Item</button>
+                         <div id="withdrawal-rows" class="space-y-2"></div>
                     </div>
-                    <button type="submit" class="w-full py-3 bg-yellow-500 text-white font-bold rounded-lg shadow hover:bg-yellow-600 transition">Submit Request</button>
+                    <button type="submit" class="w-full bg-yellow-500 text-white py-3 rounded font-bold mt-2">Submit Request</button>
                 </form>
             </section>
-
-             <!-- VIEW: MASTER DATA -->
-            <section id="view-master-data" class="view-section hidden fade-in">
-                <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Configuration</h2>
+            
+            <!-- CONFIG -->
+             <section id="view-master-data" class="view-section hidden fade-in">
+                <h2 class="text-xl font-bold dark:text-white mb-4">Master Data</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Config Card Template -->
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow border dark:border-slate-700 h-64 flex flex-col">
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded shadow h-64 flex flex-col">
                         <h3 class="font-bold text-sm mb-2">Categories</h3>
-                        <div class="flex gap-2 mb-2"><input type="text" id="add-master-categories" class="flex-1 border rounded px-2 text-sm dark:bg-slate-700 dark:text-white"><button onclick="addMasterItem('categories')" class="bg-brand-600 text-white px-2 rounded">+</button></div>
-                        <div id="master-categories-list" class="flex-1 overflow-y-auto text-xs"></div>
+                        <div class="flex gap-2 mb-2"><input id="new-cat" class="flex-1 border rounded px-2 text-xs dark:bg-slate-700 dark:text-white"><button onclick="addMaster('categories','new-cat')" class="bg-brand-600 text-white px-2 rounded">+</button></div>
+                        <div id="list-categories" class="flex-1 overflow-y-auto text-xs"></div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow border dark:border-slate-700 h-64 flex flex-col">
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded shadow h-64 flex flex-col">
                         <h3 class="font-bold text-sm mb-2">Units</h3>
-                        <div class="flex gap-2 mb-2"><input type="text" id="add-master-units" class="flex-1 border rounded px-2 text-sm dark:bg-slate-700 dark:text-white"><button onclick="addMasterItem('units')" class="bg-brand-600 text-white px-2 rounded">+</button></div>
-                        <div id="master-units-list" class="flex-1 overflow-y-auto text-xs"></div>
+                        <div class="flex gap-2 mb-2"><input id="new-unit" class="flex-1 border rounded px-2 text-xs dark:bg-slate-700 dark:text-white"><button onclick="addMaster('units','new-unit')" class="bg-brand-600 text-white px-2 rounded">+</button></div>
+                        <div id="list-units" class="flex-1 overflow-y-auto text-xs"></div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow border dark:border-slate-700 h-64 flex flex-col">
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded shadow h-64 flex flex-col">
                         <h3 class="font-bold text-sm mb-2">Departments</h3>
-                        <div class="flex gap-2 mb-2"><input type="text" id="add-master-departments" class="flex-1 border rounded px-2 text-sm dark:bg-slate-700 dark:text-white"><button onclick="addMasterItem('departments')" class="bg-brand-600 text-white px-2 rounded">+</button></div>
-                        <div id="master-departments-list" class="flex-1 overflow-y-auto text-xs"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- VIEW: LOGS -->
-            <section id="view-logs" class="view-section hidden fade-in">
-                <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">Audit Logs</h2><button onclick="clearLogs()" class="text-red-600 text-xs border border-red-200 px-3 py-1 rounded">Clear</button></div>
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs text-slate-600 dark:text-slate-300 min-w-[500px]">
-                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"><tr><th class="px-4 py-2">Time</th><th class="px-4 py-2">Action</th><th class="px-4 py-2">Details</th></tr></thead>
-                            <tbody id="logs-body"></tbody>
-                        </table>
+                        <div class="flex gap-2 mb-2"><input id="new-dept" class="flex-1 border rounded px-2 text-xs dark:bg-slate-700 dark:text-white"><button onclick="addMaster('departments','new-dept')" class="bg-brand-600 text-white px-2 rounded">+</button></div>
+                        <div id="list-departments" class="flex-1 overflow-y-auto text-xs"></div>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Floating Calculator -->
-    <div id="floating-calculator" class="hidden glass-panel rounded-xl w-64 overflow-hidden border border-slate-400 dark:border-slate-600 shadow-2xl">
-        <div class="bg-slate-800 text-white p-2 flex justify-between items-center cursor-move select-none" id="calc-header"><span class="text-xs font-bold uppercase">Calc</span><button onclick="toggleCalculator()" class="hover:text-red-400"><i class="fas fa-times"></i></button></div>
-        <div class="bg-slate-900 text-right p-3 text-2xl font-mono text-green-400"><input id="calc-display" type="text" readonly class="bg-transparent text-right w-full outline-none" value="0"></div>
-        <div class="grid grid-cols-4 gap-1 p-2 bg-slate-200 dark:bg-slate-700">
-            <button class="p-3 bg-slate-300 dark:bg-slate-600 rounded font-bold" onclick="calcInput('C')">C</button><button class="p-3 bg-slate-300 dark:bg-slate-600 rounded" onclick="calcInput('/')">/</button><button class="p-3 bg-slate-300 dark:bg-slate-600 rounded" onclick="calcInput('*')">*</button><button class="p-3 bg-slate-300 dark:bg-slate-600 rounded" onclick="calcInput('DEL')">←</button>
-            <button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('7')">7</button><button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('8')">8</button><button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('9')">9</button><button class="p-3 bg-slate-300 dark:bg-slate-600 rounded" onclick="calcInput('-')">-</button>
-            <button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('4')">4</button><button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('5')">5</button><button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('6')">6</button><button class="p-3 bg-slate-300 dark:bg-slate-600 rounded" onclick="calcInput('+')">+</button>
-            <button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('1')">1</button><button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('2')">2</button><button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('3')">3</button><button class="p-3 bg-brand-600 text-white rounded row-span-2" onclick="calcInput('=')">=</button>
-            <button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded col-span-2" onclick="calcInput('0')">0</button><button class="p-3 bg-white dark:bg-slate-800 dark:text-white rounded" onclick="calcInput('.')">.</button>
+    <!-- MODAL: Inventory Edit -->
+    <div id="inv-edit-modal" class="modal">
+        <div class="glass-panel bg-white dark:bg-slate-800 w-full max-w-sm mx-4 rounded-xl shadow-2xl p-6 relative">
+            <button class="absolute top-3 right-3 text-slate-400" onclick="closeModal('inv-edit-modal')"><i class="fas fa-times"></i></button>
+            <h2 class="text-lg font-bold dark:text-white mb-4">Edit Item</h2>
+            <form id="form-inv-edit" class="space-y-3">
+                <input type="hidden" id="inv-edit-id">
+                <div><label class="text-xs block font-bold dark:text-slate-300">Code</label><input id="inv-edit-code" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white" readonly></div>
+                <div><label class="text-xs block font-bold dark:text-slate-300">Description</label><input id="inv-edit-name" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="text-xs block font-bold dark:text-slate-300">Stock</label><input type="number" id="inv-edit-stock" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
+                    <div><label class="text-xs block font-bold dark:text-slate-300">Location</label><input id="inv-edit-loc" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
+                </div>
+                <div><label class="text-xs block font-bold dark:text-slate-300">Category</label><select id="inv-edit-cat" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></select></div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded font-bold mt-2">Update Item</button>
+            </form>
         </div>
     </div>
 
-    <!-- MODAL: Withdrawal Form (THPAL) -->
-    <div id="request-details-modal" class="modal">
-        <div id="modal-content-wrapper" class="glass-panel bg-white w-full max-w-4xl mx-2 rounded-xl shadow-2xl relative flex flex-col max-h-[90vh]">
-            <button class="absolute top-2 right-2 text-slate-400 p-2 z-50 no-print" onclick="closeModal('request-details-modal')"><i class="fas fa-times text-xl"></i></button>
-            
-            <!-- Printable Area -->
-            <div id="print-area" class="thpal-form text-black bg-white p-4 overflow-y-auto flex-1 text-xs">
-                <div class="flex justify-between items-end mb-2 border-b-2 border-black pb-1">
-                    <div class="flex items-center gap-2"><div class="border-2 border-teal-600 p-1"><h1 class="text-xl font-bold text-teal-700">THPAL</h1></div><p class="text-[10px] font-bold">Taganito HPAL Nickel Corp.</p></div>
-                    <div class="text-right"><p class="text-[8px] font-bold">Form 02 EMS-THPAL-SE-301 Rev 01</p></div>
-                </div>
-                <h2 class="text-center font-bold text-lg mb-2">MATERIAL ENTRY/EXIT FORM</h2>
-                <div class="border border-black p-1 mb-2 bg-gray-100 thpal-bg-gray text-center font-bold">Details</div>
-                <table class="w-full mb-2">
-                    <tr><td class="bg-gray-100 font-bold w-1/4">Name:</td><td class="w-1/4" id="thpal-emp-name"></td><td class="bg-gray-100 font-bold w-1/4">Date:</td><td id="thpal-date"></td></tr>
-                    <tr><td class="bg-gray-100 font-bold">Dept:</td><td id="thpal-dept"></td><td class="bg-gray-100 font-bold">Time:</td><td id="thpal-time"></td></tr>
-                </table>
-                <table class="w-full mb-2">
-                    <thead><tr class="bg-gray-100 thpal-bg-gray"><th class="w-10">#</th><th>Unit</th><th>Qty</th><th>Description</th></tr></thead>
-                    <tbody id="thpal-items-body"></tbody>
-                </table>
-                <div class="border border-black p-1 mb-2 h-16"><p class="font-bold">Reason:</p><p id="thpal-reason" class="italic px-1"></p></div>
-                <div class="flex border border-black p-1 mb-4 gap-4 text-[10px]">
-                    <label><input type="checkbox" id="chk-approved" disabled> Approved</label>
-                    <label><input type="checkbox" id="chk-onhold" disabled> On-hold</label>
-                    <label><input type="checkbox" id="chk-declined" disabled> Declined</label>
-                </div>
-                <div class="grid grid-cols-3 gap-4 text-center mt-8">
-                    <div><div class="border-b border-black mb-1" id="thpal-sig-req"></div><p>Requester</p></div>
-                    <div><div class="border-b border-black mb-1">&nbsp;</div><p>Supervisor</p></div>
-                    <div><div class="border-b border-black mb-1">&nbsp;</div><p>Security</p></div>
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-2 p-3 bg-slate-50 border-t dark:bg-slate-800 dark:border-slate-700 shrink-0 no-print" id="modal-actions">
-                <button onclick="window.print()" class="bg-slate-600 text-white px-3 py-2 rounded text-xs"><i class="fas fa-print"></i></button>
-                <div id="approval-buttons" class="flex gap-2">
-                    <button onclick="processRequest('Rejected')" class="bg-red-600 text-white px-3 py-2 rounded text-xs">Reject</button>
-                    <button onclick="processRequest('Approved')" class="bg-green-600 text-white px-3 py-2 rounded text-xs">Approve</button>
-                </div>
-            </div>
+    <!-- MODAL: Inventory View -->
+    <div id="inv-view-modal" class="modal">
+        <div class="glass-panel bg-white dark:bg-slate-800 w-full max-w-sm mx-4 rounded-xl shadow-2xl p-6 relative">
+            <button class="absolute top-3 right-3 text-slate-400" onclick="closeModal('inv-view-modal')"><i class="fas fa-times"></i></button>
+            <h2 class="text-lg font-bold dark:text-white mb-4 border-b pb-2">Item Details</h2>
+            <div id="inv-view-content" class="space-y-2 text-sm dark:text-slate-200"></div>
+            <button onclick="closeModal('inv-view-modal')" class="w-full border border-slate-300 dark:border-slate-600 py-2 rounded mt-4 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-white">Close</button>
         </div>
     </div>
 
-    <!-- MODAL: General Edit -->
-    <div id="generic-modal" class="modal">
-        <div class="glass-panel bg-white w-full max-w-lg mx-4 rounded-xl shadow-2xl p-5 relative max-h-[90vh] overflow-y-auto">
-            <button class="absolute top-3 right-3 text-slate-400" onclick="closeModal('generic-modal')"><i class="fas fa-times text-xl"></i></button>
-            <div id="generic-modal-content"></div>
+    <!-- MODAL: PR Edit/New -->
+    <div id="pr-edit-modal" class="modal">
+        <div class="glass-panel bg-white dark:bg-slate-800 w-full max-w-md mx-4 rounded-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+            <button class="absolute top-3 right-3 text-slate-400" onclick="closeModal('pr-edit-modal')"><i class="fas fa-times"></i></button>
+            <h2 class="text-lg font-bold dark:text-white mb-4">Purchase Request</h2>
+            <form id="form-pr-edit" class="space-y-3">
+                <input type="hidden" id="pr-edit-id">
+                <div><label class="text-xs block font-bold dark:text-slate-300">Material Code</label><input id="pr-code" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
+                <div><label class="text-xs block font-bold dark:text-slate-300">Description</label><input id="pr-desc" required class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="text-xs block font-bold dark:text-slate-300">Qty</label><input type="number" id="pr-qty" required class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
+                    <div><label class="text-xs block font-bold dark:text-slate-300">Unit</label><select id="pr-unit" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></select></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="text-xs block font-bold dark:text-slate-300">Est. Price</label><input type="number" step="0.01" id="pr-price" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"></div>
+                    <div><label class="text-xs block font-bold dark:text-slate-300">Status</label><select id="pr-status" class="w-full border rounded p-2 text-sm dark:bg-slate-700 dark:text-white"><option>Pending</option><option>Ordered</option><option>Received</option></select></div>
+                </div>
+                <button type="submit" class="w-full bg-brand-600 text-white py-2 rounded font-bold mt-2">Save PR</button>
+            </form>
         </div>
     </div>
 
     <!-- Toast -->
-    <div id="toast" class="fixed top-16 right-5 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl transform translate-x-full transition-transform duration-300 z-50 flex items-center gap-3 text-sm">
-        <i id="toast-icon" class="fas fa-info-circle"></i><span id="toast-msg">Notification</span>
-    </div>
+    <div id="toast" class="fixed top-16 right-5 bg-slate-800 text-white px-4 py-3 rounded shadow-xl transform translate-x-full transition-transform z-50 text-sm">Action Successful</div>
 
     <script>
-    // --- CONFIGURATION ---
-    const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let master = { categories: [], units: [], departments: [] };
+        let chartInst = null;
 
-    let chartInstance = null;
-    let activeReqId = null;
-    let masterData = { categories: [], units: [], departments: [] };
-
-    window.onload = async () => {
-        setLoading(true);
-        updateTime(); setInterval(updateTime, 1000);
-        await loadMasterData();
-        loadThemePreference();
-        renderDashboard();
-        setupCalculatorDrag();
-        setLoading(false);
-    };
-
-    function setLoading(state) {
-        document.getElementById('loading-overlay').style.display = state ? 'flex' : 'none';
-    }
-
-    // --- DB WRAPPER (Kept for compatibility) ---
-    async function dbAction(storeName, mode, callback) {
-        const storeMock = {
-            getAll: async () => { const { data } = await supabase.from(storeName).select('*'); return data || []; },
-            get: async (key) => { 
-                if(storeName === 'master') { const { data } = await supabase.from('master_data').select('*').eq('key', key).single(); return data; }
-                const { data } = await supabase.from(storeName).select('*').eq('id', key).single(); return data; 
-            },
-            add: async (val) => { if(!val.id) delete val.id; const { error } = await supabase.from(storeName).insert(val); if(error) console.error(error); },
-            put: async (val) => { 
-                if(storeName === 'master') { await supabase.from('master_data').upsert(val); return; }
-                await supabase.from(storeName).update(val).eq('id', val.id); 
-            },
-            delete: async (key) => { await supabase.from(storeName).delete().eq('id', key); },
-            clear: async () => { await supabase.from(storeName).delete().neq('id', 0); }
+        window.onload = async () => {
+            setLoading(true);
+            await loadMaster();
+            renderDashboard();
+            setLoading(false);
         };
-        return await callback(storeMock);
-    }
 
-    async function logAction(action, details) { await dbAction('logs', 'readwrite', s=>s.add({ timestamp: new Date().toLocaleString(), action, details })); }
-
-    // --- UI NAVIGATION ---
-    function navTo(viewId, btn) {
-        document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-        document.getElementById(viewId).classList.remove('hidden');
-        if(btn) { document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav', 'bg-brand-700', 'text-white')); btn.classList.add('active-nav', 'bg-brand-700', 'text-white'); }
-        if(window.innerWidth < 768) toggleSidebar(false); // Close sidebar on mobile select
-        if (viewId === 'view-inventory') renderInventory();
-        if (viewId === 'view-requests') renderRequests();
-        if (viewId === 'view-pr-requests') renderPRRequests();
-        if (viewId === 'view-logs') renderLogs();
-        if (viewId === 'view-master-data') renderMasterLists();
-    }
-
-    function toggleSidebar(forceOpen = null) {
-        const sb = document.getElementById('sidebar');
-        const bd = document.getElementById('sidebar-backdrop');
-        const isClosed = sb.classList.contains('sidebar-mobile-closed');
-        
-        if (forceOpen === false || (!isClosed && forceOpen === null)) {
-            sb.classList.add('sidebar-mobile-closed');
-            sb.classList.remove('sidebar-mobile-open');
-            bd.classList.add('hidden');
-        } else {
-            sb.classList.remove('sidebar-mobile-closed');
-            sb.classList.add('sidebar-mobile-open');
-            bd.classList.remove('hidden');
+        function setLoading(v) { document.getElementById('loading-overlay').style.display = v ? 'flex' : 'none'; }
+        function showToast(msg) { const t=document.getElementById('toast'); t.innerText=msg; t.classList.remove('translate-x-full'); setTimeout(()=>t.classList.add('translate-x-full'),3000); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        function toggleSidebar() { 
+            const sb=document.getElementById('sidebar'); 
+            const bd=document.getElementById('sidebar-backdrop');
+            if(sb.classList.contains('sidebar-closed')){ sb.classList.remove('sidebar-closed'); sb.classList.add('sidebar-open'); bd.classList.remove('hidden'); }
+            else { sb.classList.add('sidebar-closed'); sb.classList.remove('sidebar-open'); bd.classList.add('hidden'); }
         }
-    }
+        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); }
+        function navTo(id) {
+            document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            if(window.innerWidth < 768) { document.getElementById('sidebar').classList.add('sidebar-closed'); document.getElementById('sidebar-backdrop').classList.add('hidden'); }
+            if(id==='view-inventory') renderInventory();
+            if(id==='view-pr-requests') renderPRs();
+            if(id==='view-requests') renderRequests();
+        }
 
-    function showToast(msg, type='info') {
-        const toast = document.getElementById('toast');
-        document.getElementById('toast-msg').innerText = msg;
-        toast.className = `fixed top-16 right-5 px-4 py-3 rounded-lg shadow-xl transform transition-transform duration-300 z-50 flex items-center gap-3 text-white text-sm ${type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800'}`;
-        toast.classList.remove('translate-x-full');
-        setTimeout(() => toast.classList.add('translate-x-full'), 3000);
-    }
+        // --- DATABASE ---
+        async function db(table, op, data) {
+            if(op==='get') { const {data:d}=await supabase.from(table).select('*'); return d||[]; }
+            if(op==='getOne') { const {data:d}=await supabase.from(table).select('*').eq('id',data).single(); return d; }
+            if(op==='add') { const {error}=await supabase.from(table).insert(data); if(error)alert(error.message); }
+            if(op==='update') { const {error}=await supabase.from(table).update(data).eq('id',data.id); if(error)alert(error.message); }
+            if(op==='delete') { await supabase.from(table).delete().eq('id',data); }
+        }
+        async function loadMaster() {
+            const {data} = await supabase.from('master_data').select('*').eq('key','config').single();
+            if(data) master = data.data;
+            fillSelect('add-category', master.categories); fillSelect('add-unit', master.units); fillSelect('req-dept', master.departments);
+            fillSelect('inv-edit-cat', master.categories); fillSelect('pr-unit', master.units);
+            ['categories','units','departments'].forEach(k=>document.getElementById(`list-${k}`).innerHTML = master[k].map(i=>`<div class="p-1 border-b">${i}</div>`).join(''));
+        }
+        function fillSelect(id, arr) { document.getElementById(id).innerHTML = `<option value="">Select...</option>` + arr.map(i=>`<option value="${i}">${i}</option>`).join(''); }
+        async function addMaster(k, inpId) { const v=document.getElementById(inpId).value; if(v){ master[k].push(v); await supabase.from('master_data').upsert({key:'config',data:master}); document.getElementById(inpId).value=''; loadMaster(); }}
 
-    function updateTime() { const now = new Date(); document.getElementById('header-time').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); document.getElementById('header-date').innerText = now.toLocaleDateString(); }
-    function toggleDarkMode() { document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark')?'dark':'light'); }
-    function loadThemePreference() { if(localStorage.getItem('theme')==='dark') document.documentElement.classList.add('dark'); }
+        // --- INVENTORY ---
+        async function renderInventory() {
+            const items = await db('inventory', 'get');
+            const term = document.getElementById('inv-search').value.toLowerCase();
+            const tb = document.getElementById('inventory-body'); tb.innerHTML = '';
+            items.filter(i=> i.name.toLowerCase().includes(term) || i.code.toLowerCase().includes(term)).forEach(i => {
+                const isLow = i.stock <= 5;
+                tb.innerHTML += `<tr class="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${isLow?'bg-red-50':''}">
+                    <td class="px-4 py-3 font-mono text-xs font-bold text-slate-600 dark:text-slate-400">${i.code}</td>
+                    <td class="px-4 py-3 font-bold dark:text-white">${i.name} ${isLow?'<span class="text-red-500 text-[10px]">(Low)</span>':''}</td>
+                    <td class="px-4 py-3 text-xs dark:text-slate-300">${i.category}</td>
+                    <td class="px-4 py-3 font-bold dark:text-white">${i.stock} <span class="text-[10px] font-normal text-slate-500">${i.unit}</span></td>
+                    <td class="px-4 py-3 text-xs dark:text-slate-300">${i.location||'-'}</td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="viewInventory(${i.id})" class="text-brand-600 bg-brand-50 hover:bg-brand-100 p-2 rounded transition"><i class="fas fa-eye"></i></button>
+                            <button onclick="editInventory(${i.id})" class="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded transition"><i class="fas fa-pencil-alt"></i></button>
+                            <button onclick="deleteItem(${i.id})" class="text-red-500 bg-red-50 hover:bg-red-100 p-2 rounded transition"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+        }
 
-    // --- DATA HANDLING ---
-    async function loadMasterData() {
-        const result = await dbAction('master', 'readonly', s=>s.get('config'));
-        if(result && result.data) masterData = result.data;
-        else { masterData = { categories: ['Parts','Tires','Tools'], units: ['Pcs','Sets','Box'], departments: ['Ops','Admin','Maint'] }; await dbAction('master', 'readwrite', s=>s.put({key:'config', data:masterData})); }
-        populateDropdowns('add-category', masterData.categories); populateDropdowns('add-unit', masterData.units); populateDropdowns('req-dept', masterData.departments);
-    }
-    function populateDropdowns(id, items) { const s=document.getElementById(id); if(!s)return; s.innerHTML='<option value="">Select...</option>'; items.forEach(i=>s.innerHTML+=`<option value="${i}">${i}</option>`); }
+        document.getElementById('form-add-item').onsubmit = async (e) => {
+            e.preventDefault(); setLoading(true);
+            const item = { code: document.getElementById('add-code').value, name: document.getElementById('add-name').value, category: document.getElementById('add-category').value, stock: parseInt(document.getElementById('add-stock').value), unit: document.getElementById('add-unit').value, location: document.getElementById('add-location').value };
+            await db('inventory', 'add', item); setLoading(false); showToast('Item Added'); e.target.reset(); navTo('view-inventory');
+        }
 
-    // --- INVENTORY ---
-    async function renderInventory() {
-        const items = await dbAction('inventory', 'readonly', s=>s.getAll());
-        const filter = document.getElementById('inv-search').value.toLowerCase();
-        const tbody = document.getElementById('inventory-body'); tbody.innerHTML = '';
-        const cats = ['All', ...masterData.categories];
-        document.getElementById('inventory-categories').innerHTML = cats.map(c => `<button onclick="renderInventory('${c}')" class="px-3 py-1 rounded-full text-xs font-bold border bg-white dark:bg-slate-700 dark:text-white whitespace-nowrap hover:bg-slate-100">${c}</button>`).join('');
-        
-        items.forEach(item => {
-            if(item.name.toLowerCase().includes(filter) || item.code.toLowerCase().includes(filter)) {
-                const isLow = item.stock <= (item.threshold || 5);
-                tbody.innerHTML += `<tr class="border-b dark:border-slate-700 ${isLow?'bg-red-50 dark:bg-red-900/20':''}"><td class="px-4 py-3"><div class="font-bold text-slate-800 dark:text-white">${item.name}</div><div class="text-xs text-slate-500 font-mono">${item.code}</div></td><td class="px-4 py-3 text-center font-bold ${isLow?'text-red-600':''}">${item.stock} <span class="text-[10px] text-slate-400 font-normal">${item.unit}</span></td><td class="px-4 py-3 text-right"><button onclick="deleteItem(${item.id})" class="text-red-500 hover:bg-red-100 p-2 rounded"><i class="fas fa-trash"></i></button></td></tr>`;
+        async function viewInventory(id) {
+            const i = await db('inventory', 'getOne', id);
+            document.getElementById('inv-view-content').innerHTML = `
+                <div class="grid grid-cols-2 gap-2">
+                    <span class="text-slate-500">Code:</span><span class="font-mono font-bold">${i.code}</span>
+                    <span class="text-slate-500">Name:</span><span class="font-bold">${i.name}</span>
+                    <span class="text-slate-500">Category:</span><span>${i.category}</span>
+                    <span class="text-slate-500">Stock:</span><span class="font-bold text-lg">${i.stock} ${i.unit}</span>
+                    <span class="text-slate-500">Location:</span><span>${i.location||'N/A'}</span>
+                </div>`;
+            document.getElementById('inv-view-modal').classList.add('open');
+        }
+
+        async function editInventory(id) {
+            const i = await db('inventory', 'getOne', id);
+            document.getElementById('inv-edit-id').value = i.id; document.getElementById('inv-edit-code').value = i.code;
+            document.getElementById('inv-edit-name').value = i.name; document.getElementById('inv-edit-stock').value = i.stock;
+            document.getElementById('inv-edit-loc').value = i.location; document.getElementById('inv-edit-cat').value = i.category;
+            document.getElementById('inv-edit-modal').classList.add('open');
+        }
+
+        document.getElementById('form-inv-edit').onsubmit = async (e) => {
+            e.preventDefault(); setLoading(true);
+            const update = { id: document.getElementById('inv-edit-id').value, name: document.getElementById('inv-edit-name').value, stock: parseInt(document.getElementById('inv-edit-stock').value), location: document.getElementById('inv-edit-loc').value, category: document.getElementById('inv-edit-cat').value };
+            await db('inventory', 'update', update);
+            setLoading(false); closeModal('inv-edit-modal'); renderInventory(); showToast('Item Updated');
+        }
+
+        async function deleteItem(id) { if(confirm('Delete this item?')) { await db('inventory','delete',id); renderInventory(); } }
+
+        // --- PR SYSTEM ---
+        async function renderPRs() {
+            const prs = await db('pr_requests', 'get');
+            const con = document.getElementById('pr-requests-body'); con.innerHTML = '';
+            prs.sort((a,b)=>b.id-a.id).forEach(p => {
+                con.innerHTML += `
+                <div class="p-3 bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                    <div class="flex justify-between items-start mb-1">
+                        <div><span class="font-bold text-sm dark:text-white">${p.materialDescription}</span> <span class="text-xs font-mono text-slate-500">(${p.materialCode||'-'})</span></div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.status=='Pending'?'bg-yellow-100 text-yellow-800':'bg-green-100 text-green-800'}">${p.status}</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-600 dark:text-slate-300 items-center">
+                        <span>Qty: <b>${p.quantity} ${p.unit}</b></span>
+                        <span>Est: ₱${p.unitPrice||0}</span>
+                        <div class="flex gap-2">
+                             <button onclick="openPREditModal(${p.id})" class="text-blue-600"><i class="fas fa-pencil-alt"></i></button>
+                             <button onclick="deletePR(${p.id})" class="text-red-500"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        async function openPREditModal(id=null) {
+            document.getElementById('form-pr-edit').reset(); document.getElementById('pr-edit-id').value = '';
+            if(id) {
+                const p = await db('pr_requests', 'getOne', id);
+                document.getElementById('pr-edit-id').value = p.id; document.getElementById('pr-code').value = p.materialCode;
+                document.getElementById('pr-desc').value = p.materialDescription; document.getElementById('pr-qty').value = p.quantity;
+                document.getElementById('pr-unit').value = p.unit; document.getElementById('pr-price').value = p.unitPrice;
+                document.getElementById('pr-status').value = p.status;
             }
-        });
-    }
-
-    document.getElementById('form-add-item').onsubmit = async (e) => {
-        e.preventDefault(); setLoading(true);
-        const item = { code: document.getElementById('add-code').value, name: document.getElementById('add-name').value, category: document.getElementById('add-category').value, stock: parseInt(document.getElementById('add-stock').value), unit: document.getElementById('add-unit').value, threshold: 5 };
-        await dbAction('inventory', 'readwrite', s=>s.add(item));
-        await logAction('ADD_ITEM', `Added ${item.code}`);
-        setLoading(false); showToast('Item Added', 'success'); e.target.reset(); renderInventory();
-    };
-    async function deleteItem(id) { if(confirm('Delete item?')) { await dbAction('inventory','readwrite',s=>s.delete(id)); renderInventory(); } }
-
-    // --- WITHDRAWAL ---
-    async function addWithdrawalRow() {
-        const items = await dbAction('inventory', 'readonly', s=>s.getAll());
-        let opts = items.map(i => `<option value="${i.id}" data-max="${i.stock}" data-code="${i.code}">${i.name} (${i.stock})</option>`).join('');
-        const row = `<div class="flex gap-2 items-center bg-slate-50 dark:bg-slate-700 p-2 rounded border border-slate-200 dark:border-slate-600"><select class="flex-1 border p-1 rounded text-xs dark:bg-slate-600 dark:text-white req-select">${opts}</select><input type="number" class="w-16 border p-1 rounded text-xs dark:bg-slate-600 dark:text-white req-qty" placeholder="Qty"><button type="button" onclick="this.parentElement.remove()" class="text-red-500"><i class="fas fa-times"></i></button></div>`;
-        document.getElementById('withdrawal-rows').insertAdjacentHTML('beforeend', row);
-    }
-    
-    document.getElementById('form-withdrawal').onsubmit = async (e) => {
-        e.preventDefault(); setLoading(true);
-        const rows = document.querySelectorAll('#withdrawal-rows > div');
-        if(rows.length===0) { setLoading(false); return showToast('Add items first', 'error'); }
-        const items = [];
-        rows.forEach(r => { const s = r.querySelector('.req-select'); const q = r.querySelector('.req-qty').value; items.push({ id: parseInt(s.value), name: s.options[s.selectedIndex].text, qty: parseInt(q), code: s.options[s.selectedIndex].dataset.code }); });
-        await dbAction('requests', 'readwrite', s=>s.add({ requester: document.getElementById('req-name').value, department: document.getElementById('req-dept').value, reason: document.getElementById('req-reason').value, items, status: 'Pending', date: new Date().toLocaleDateString() }));
-        setLoading(false); showToast('Request Sent', 'success'); e.target.reset(); document.getElementById('withdrawal-rows').innerHTML='';
-    };
-
-    async function renderRequests() {
-        const reqs = await dbAction('requests', 'readonly', s=>s.getAll());
-        const filter = document.getElementById('req-filter-status').value;
-        const tb = document.getElementById('requests-body'); tb.innerHTML='';
-        reqs.sort((a,b)=>b.id-a.id).forEach(r => {
-            if(filter!=='All' && r.status!==filter) return;
-            const badge = r.status==='Pending'?'badge-pending':r.status==='Approved'?'badge-approved':'badge-rejected';
-            tb.innerHTML += `<tr class="border-b dark:border-slate-700"><td class="px-4 py-3 text-xs">#${r.id}</td><td class="px-4 py-3 font-bold">${r.requester}<br><span class="text-[10px] font-normal text-slate-500">${r.department}</span></td><td class="px-4 py-3 text-xs">${r.items.length} Items</td><td class="px-4 py-3"><span class="badge ${badge}">${r.status}</span></td><td class="px-4 py-3 text-right"><button onclick="openRequestModal(${r.id})" class="text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs">View</button></td></tr>`;
-        });
-    }
-
-    async function openRequestModal(id) {
-        activeReqId = id; const req = await dbAction('requests', 'readonly', s=>s.get(id));
-        document.getElementById('thpal-emp-name').innerText = req.requester; document.getElementById('thpal-dept').innerText = req.department;
-        document.getElementById('thpal-date').innerText = req.date; document.getElementById('thpal-reason').innerText = req.reason;
-        document.getElementById('thpal-items-body').innerHTML = req.items.map((i, idx) => `<tr><td class="text-center">${idx+1}</td><td class="text-center">PC</td><td class="text-center">${i.qty}</td><td class="pl-2">${i.code} - ${i.name}</td></tr>`).join('');
-        document.getElementById('request-details-modal').classList.add('open');
-        document.getElementById('approval-buttons').classList.toggle('hidden', req.status!=='Pending');
-    }
-
-    async function processRequest(status) {
-        setLoading(true); const req = await dbAction('requests', 'readonly', s=>s.get(activeReqId));
-        if(status==='Approved') {
-            for(const i of req.items) { const inv = await dbAction('inventory', 'readonly', s=>s.get(i.id)); if(inv){ inv.stock -= i.qty; await dbAction('inventory', 'readwrite', s=>s.put(inv)); }}
+            document.getElementById('pr-edit-modal').classList.add('open');
         }
-        req.status = status; await dbAction('requests', 'readwrite', s=>s.put(req));
-        setLoading(false); closeModal('request-details-modal'); renderRequests(); renderDashboard();
-    }
 
-    // --- PR & GENERAL ---
-    async function renderPRRequests() {
-        const prs = await dbAction('pr_requests', 'readonly', s=>s.getAll());
-        const list = document.getElementById('pr-requests-body'); list.innerHTML = '';
-        prs.forEach(r => list.innerHTML += `<div class="grid grid-cols-6 gap-2 p-2 border-b dark:border-slate-700 text-xs items-center"><div class="col-span-2 font-bold">${r.materialDescription}</div><div>${r.quantity} ${r.unit}</div><div>${r.unitPrice}</div><div>${r.status}</div><div class="text-right"><button onclick="deletePR(${r.id})" class="text-red-500"><i class="fas fa-trash"></i></button></div></div>`);
-    }
-    
-    // --- DASHBOARD & UTILS ---
-    async function renderDashboard() {
-        const inv = await dbAction('inventory', 'readonly', s=>s.getAll());
-        const req = await dbAction('requests', 'readonly', s=>s.getAll());
-        document.getElementById('dash-total-items').innerText = inv.length;
-        document.getElementById('dash-low-stock').innerText = inv.filter(i=>i.stock <= (i.threshold||5)).length;
-        document.getElementById('dash-pending').innerText = req.filter(r=>r.status === 'Pending').length;
-        document.getElementById('nav-pending-badge').innerText = req.filter(r=>r.status === 'Pending').length;
-        document.getElementById('nav-pending-badge').classList.toggle('hidden', req.filter(r=>r.status === 'Pending').length===0);
+        document.getElementById('form-pr-edit').onsubmit = async (e) => {
+            e.preventDefault(); setLoading(true);
+            const id = document.getElementById('pr-edit-id').value;
+            const data = { materialCode: document.getElementById('pr-code').value, materialDescription: document.getElementById('pr-desc').value, quantity: document.getElementById('pr-qty').value, unit: document.getElementById('pr-unit').value, unitPrice: document.getElementById('pr-price').value, status: document.getElementById('pr-status').value };
+            if(id) { data.id = id; await db('pr_requests', 'update', data); } else { await db('pr_requests', 'add', data); }
+            setLoading(false); closeModal('pr-edit-modal'); renderPRs(); showToast('PR Saved');
+        }
+
+        async function deletePR(id) { if(confirm('Delete PR?')) { await db('pr_requests','delete',id); renderPRs(); } }
+
+        // --- DASHBOARD & GENERAL ---
+        async function renderDashboard() {
+            const i = await db('inventory','get'); const r = await db('requests','get'); const p = await db('pr_requests','get');
+            document.getElementById('dash-total-items').innerText = i.length;
+            document.getElementById('dash-low-stock').innerText = i.filter(x=>x.stock<=5).length;
+            document.getElementById('dash-pending').innerText = r.filter(x=>x.status=='Pending').length;
+            document.getElementById('dash-pr-active').innerText = p.length;
+            
+            // Chart
+            const ctx = document.getElementById('trading-chart').getContext('2d');
+            if(chartInst) chartInst.destroy();
+            const cats = {}; i.forEach(x=>cats[x.category]=(cats[x.category]||0)+1);
+            chartInst = new Chart(ctx, { type:'bar', data: { labels: Object.keys(cats), datasets: [{ label:'Items', data:Object.values(cats), backgroundColor:'#6366f1' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        }
         
-        // Simple Chart
-        const ctx = document.getElementById('trading-chart').getContext('2d');
-        if(chartInstance) chartInstance.destroy();
-        const cats = {}; inv.forEach(i => cats[i.category] = (cats[i.category]||0)+1);
-        chartInstance = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(cats), datasets: [{ label: 'Items', data: Object.values(cats), backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        async function renderRequests() {
+            const reqs = await db('requests', 'get');
+            const tb = document.getElementById('requests-body'); tb.innerHTML = '';
+            reqs.reverse().forEach(r => tb.innerHTML += `<tr class="border-b dark:border-slate-700"><td class="p-3 text-xs">#${r.id}</td><td class="p-3 text-xs font-bold">${r.requester}</td><td class="p-3"><span class="bg-yellow-100 text-yellow-800 text-[10px] px-2 rounded font-bold">${r.status}</span></td><td class="p-3 text-right"><button class="text-red-500" onclick="db('requests','delete',${r.id}).then(renderRequests)"><i class="fas fa-trash"></i></button></td></tr>`);
+        }
         
-        // Logs
-        const logs = await dbAction('logs', 'readonly', s=>s.getAll());
-        document.getElementById('recent-logs-list').innerHTML = logs.slice(-5).reverse().map(l => `<li class="border-b dark:border-slate-700 pb-1 flex justify-between"><span>${l.action}</span><span class="text-[10px] text-slate-400">${l.timestamp.split(',')[1]}</span></li>`).join('');
-    }
+        // Withdrawal Form Logic
+        function addWithdrawalRow() {
+            document.getElementById('withdrawal-rows').insertAdjacentHTML('beforeend', `<div class="flex gap-2"><input placeholder="Item Code" class="flex-1 border rounded p-1 text-xs dark:bg-slate-700 dark:text-white"><input type="number" placeholder="Qty" class="w-16 border rounded p-1 text-xs dark:bg-slate-700 dark:text-white"><button type="button" onclick="this.parentElement.remove()" class="text-red-500"><i class="fas fa-times"></i></button></div>`);
+        }
+        document.getElementById('form-withdrawal').onsubmit = async (e) => {
+            e.preventDefault(); setLoading(true);
+            // Simulating save since details weren't specified, essentially log it
+            await db('requests', 'add', { requester: document.getElementById('req-name').value, department: document.getElementById('req-dept').value, status: 'Pending' });
+            setLoading(false); showToast('Withdrawal Requested'); e.target.reset(); document.getElementById('withdrawal-rows').innerHTML=''; renderDashboard();
+        }
 
-    function setupCalculatorDrag(){ 
-        const calc = document.getElementById('floating-calculator'); 
-        const header = document.getElementById('calc-header');
-        let isDragging = false, startX, startY, initLeft, initTop;
-
-        const startDrag = (e) => {
-            isDragging = true;
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            startX = clientX; startY = clientY;
-            initLeft = calc.offsetLeft; initTop = calc.offsetTop;
-        };
-        const doDrag = (e) => {
-            if(!isDragging) return;
-            e.preventDefault(); // Prevent scrolling on mobile while dragging
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            calc.style.left = (initLeft + clientX - startX) + 'px';
-            calc.style.top = (initTop + clientY - startY) + 'px';
-        };
-        const stopDrag = () => isDragging = false;
-
-        header.addEventListener('mousedown', startDrag); document.addEventListener('mousemove', doDrag); document.addEventListener('mouseup', stopDrag);
-        header.addEventListener('touchstart', startDrag); document.addEventListener('touchmove', doDrag, {passive: false}); document.addEventListener('touchend', stopDrag);
-    }
-
-    function toggleCalculator(){ document.getElementById('floating-calculator').classList.toggle('hidden'); }
-    function calcInput(v){const d=document.getElementById('calc-display'); if(v=='C')d.value='0'; else if(v=='DEL')d.value=d.value.slice(0,-1); else if(v=='=')try{d.value=eval(d.value)}catch{d.value='Err'} else d.value=d.value=='0'?v:d.value+v;}
-    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-    async function clearLogs() { await dbAction('logs','readwrite',s=>s.clear()); renderDashboard(); }
-    function exportToExcel(t) { dbAction(t,'readonly',s=>s.getAll()).then(d=>{const ws=XLSX.utils.json_to_sheet(d);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Data");XLSX.writeFile(wb,`${t}.xlsx`);}); }
-    
-    // Stub for Master Data Add
-    async function addMasterItem(k) { const v=document.getElementById(`add-master-${k}`).value; if(v){ masterData[k].push(v); await dbAction('master','readwrite',s=>s.put({key:'config',data:masterData})); loadMasterData(); document.getElementById(`add-master-${k}`).value=''; renderMasterLists(); }}
-    function renderMasterLists() { ['categories','units','departments'].forEach(k => document.getElementById(`master-${k}-list`).innerHTML = masterData[k].map(i => `<div class="p-1 border-b">${i}</div>`).join('')); }
-    async function renderLogs() { const l=await dbAction('logs','readonly',s=>s.getAll()); document.getElementById('logs-body').innerHTML=l.slice().reverse().map(x=>`<tr class="border-b dark:border-slate-700"><td class="px-4 py-2 text-[10px]">${x.timestamp}</td><td class="px-4 py-2 font-bold">${x.action}</td><td class="px-4 py-2 text-xs">${x.details}</td></tr>`).join(''); }
     </script>
 </body>
 </html>
