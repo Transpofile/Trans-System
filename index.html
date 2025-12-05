@@ -14,7 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+<script src="js/extension.js" defer></script>
     
     <!-- Configuration -->
     <script>
@@ -721,6 +721,6 @@
         function openPREditModal() { document.getElementById('form-pr').reset(); document.getElementById('pr-id').value=''; document.getElementById('pr-modal').classList.add('open'); }
         document.getElementById('form-pr').onsubmit = async (e)=>{e.preventDefault(); const d={materialDescription:document.getElementById('pr-desc').value,quantity:document.getElementById('pr-qty').value,status:'Pending'}; await db('pr_requests','add',d); closeModal('pr-modal'); renderPRs();}
     </script>
-    <script src="js/extension.js" defer></script>
+    
 </body>
 </html>
