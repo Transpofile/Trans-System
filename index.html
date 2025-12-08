@@ -74,22 +74,13 @@
         .dark .stepper-item.completed::before { background: #6366f1; border-color: #6366f1; }
         .dark .stepper-item.completed { border-color: #6366f1; }
 
-        /* Master Data Tags */
-        .master-tag { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-size: 0.875rem; margin-bottom: 4px; border: 1px solid #e2e8f0; }
-        .dark .master-tag { background: #1e293b; border-color: #334155; color: #f1f5f9; }
-
         /* Status Badges */
-        .badge { padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px; }
         .badge-pending { background-color: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
         .badge-approved { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
         .badge-ordered { background-color: #faf5ff; color: #7e22ce; border: 1px solid #d8b4fe; }
         .badge-received { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
         .badge-rejected { background-color: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
-
-        /* Priority Indicators */
-        .priority-high { border-left: 4px solid #ef4444; }
-        .priority-normal { border-left: 4px solid #3b82f6; }
-        .priority-low { border-left: 4px solid #94a3b8; }
 
         @media print {
             body * { visibility: hidden; }
@@ -242,20 +233,20 @@
                 </div>
             </section>
 
-            <!-- PURCHASE REQUESTS (REDESIGNED) -->
+            <!-- PURCHASE REQUESTS (ENHANCED DESIGN) -->
             <section id="view-pr-requests" class="view-section hidden fade-in">
                 <!-- Header & Action -->
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
                         <h2 class="text-2xl font-bold dark:text-white">Purchase Requisitions</h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage external procurement and tracking.</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage external procurement, tracking, and receipts.</p>
                     </div>
                     <div class="flex w-full md:w-auto gap-3">
                         <div class="relative flex-1 md:w-48">
                             <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                            <input type="text" id="pr-search" onkeyup="renderPRs()" placeholder="Search PRs..." class="w-full pl-10 pr-4 py-2 text-sm rounded-lg border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 dark:bg-slate-800 dark:text-white">
+                            <input type="text" id="pr-search" onkeyup="renderPRs()" placeholder="Search PR/PO/Material..." class="w-full pl-10 pr-4 py-2 text-sm rounded-lg border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 dark:bg-slate-800 dark:text-white">
                         </div>
-                        <button onclick="openPREditModal()" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-brand-700 transition flex items-center whitespace-nowrap"><i class="fas fa-plus mr-2"></i>New Request</button>
+                        <button onclick="openPREditModal()" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-brand-700 transition flex items-center whitespace-nowrap"><i class="fas fa-plus mr-2"></i>New PR</button>
                     </div>
                 </div>
 
@@ -291,9 +282,7 @@
 
                 <!-- List View -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow border dark:border-slate-700 overflow-hidden">
-                    <div id="pr-list-container" class="divide-y divide-slate-100 dark:divide-slate-700">
-                        <!-- Content injected via JS -->
-                    </div>
+                    <div id="pr-list-container" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
                     <div id="pr-empty" class="hidden flex flex-col items-center justify-center py-16 text-slate-400">
                         <div class="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4"><i class="fas fa-clipboard-list text-2xl"></i></div>
                         <p class="font-medium">No requests found in this section.</p>
@@ -425,45 +414,66 @@
 
     <!-- NEW PR Modal -->
     <div id="pr-modal" class="modal">
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl mx-4">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h3 class="font-bold text-xl mb-6 dark:text-white flex items-center gap-2"><i class="fas fa-file-invoice text-brand-500"></i> New Purchase Request</h3>
             <form id="form-pr" class="space-y-4">
                 <input id="pr-id" type="hidden">
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Item Description</label><input id="pr-desc" required placeholder="e.g. Safety Gloves" class="w-full border dark:border-slate-600 p-3 rounded-lg dark:bg-slate-700 dark:text-white"></div>
-                    <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Priority</label>
-                        <select id="pr-priority" class="w-full border dark:border-slate-600 p-3 rounded-lg dark:bg-slate-700 dark:text-white">
-                            <option value="Normal">Normal</option><option value="High">High</option><option value="Low">Low</option>
-                        </select>
+                
+                <!-- Identifiers -->
+                <div class="grid grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                    <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">PR Number</label><input id="pr-number" placeholder="PR-001" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
+                    <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">ARF Number</label><input id="pr-arf" placeholder="ARF-2023" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
+                </div>
+
+                <!-- Product Details -->
+                <div class="space-y-3">
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="col-span-1"><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Mat. Code</label><input id="pr-matcode" placeholder="100-202" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
+                        <div class="col-span-2"><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Description</label><input id="pr-desc" required placeholder="Safety Gloves" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Priority</label><select id="pr-priority" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"><option value="Normal">Normal</option><option value="High">High</option><option value="Low">Low</option></select></div>
+                        <div class="grid grid-cols-2 gap-2">
+                             <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Qty</label><input id="pr-qty" type="number" min="1" required class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
+                             <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Unit</label><select id="pr-unit" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"><option value="Pcs">Pcs</option><option value="Sets">Sets</option><option value="Box">Box</option><option value="Liters">Liters</option></select></div>
+                        </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                     <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Quantity</label><input id="pr-qty" type="number" min="1" required placeholder="10" class="w-full border dark:border-slate-600 p-3 rounded-lg dark:bg-slate-700 dark:text-white"></div>
-                     <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Unit</label>
-                        <select id="pr-unit" class="w-full border dark:border-slate-600 p-3 rounded-lg dark:bg-slate-700 dark:text-white">
-                            <option value="Pcs">Pcs</option><option value="Sets">Sets</option><option value="Box">Box</option><option value="Liters">Liters</option>
-                        </select>
-                    </div>
-                </div>
-                <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Reason / Purpose</label><textarea id="pr-reason" rows="2" required placeholder="For maintenance..." class="w-full border dark:border-slate-600 p-3 rounded-lg dark:bg-slate-700 dark:text-white"></textarea></div>
+                
+                <!-- Links -->
+                <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Image URL</label><input id="pr-img" type="url" placeholder="https://..." class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
+                <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Attachment/Link</label><input id="pr-link" type="url" placeholder="Doc Link" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
+
+                <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Reason / Purpose</label><textarea id="pr-reason" rows="2" required class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></textarea></div>
+                
                 <div class="flex gap-3 mt-4">
-                    <button type="submit" class="flex-1 bg-brand-600 text-white p-3 rounded-xl font-bold hover:bg-brand-700 transition shadow-lg">Submit Request</button>
+                    <button type="submit" class="flex-1 bg-brand-600 text-white p-3 rounded-xl font-bold hover:bg-brand-700 transition shadow-lg">Submit</button>
                     <button type="button" onclick="closeModal('pr-modal')" class="flex-1 bg-slate-100 text-slate-700 p-3 rounded-xl font-bold hover:bg-slate-200 transition dark:bg-slate-700 dark:text-slate-300">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
     
-    <!-- View/Manage PR Modal (Improved) -->
+    <!-- View/Manage PR Modal -->
     <div id="view-pr-modal" class="modal">
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl mx-4">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h3 class="font-bold text-lg mb-6 dark:text-white flex justify-between items-center">
                 <span>Manage Request</span>
-                <span id="view-pr-id" class="text-xs text-slate-400 font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded"></span>
+                <span id="view-pr-header" class="text-xs text-slate-400 font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded"></span>
             </h3>
             
             <!-- Details -->
             <div id="view-pr-content" class="mb-6 space-y-3 text-sm dark:text-slate-300"></div>
+            
+            <!-- Logistics Data Input -->
+            <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-700 mb-6">
+                <h4 class="text-xs font-bold uppercase text-slate-500 mb-3">Logistics Data</h4>
+                <div class="grid grid-cols-2 gap-3 mb-2">
+                    <div><label class="text-[10px] font-bold text-slate-400 block">P.O. Number</label><input id="view-pr-po" class="w-full text-xs p-2 rounded border dark:border-slate-600 dark:bg-slate-800 dark:text-white"></div>
+                    <div><label class="text-[10px] font-bold text-slate-400 block">Purchaser Name</label><input id="view-pr-purchaser" class="w-full text-xs p-2 rounded border dark:border-slate-600 dark:bg-slate-800 dark:text-white"></div>
+                </div>
+                <div><label class="text-[10px] font-bold text-slate-400 block">Receiver Name</label><input id="view-pr-receiver" class="w-full text-xs p-2 rounded border dark:border-slate-600 dark:bg-slate-800 dark:text-white"></div>
+            </div>
 
             <!-- Stepper Timeline -->
             <div class="mb-6 pl-2">
@@ -474,7 +484,7 @@
             </div>
             
             <!-- Actions -->
-            <label class="block text-xs font-bold text-slate-500 mb-2">Update Status</label>
+            <label class="block text-xs font-bold text-slate-500 mb-2">Update Status & Save Info</label>
             <div id="pr-actions" class="grid grid-cols-2 gap-2 mb-4">
                 <button onclick="updatePRStatus('Approved')" class="bg-blue-100 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-200">Approve</button>
                 <button onclick="updatePRStatus('Ordered')" class="bg-purple-100 text-purple-700 py-2 rounded-lg font-bold hover:bg-purple-200">Mark Ordered</button>
@@ -493,7 +503,7 @@
         
         let master = { categories: [], units: [], departments: [] };
         let activeInvTab = 'all';
-        let activePRTab = 'active'; // active or history
+        let activePRTab = 'active'; 
         let activeReqId = null;
         let activePRId = null;
         let chartInstance = null;
@@ -515,7 +525,6 @@
         function toggleDarkMode() { document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark')?'dark':'light'); }
         function loadTheme() { if(localStorage.getItem('theme')==='dark') document.documentElement.classList.add('dark'); }
         
-        // --- NAVIGATION ---
         function navTo(id) {
             document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
@@ -604,7 +613,11 @@
             
             // Filtering
             const term = document.getElementById('pr-search').value.toLowerCase();
-            let filtered = p.filter(x => x.materialDescription.toLowerCase().includes(term));
+            let filtered = p.filter(x => 
+                (x.materialDescription || '').toLowerCase().includes(term) ||
+                (x.pr_number || '').toLowerCase().includes(term) ||
+                (x.po_number || '').toLowerCase().includes(term)
+            );
             
             if(activePRTab === 'active') {
                 filtered = filtered.filter(x => ['Pending', 'Approved', 'Ordered'].includes(x.status));
@@ -622,28 +635,27 @@
                 if(x.status === 'Received') { badge = `badge-received`; icon="fa-box-open"; }
                 if(x.status === 'Rejected') { badge = `badge-rejected`; icon="fa-times"; }
 
-                const priorityClass = x.priority === 'High' ? 'priority-high' : x.priority === 'Low' ? 'priority-low' : 'priority-normal';
-                
+                const imgHtml = x.image_link ? `<img src="${x.image_link}" class="w-12 h-12 rounded object-cover border" alt="Item">` : `<div class="w-12 h-12 rounded bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400"><i class="fas fa-image"></i></div>`;
+
                 container.innerHTML += `
-                    <div class="p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition ${priorityClass} flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition border-b dark:border-slate-700 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                        <div class="shrink-0">${imgHtml}</div>
                         <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <span class="badge ${badge}"><i class="fas ${icon} text-[0.6rem]"></i> ${x.status}</span>
-                                ${x.priority === 'High' ? '<span class="text-[0.6rem] font-bold text-red-500 bg-red-50 px-2 rounded">HIGH PRIORITY</span>' : ''}
+                                ${x.pr_number ? `<span class="text-[0.65rem] font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded text-slate-500">PR: ${x.pr_number}</span>` : ''}
+                                ${x.po_number ? `<span class="text-[0.65rem] font-mono bg-purple-50 text-purple-600 px-1 rounded">PO: ${x.po_number}</span>` : ''}
+                                ${x.priority === 'High' ? '<span class="text-[0.6rem] font-bold text-red-500 bg-red-50 px-2 rounded">HIGH</span>' : ''}
                             </div>
-                            <h4 class="font-bold text-slate-800 dark:text-white">${x.materialDescription}</h4>
-                            <p class="text-xs text-slate-500 mt-1 line-clamp-1">${x.reason || 'No specific reason provided'}</p>
+                            <h4 class="font-bold text-slate-800 dark:text-white text-sm">${x.materialDescription}</h4>
+                            <p class="text-[10px] text-slate-400 font-mono mt-0.5">${x.material_code || 'No Code'}</p>
                         </div>
-                        <div class="flex items-center gap-6 w-full md:w-auto justify-between">
+                        <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
                             <div class="text-right">
                                 <p class="text-xs text-slate-400 uppercase font-bold">Qty</p>
-                                <p class="font-mono font-bold dark:text-slate-200">${x.quantity} <span class="text-xs font-normal">${x.unit}</span></p>
+                                <p class="font-mono font-bold dark:text-slate-200 text-sm">${x.quantity} <span class="text-[10px] font-normal">${x.unit}</span></p>
                             </div>
-                            <div class="text-right hidden sm:block">
-                                <p class="text-xs text-slate-400 uppercase font-bold">Created</p>
-                                <p class="text-sm dark:text-slate-200">${new Date(x.created_at).toLocaleDateString()}</p>
-                            </div>
-                            <button onclick="managePR(${x.id})" class="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-600 shadow-sm transition">Manage</button>
+                            <button onclick="managePR(${x.id})" class="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-600 shadow-sm transition">Manage</button>
                         </div>
                     </div>
                 `;
@@ -655,14 +667,19 @@
         document.getElementById('form-pr').onsubmit = async (e) => {
             e.preventDefault();
             const data = {
+                pr_number: document.getElementById('pr-number').value,
+                arf_number: document.getElementById('pr-arf').value,
+                material_code: document.getElementById('pr-matcode').value,
                 materialDescription: document.getElementById('pr-desc').value,
                 quantity: parseInt(document.getElementById('pr-qty').value),
                 unit: document.getElementById('pr-unit').value,
                 reason: document.getElementById('pr-reason').value,
                 priority: document.getElementById('pr-priority').value,
+                image_link: document.getElementById('pr-img').value,
+                attachment_link: document.getElementById('pr-link').value,
                 status: 'Pending',
                 created_at: new Date().toISOString(),
-                history: [{status:'Pending', date: new Date().toISOString()}] // Start history
+                history: [{status:'Pending', date: new Date().toISOString()}] 
             };
             setLoading(true);
             await db('pr_requests', 'add', data);
@@ -679,44 +696,46 @@
             const pr = await db('pr_requests', 'getOne', id);
             setLoading(false);
             
-            document.getElementById('view-pr-id').innerText = `ID: #${pr.id}`;
+            document.getElementById('view-pr-header').innerText = pr.pr_number ? `PR: ${pr.pr_number}` : `ID: #${pr.id}`;
+            
+            // Populate Inputs for Logistics
+            document.getElementById('view-pr-po').value = pr.po_number || '';
+            document.getElementById('view-pr-purchaser').value = pr.purchaser || '';
+            document.getElementById('view-pr-receiver').value = pr.receiver || '';
+
+            const imgHtml = pr.image_link ? `<img src="${pr.image_link}" class="w-full h-32 object-cover rounded-lg border mb-2">` : '';
+            const linkHtml = pr.attachment_link ? `<a href="${pr.attachment_link}" target="_blank" class="block w-full text-center bg-slate-100 text-slate-600 text-xs py-2 rounded mt-2 hover:bg-slate-200"><i class="fas fa-paperclip mr-1"></i> Open Attachment</a>` : '';
+
             document.getElementById('view-pr-content').innerHTML = `
+                ${imgHtml}
                 <div class="bg-slate-50 dark:bg-slate-700 p-4 rounded-xl border dark:border-slate-600">
                     <div class="flex justify-between items-start mb-2">
-                        <h4 class="font-bold text-lg">${pr.materialDescription}</h4>
-                        <span class="text-xs font-bold px-2 py-1 rounded ${pr.priority==='High'?'bg-red-100 text-red-600':'bg-slate-200 text-slate-600'}">${pr.priority} Priority</span>
+                        <div>
+                            <h4 class="font-bold text-lg">${pr.materialDescription}</h4>
+                            <p class="text-xs font-mono text-slate-500">${pr.material_code || 'N/A'} | ARF: ${pr.arf_number || 'N/A'}</p>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 rounded ${pr.priority==='High'?'bg-red-100 text-red-600':'bg-slate-200 text-slate-600'}">${pr.priority}</span>
                     </div>
                     <div class="grid grid-cols-2 gap-4 text-sm mt-3">
-                        <div><span class="text-xs text-slate-400 uppercase font-bold block">Quantity</span>${pr.quantity} ${pr.unit}</div>
-                        <div><span class="text-xs text-slate-400 uppercase font-bold block">Date</span>${new Date(pr.created_at).toLocaleDateString()}</div>
+                        <div><span class="text-[10px] text-slate-400 uppercase font-bold block">Quantity</span>${pr.quantity} ${pr.unit}</div>
+                        <div><span class="text-[10px] text-slate-400 uppercase font-bold block">Date</span>${new Date(pr.created_at).toLocaleDateString()}</div>
                     </div>
                     <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-600">
-                         <span class="text-xs text-slate-400 uppercase font-bold block mb-1">Reason</span>
                          <p class="italic text-slate-600 dark:text-slate-300 text-sm">"${pr.reason}"</p>
                     </div>
+                    ${linkHtml}
                 </div>
             `;
 
             // Reset Stepper
             document.querySelectorAll('.stepper-item').forEach(el => { el.classList.remove('completed'); el.querySelector('p:last-child').innerText = '-'; });
-            
-            // Populate Timeline (Basic logic based on current status priority)
-            const history = pr.history || []; // Assuming JSONB or array, if not fallback to status
-            
-            // Helper to fill stepper
-            const markStep = (id, date) => {
-                const el = document.getElementById(id);
-                el.classList.add('completed');
-                el.querySelector('p:last-child').innerText = date ? new Date(date).toLocaleString() : 'Completed';
-            }
+            const markStep = (id, date) => { const el = document.getElementById(id); el.classList.add('completed'); el.querySelector('p:last-child').innerText = date ? new Date(date).toLocaleString() : 'Completed'; }
 
-            // Simple status waterfall
             markStep('step-pending', pr.created_at);
             if(['Approved', 'Ordered', 'Received'].includes(pr.status)) markStep('step-approved');
             if(['Ordered', 'Received'].includes(pr.status)) markStep('step-ordered');
             if(['Received'].includes(pr.status)) markStep('step-received');
             
-            // Show/Hide buttons based on status
             const actions = document.getElementById('pr-actions');
             if(pr.status === 'Received' || pr.status === 'Rejected') actions.classList.add('hidden');
             else actions.classList.remove('hidden');
@@ -728,7 +747,12 @@
             setLoading(true);
             const pr = await db('pr_requests', 'getOne', activePRId);
             
-            // Logic for receiving items
+            // Save Logistics Data
+            pr.po_number = document.getElementById('view-pr-po').value;
+            pr.purchaser = document.getElementById('view-pr-purchaser').value;
+            pr.receiver = document.getElementById('view-pr-receiver').value;
+
+            // Receive Logic
             if(status === 'Received' && pr.status !== 'Received') {
                 if(confirm(`Add ${pr.quantity} ${pr.unit} of "${pr.materialDescription}" to Inventory?`)) {
                     const items = await db('inventory', 'get');
@@ -741,8 +765,9 @@
                     } else {
                         if(confirm('Item not found in inventory. Create new item?')) {
                              await db('inventory', 'add', {
-                                name: pr.materialDescription, code: 'NEW-' + Math.floor(Math.random()*1000),
-                                category: 'Parts', unit: pr.unit, stock: parseInt(pr.quantity), location: 'Receiving'
+                                name: pr.materialDescription, code: pr.material_code || ('NEW-' + Math.floor(Math.random()*1000)),
+                                category: 'Parts', unit: pr.unit, stock: parseInt(pr.quantity), location: 'Receiving',
+                                image_link: pr.image_link
                             });
                             showToast('New Item Created');
                         }
@@ -751,9 +776,6 @@
             }
             
             pr.status = status;
-            // Add to history if array exists
-            // if(pr.history) pr.history.push({status: status, date: new Date().toISOString()});
-            
             await db('pr_requests', 'update', pr);
             setLoading(false);
             closeModal('view-pr-modal');
