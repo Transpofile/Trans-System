@@ -14,7 +14,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/extension.js" defer></script>
     
     <!-- Configuration -->
     <script>
@@ -66,6 +65,12 @@
         .modal-content { transform: scale(0.95); transition: transform 0.2s ease; }
         .modal.open .modal-content { transform: scale(1); }
 
+        /* Calendar Grid */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.8rem; position: relative; }
+        .calendar-day.has-event { background-color: #e0e7ff; color: #4338ca; font-weight: bold; border: 1px solid #6366f1; }
+        .dark .calendar-day.has-event { background-color: #312e81; color: #e0e7ff; border-color: #6366f1; }
+
         /* Master Data Tags */
         .master-tag { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-size: 0.875rem; margin-bottom: 4px; border: 1px solid #e2e8f0; }
         .dark .master-tag { background: #1e293b; border-color: #334155; color: #f1f5f9; }
@@ -73,7 +78,7 @@
         @media print {
             body * { visibility: hidden; }
             #request-details-modal, #request-details-modal * { visibility: visible; }
-            #request-details-modal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white; padding: 0; margin: 0; display: block; }
+            #request-details-modal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white; padding: 0; margin: 0; display: block; overflow: visible; }
             .no-print { display: none !important; }
             .thpal-bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
             .thpal-form table, .thpal-form th, .thpal-form td { border: 1px solid black; border-collapse: collapse; }
@@ -144,11 +149,11 @@
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700">
-                        <h3 class="font-bold mb-4 dark:text-white">Distribution</h3>
+                        <h3 class="font-bold mb-4 dark:text-white">Inventory Distribution</h3>
                         <div class="h-64"><canvas id="trading-chart"></canvas></div>
                     </div>
                     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700">
-                        <h3 class="font-bold mb-4 dark:text-white flex justify-between"><span>Activity</span><span id="calendar-month" class="text-xs font-normal text-slate-500"></span></h3>
+                        <h3 class="font-bold mb-4 dark:text-white flex justify-between"><span>Activity Log</span><span id="calendar-month" class="text-xs font-normal text-slate-500"></span></h3>
                         <div class="text-xs text-center grid grid-cols-7 mb-2 text-slate-400 font-bold"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
                         <div id="calendar-grid" class="calendar-grid text-slate-700 dark:text-slate-300"></div>
                     </div>
@@ -158,13 +163,14 @@
             <!-- INVENTORY -->
             <section id="view-inventory" class="view-section hidden fade-in">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                    <h2 class="text-2xl font-bold dark:text-white">Inventory</h2>
+                    <h2 class="text-2xl font-bold dark:text-white">Inventory Management</h2>
                     <div class="flex w-full md:w-auto gap-3">
                         <div class="relative flex-1 md:w-64">
                             <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                            <input type="text" id="inv-search" onkeyup="renderInventory()" placeholder="Search..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 dark:bg-slate-800 dark:text-white">
+                            <input type="text" id="inv-search" onkeyup="renderInventory()" placeholder="Search Code or Name..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 dark:bg-slate-800 dark:text-white">
                         </div>
-                        <button onclick="openAddItemModal()" class="bg-brand-600 text-white w-10 h-10 rounded-xl shadow-lg flex items-center justify-center"><i class="fas fa-plus"></i></button>
+                        <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white w-10 h-10 rounded-xl shadow-lg flex items-center justify-center transition" title="Export Excel"><i class="fas fa-file-excel"></i></button>
+                        <button onclick="openAddItemModal()" class="bg-brand-600 hover:bg-brand-700 text-white w-10 h-10 rounded-xl shadow-lg flex items-center justify-center transition" title="Add Item"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
                 <div id="inventory-tabs-container" class="flex gap-2 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto pb-1"></div>
@@ -185,26 +191,26 @@
                         </thead>
                         <tbody id="inventory-body"></tbody>
                     </table>
-                    <div id="inv-empty" class="hidden flex flex-col items-center justify-center py-12 text-slate-400"><i class="fas fa-box-open text-6xl mb-4"></i><p>No items found.</p></div>
+                    <div id="inv-empty" class="hidden flex flex-col items-center justify-center py-12 text-slate-400"><i class="fas fa-box-open text-6xl mb-4"></i><p>No items found matching criteria.</p></div>
                 </div>
             </section>
 
             <!-- WITHDRAWALS TABLE -->
             <section id="view-requests" class="view-section hidden fade-in">
-                <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold dark:text-white">Withdrawal History</h2><button onclick="navTo('view-request-withdrawal')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow">New Request</button></div>
+                <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold dark:text-white">Withdrawal History</h2><button onclick="navTo('view-request-withdrawal')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition"><i class="fas fa-plus mr-2"></i>New Request</button></div>
                 <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300">
                      <thead class="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-bold text-slate-500 dark:text-slate-400"><tr><th class="px-4 py-3">ID / Date</th><th class="px-4 py-3">Requester</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Action</th></tr></thead>
                      <tbody id="requests-body"></tbody>
                 </table>
             </section>
             
-            <!-- NEW WITHDRAWAL FORM (UPDATED) -->
+            <!-- NEW WITHDRAWAL FORM -->
             <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-3xl mx-auto">
                 <h2 class="text-2xl font-bold dark:text-white mb-6">Create Withdrawal Request</h2>
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl border dark:border-slate-700">
                     <form id="form-withdrawal" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label class="block text-xs font-bold text-slate-500 mb-1">Requester</label><input id="req-name" required class="w-full border p-3 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="block text-xs font-bold text-slate-500 mb-1">Requester Name</label><input id="req-name" required class="w-full border p-3 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-brand-500"></div>
                             <div><label class="block text-xs font-bold text-slate-500 mb-1">Department</label><select id="req-dept" required class="w-full border p-3 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-brand-500"></select></div>
                         </div>
                         <div><label class="block text-xs font-bold text-slate-500 mb-1">Purpose / Reason</label><input id="req-reason" required class="w-full border p-3 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-brand-500"></div>
@@ -223,8 +229,20 @@
 
             <!-- PURCHASE REQUESTS -->
             <section id="view-pr-requests" class="view-section hidden fade-in">
-                <div class="flex justify-between mb-6"><h2 class="text-2xl font-bold dark:text-white">Purchase Requests</h2><button onclick="openPREditModal()" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-bold">New PR</button></div>
-                <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300"><tbody id="pr-requests-body"></tbody></table>
+                <div class="flex justify-between mb-6"><h2 class="text-2xl font-bold dark:text-white">Purchase Requests</h2><button onclick="openPREditModal()" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-brand-700 transition"><i class="fas fa-plus mr-2"></i>New PR</button></div>
+                <div class="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow border dark:border-slate-700">
+                    <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300">
+                        <thead class="bg-slate-100 dark:bg-slate-700 text-xs uppercase font-bold text-slate-500 dark:text-slate-400">
+                            <tr>
+                                <th class="px-4 py-3">Description</th>
+                                <th class="px-4 py-3">Quantity</th>
+                                <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pr-requests-body"></tbody>
+                    </table>
+                </div>
             </section>
 
             <!-- AUDIT LOGS -->
@@ -273,12 +291,17 @@
     </div>
 
     <!-- MODALS -->
-    <!-- View Item Modal (Image/SDS) -->
+    <!-- View Item Modal (Image/SDS/QR) -->
     <div id="view-item-modal" class="modal">
         <div class="modal-content bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl p-6 relative mx-4">
-            <button class="absolute top-4 right-4 text-slate-400" onclick="closeModal('view-item-modal')"><i class="fas fa-times"></i></button>
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('view-item-modal')"><i class="fas fa-times text-xl"></i></button>
             <h2 class="text-xl font-bold dark:text-white mb-4">Item Details</h2>
             <div id="view-item-content" class="text-sm dark:text-slate-300 mb-6 space-y-2"></div>
+            
+            <div class="flex justify-center mb-6 p-4 bg-white rounded-lg border">
+                <div id="qrcode"></div>
+            </div>
+
             <div class="grid grid-cols-2 gap-4">
                 <a id="btn-view-image" target="_blank" class="block w-full text-center bg-blue-50 text-blue-600 py-3 rounded-lg font-bold hover:bg-blue-100 transition cursor-pointer"><i class="fas fa-image mr-2"></i>Image</a>
                 <a id="btn-view-sds" target="_blank" class="block w-full text-center bg-orange-50 text-orange-600 py-3 rounded-lg font-bold hover:bg-orange-100 transition cursor-pointer"><i class="fas fa-file-pdf mr-2"></i>SDS</a>
@@ -289,68 +312,82 @@
     <!-- Inventory Form -->
     <div id="inv-modal" class="modal">
         <div class="glass-panel modal-content bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative mx-4">
-            <button class="absolute top-4 right-4 text-slate-400" onclick="closeModal('inv-modal')"><i class="fas fa-times"></i></button>
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('inv-modal')"><i class="fas fa-times text-xl"></i></button>
             <h2 class="text-xl font-bold dark:text-white mb-6">Item Editor</h2>
             <form id="form-inv" class="space-y-4">
                 <input type="hidden" id="inv-id">
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="text" id="inv-code" placeholder="Code" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white">
-                    <input type="text" id="inv-name" placeholder="Name" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white">
+                    <div><label class="text-xs text-slate-500 font-bold ml-1">Code</label><input type="text" id="inv-code" required placeholder="Item Code" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></div>
+                    <div><label class="text-xs text-slate-500 font-bold ml-1">Name</label><input type="text" id="inv-name" required placeholder="Item Name" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <select id="inv-cat" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></select>
-                    <select id="inv-unit" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></select>
+                    <div><label class="text-xs text-slate-500 font-bold ml-1">Category</label><select id="inv-cat" required class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></select></div>
+                    <div><label class="text-xs text-slate-500 font-bold ml-1">Unit</label><select id="inv-unit" required class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></select></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="inv-stock" placeholder="Stock" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white">
-                    <input type="text" id="inv-loc" placeholder="Location" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white">
+                    <div><label class="text-xs text-slate-500 font-bold ml-1">Stock</label><input type="number" id="inv-stock" required min="0" placeholder="0" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></div>
+                    <div><label class="text-xs text-slate-500 font-bold ml-1">Location</label><input type="text" id="inv-loc" placeholder="Shelf A" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></div>
                 </div>
                 <input type="url" id="inv-img" placeholder="Image URL (Google Drive/Direct)" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white">
                 <input type="url" id="inv-sds" placeholder="SDS Document URL" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white">
-                <button type="submit" class="w-full bg-brand-600 text-white py-3 rounded-xl font-bold mt-2 hover:bg-brand-700">Save</button>
+                <button type="submit" class="w-full bg-brand-600 text-white py-3 rounded-xl font-bold mt-2 hover:bg-brand-700 shadow-md transition">Save Item</button>
             </form>
         </div>
     </div>
     
-    <!-- Toast -->
-    <div id="toast" class="fixed top-20 right-5 bg-slate-900/90 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-x-full transition-all duration-300 z-50 flex items-center gap-3">
-        <i class="fas fa-check-circle text-green-400"></i><p id="toast-msg">Success</p>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-20 right-5 bg-slate-900/90 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-x-full transition-all duration-300 z-50 flex items-center gap-3 border border-slate-700">
+        <i class="fas fa-check-circle text-green-400 text-xl"></i><p id="toast-msg" class="font-medium">Success</p>
     </div>
 
-    <!-- Request Details Modal -->
+    <!-- Request Details Modal (Printable) -->
     <div id="request-details-modal" class="modal">
         <div class="modal-content bg-white w-full max-w-4xl rounded-xl shadow-2xl p-0 relative flex flex-col max-h-[90vh]">
             <div id="print-area" class="thpal-form text-black bg-white p-8 overflow-y-auto flex-1">
                 <!-- THPAL Form Content -->
                 <div class="flex justify-between items-end mb-4 border-b-2 border-black pb-2">
-                    <div class="flex items-center gap-3"><div class="border-2 border-teal-700 p-2"><h1 class="text-2xl font-bold text-teal-700">THPAL</h1></div><div><p class="font-bold text-xs">Taganito HPAL Nickel Corporation</p></div></div>
-                    <div class="text-right"><p class="text-[9px] font-bold">Form 02 EMS-THPAL-SE-301 Rev 01</p></div>
+                    <div class="flex items-center gap-3"><div class="border-2 border-teal-700 p-2"><h1 class="text-2xl font-bold text-teal-700">TRANS</h1></div><div><p class="font-bold text-xs uppercase">Trans-System Logistics</p><p class="text-[9px]">Inventory Management System</p></div></div>
+                    <div class="text-right"><p class="text-[9px] font-bold">Form 02 EMS-TS-SE-301 Rev 02</p></div>
                 </div>
                 <h2 class="text-center font-bold text-lg mb-4 uppercase underline">Material Entry/Exit Permit</h2>
-                <div class="bg-gray-200 p-1 text-center font-bold text-xs border border-black thpal-bg-gray">Details</div>
+                <div class="bg-gray-200 p-1 text-center font-bold text-xs border border-black thpal-bg-gray">Request Details</div>
                 <table class="w-full mb-4 text-xs">
-                    <tr><td class="w-1/6 font-bold bg-gray-100 p-1">Name:</td><td id="thpal-emp-name" class="w-1/3 p-1"></td><td class="w-1/6 font-bold bg-gray-100 p-1">Date:</td><td id="thpal-date" class="p-1"></td></tr>
-                    <tr><td class="font-bold bg-gray-100 p-1">Dept:</td><td id="thpal-dept" class="p-1"></td><td class="font-bold bg-gray-100 p-1">Time:</td><td id="thpal-time" class="p-1"></td></tr>
+                    <tr><td class="w-1/6 font-bold bg-gray-100 p-1">Name:</td><td id="thpal-emp-name" class="w-1/3 p-1 font-mono"></td><td class="w-1/6 font-bold bg-gray-100 p-1">Date:</td><td id="thpal-date" class="p-1 font-mono"></td></tr>
+                    <tr><td class="font-bold bg-gray-100 p-1">Dept:</td><td id="thpal-dept" class="p-1 font-mono"></td><td class="font-bold bg-gray-100 p-1">Time:</td><td id="thpal-time" class="p-1 font-mono"></td></tr>
                 </table>
-                <table class="w-full mb-4 text-xs text-center"><thead><tr class="bg-gray-200 thpal-bg-gray"><th class="w-10">No</th><th class="w-16">Qty</th><th>Description</th><th class="w-24">Code</th></tr></thead><tbody id="thpal-items-body"></tbody></table>
-                <div class="border border-black p-2 h-16 text-xs mb-4"><span class="font-bold">Reason: </span><span id="thpal-reason"></span></div>
+                <table class="w-full mb-4 text-xs text-center border-collapse"><thead><tr class="bg-gray-200 thpal-bg-gray"><th class="w-10 border p-1">No</th><th class="w-16 border p-1">Qty</th><th class="border p-1">Description</th><th class="w-24 border p-1">Code</th></tr></thead><tbody id="thpal-items-body"></tbody></table>
+                <div class="border border-black p-2 h-16 text-xs mb-4"><span class="font-bold">Reason/Purpose: </span><span id="thpal-reason" class="font-mono ml-2"></span></div>
                 <div class="flex justify-around text-xs border border-black p-2 mb-8"><label><input type="checkbox" id="chk-approved" disabled> Approved</label><label><input type="checkbox" id="chk-declined" disabled> Declined</label></div>
-                <div class="grid grid-cols-3 gap-8 text-center text-xs"><div><div class="border-b border-black mb-1" id="thpal-sig-req"></div>Requester</div><div><div class="border-b border-black mb-1">&nbsp;</div>Approver</div><div><div class="border-b border-black mb-1">&nbsp;</div>Security</div></div>
+                <div class="grid grid-cols-3 gap-8 text-center text-xs"><div><div class="border-b border-black mb-1 h-8" id="thpal-sig-req"></div>Requester</div><div><div class="border-b border-black mb-1 h-8">&nbsp;</div>Approver</div><div><div class="border-b border-black mb-1 h-8">&nbsp;</div>Security</div></div>
             </div>
-            <div class="p-4 bg-slate-50 border-t flex justify-between no-print">
-                <button onclick="closeModal('request-details-modal')" class="text-slate-500 hover:text-slate-700">Close</button>
+            <div class="p-4 bg-slate-50 border-t flex justify-between no-print rounded-b-xl">
+                <button onclick="closeModal('request-details-modal')" class="text-slate-500 hover:text-slate-700 font-bold px-4">Close</button>
                 <div class="flex gap-2">
-                    <button onclick="window.print()" class="bg-slate-700 text-white px-3 py-1 rounded text-sm">Print</button>
-                    <div id="approval-buttons" class="flex gap-2"><button onclick="processRequest('Rejected')" class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm">Reject</button><button onclick="processRequest('Approved')" class="bg-green-600 text-white px-3 py-1 rounded text-sm">Approve</button></div>
+                    <button onclick="window.print()" class="bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition"><i class="fas fa-print mr-2"></i>Print</button>
+                    <div id="approval-buttons" class="flex gap-2"><button onclick="processRequest('Rejected')" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-200 transition">Reject</button><button onclick="processRequest('Approved')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition">Approve</button></div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- PR Modal -->
-    <div id="pr-modal" class="modal"><div class="bg-white p-6 rounded-lg w-full max-w-sm"><form id="form-pr" class="flex flex-col gap-3"><input id="pr-id" type="hidden"><input id="pr-desc" placeholder="Desc" class="border p-2 rounded"><input id="pr-qty" type="number" placeholder="Qty" class="border p-2 rounded"><button type="submit" class="bg-blue-600 text-white p-2 rounded">Save</button><button type="button" onclick="closeModal('pr-modal')" class="text-xs">Cancel</button></form></div></div>
+    <div id="pr-modal" class="modal">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl mx-4">
+            <h3 class="font-bold text-lg mb-4 dark:text-white">New Purchase Request</h3>
+            <form id="form-pr" class="flex flex-col gap-4">
+                <input id="pr-id" type="hidden">
+                <div><label class="text-xs font-bold text-slate-500">Item Description</label><input id="pr-desc" required placeholder="e.g. Safety Gloves" class="w-full border dark:border-slate-600 p-2 rounded dark:bg-slate-700 dark:text-white"></div>
+                <div><label class="text-xs font-bold text-slate-500">Quantity</label><input id="pr-qty" type="number" required placeholder="10" class="w-full border dark:border-slate-600 p-2 rounded dark:bg-slate-700 dark:text-white"></div>
+                <div class="flex gap-2 mt-2">
+                    <button type="submit" class="flex-1 bg-brand-600 text-white p-2 rounded-lg font-bold hover:bg-brand-700 transition">Save</button>
+                    <button type="button" onclick="closeModal('pr-modal')" class="flex-1 bg-slate-200 text-slate-700 p-2 rounded-lg font-bold hover:bg-slate-300 transition">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
+        // --- CONFIGURATION ---
         const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -360,7 +397,9 @@
         let activeReqId = null;
         let chartInstance = null;
         let categoryChartInstance = null;
+        let inventoryCache = []; // Cache inventory for withdrawal form to reduce API calls
 
+        // --- INITIALIZATION ---
         window.onload = async () => {
             setLoading(true);
             loadTheme();
@@ -375,35 +414,49 @@
         function toggleDarkMode() { document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark')?'dark':'light'); }
         function loadTheme() { if(localStorage.getItem('theme')==='dark') document.documentElement.classList.add('dark'); }
         
+        // --- NAVIGATION ---
         function navTo(id) {
             document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
+            
+            // Trigger specific render functions based on view
             if(id==='view-inventory') renderInventory();
             if(id==='view-audit-logs') renderLogs();
             if(id==='view-dashboard') renderDashboard();
             if(id==='view-requests') renderRequests();
+            if(id==='view-pr-requests') renderPRs();
             if(id==='view-master-data') renderMasterLists();
+            if(id==='view-request-withdrawal') prepareWithdrawalForm();
         }
 
+        // --- DATABASE HELPER ---
         async function db(table, op, data) {
             try {
-                if(op==='get') { const {data:d}=await supabase.from(table).select('*'); return d||[]; }
-                if(op==='getOne') { const {data:d}=await supabase.from(table).select('*').eq('id',data).single(); return d; }
+                if(op==='get') { const {data:d, error}=await supabase.from(table).select('*'); if(error) throw error; return d||[]; }
+                if(op==='getOne') { const {data:d, error}=await supabase.from(table).select('*').eq('id',data).single(); if(error) throw error; return d; }
                 if(op==='add') { 
                     delete data.id; 
-                    const {data:res} = await supabase.from(table).insert(data).select(); 
+                    const {data:res, error} = await supabase.from(table).insert(data).select(); 
+                    if(error) throw error;
                     if(table !== 'logs') logAction('ADD', `Added record to ${table}`);
                     return res;
                 }
                 if(op==='update') { 
-                    await supabase.from(table).update(data).eq('id',data.id); 
+                    const { error } = await supabase.from(table).update(data).eq('id',data.id); 
+                    if(error) throw error;
                     if(table !== 'logs') logAction('EDIT', `Updated record ${data.id} in ${table}`);
                 }
                 if(op==='delete') { 
-                    await supabase.from(table).delete().eq('id',data);
+                    const { error } = await supabase.from(table).delete().eq('id',data);
+                    if(error) throw error;
                     if(table !== 'logs') logAction('DELETE', `Deleted record ${data} from ${table}`);
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                console.error(e); 
+                showToast("Error: " + e.message);
+                setLoading(false);
+                return [];
+            }
         }
 
         async function logAction(action, details) {
@@ -415,7 +468,11 @@
             const d = await db('master_data', 'get');
             const c = d.find(x=>x.key==='config');
             if(c) master = c.data;
-            else await supabase.from('master_data').insert({key:'config',data:{categories:['Tires','Parts'],units:['Pcs'],departments:['Ops']}});
+            else {
+                // Initialize default if empty
+                master = {categories:['Tires','Parts','Safety','Fluids'],units:['Pcs','Liters','Sets'],departments:['Operations','Maintenance','HR','Admin']};
+                await supabase.from('master_data').insert({key:'config',data:master});
+            }
             
             // Populate Dropdowns
             ['inv-cat','inv-unit','req-dept'].forEach(id=>{
@@ -486,19 +543,24 @@
 
         function openLowStockTab() {
             navTo('view-inventory');
-            const tabs = document.querySelectorAll('.inv-tab');
-            if(tabs[1]) switchInvTab('low', tabs[1]);
+            setTimeout(() => {
+                const tabs = document.querySelectorAll('.inv-tab');
+                if(tabs[1]) switchInvTab('low', tabs[1]);
+            }, 100);
         }
 
+        // --- INVENTORY RENDER ---
         async function renderInventory() {
+            // No loading spinner here to allow instant search feel, but we fetch fresh data
             const items = await db('inventory', 'get');
+            inventoryCache = items; // Update cache
             const term = document.getElementById('inv-search').value.toLowerCase();
             const tb = document.getElementById('inventory-body'); tb.innerHTML = '';
             
-            let filtered = items.filter(i => i.name.toLowerCase().includes(term) || i.code.toLowerCase().includes(term));
+            let filtered = items.filter(i => (i.name||'').toLowerCase().includes(term) || (i.code||'').toLowerCase().includes(term));
             
             if(activeInvTab === 'low') filtered = filtered.filter(i => i.stock <= 5);
-            else if(activeInvTab === 'high') filtered = filtered.filter(i => i.stock > 5);
+            else if(activeInvTab === 'high') filtered = filtered.filter(i => i.stock > 10);
             else if(activeInvTab !== 'all') filtered = filtered.filter(i => i.category === activeInvTab);
 
             // Chart Logic
@@ -524,9 +586,9 @@
                     <td class="px-4 py-3 text-sm dark:text-slate-300" data-label="Location">${i.location||'-'}</td>
                     <td class="px-4 py-3 text-right" data-label="Action">
                         <div class="flex justify-end gap-2">
-                            <button onclick="viewItemDetails(${i.id})" class="text-slate-500 hover:text-brand-600" title="View"><i class="fas fa-eye"></i></button>
-                            <button onclick="editItem(${i.id})" class="text-blue-500 hover:text-blue-700" title="Edit"><i class="fas fa-pen"></i></button>
-                            <button onclick="deleteItem(${i.id})" class="text-red-500 hover:text-red-700" title="Delete"><i class="fas fa-trash"></i></button>
+                            <button onclick="viewItemDetails(${i.id})" class="text-slate-500 hover:text-brand-600 p-2" title="View"><i class="fas fa-eye"></i></button>
+                            <button onclick="editItem(${i.id})" class="text-blue-500 hover:text-blue-700 p-2" title="Edit"><i class="fas fa-pen"></i></button>
+                            <button onclick="deleteItem(${i.id})" class="text-red-500 hover:text-red-700 p-2" title="Delete"><i class="fas fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>`;
@@ -539,37 +601,57 @@
             categoryChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: { labels: items.map(i => i.code), datasets: [{ label: 'Stock Level', data: items.map(i => i.stock), backgroundColor: '#6366f1', borderRadius: 4 }] },
-                options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
             });
         }
 
-        // --- WITHDRAWAL LOGIC (UPDATED) ---
-        async function addWithdrawalRow() {
-            const items = await db('inventory', 'get');
-            const opts = items.map(i => `<option value="${i.id}" data-stock="${i.stock}" data-unit="${i.unit}">${i.name}</option>`).join('');
+        function exportToExcel() {
+            if(!inventoryCache.length) return showToast('No data to export');
+            const ws = XLSX.utils.json_to_sheet(inventoryCache);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+            XLSX.writeFile(wb, "Inventory_Report_" + new Date().toISOString().split('T')[0] + ".xlsx");
+            showToast('Excel Downloaded');
+        }
+
+        // --- WITHDRAWAL LOGIC ---
+        async function prepareWithdrawalForm() {
+            // Load items into cache once when opening the form
+            inventoryCache = await db('inventory', 'get');
+            document.getElementById('withdrawal-rows').innerHTML = ''; // Clear previous
+        }
+
+        function addWithdrawalRow() {
+            if(inventoryCache.length === 0) { showToast('Loading inventory...'); return; }
+            const opts = inventoryCache.map(i => `<option value="${i.id}" data-stock="${i.stock}" data-unit="${i.unit}" data-code="${i.code}">${i.name} (${i.stock})</option>`).join('');
             
             const div = document.createElement('div');
-            div.className = "flex gap-2 items-center bg-white dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-600";
+            div.className = "flex gap-2 items-center bg-white dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-600 animate-fade-in-down";
             div.innerHTML = `
-                <select class="req-item flex-1 p-2 rounded text-xs dark:bg-slate-700 dark:text-white border dark:border-slate-500" onchange="updateStockLabel(this)">
+                <select class="req-item flex-1 p-2 rounded text-xs dark:bg-slate-700 dark:text-white border dark:border-slate-500" onchange="updateStockLabel(this)" required>
                     <option value="">Select Item...</option>${opts}
                 </select>
                 <div class="text-[10px] text-slate-500 w-16 text-center stock-label">-</div>
-                <input type="number" min="1" class="req-qty w-16 p-2 rounded text-xs dark:bg-slate-700 dark:text-white border dark:border-slate-500" placeholder="Qty">
-                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700"><i class="fas fa-times"></i></button>
+                <input type="number" min="1" class="req-qty w-16 p-2 rounded text-xs dark:bg-slate-700 dark:text-white border dark:border-slate-500" placeholder="Qty" required>
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 px-2"><i class="fas fa-times"></i></button>
             `;
             document.getElementById('withdrawal-rows').appendChild(div);
         }
 
         function updateStockLabel(select) {
             const opt = select.options[select.selectedIndex];
-            const stock = opt.getAttribute('data-stock');
-            const unit = opt.getAttribute('data-unit');
+            const stock = parseInt(opt.getAttribute('data-stock') || 0);
+            const unit = opt.getAttribute('data-unit') || '';
             const label = select.parentElement.querySelector('.stock-label');
-            label.innerHTML = stock ? `Avail:<br><b>${stock} ${unit}</b>` : '-';
-            // Set max on input
-            const input = select.parentElement.querySelector('.req-qty');
-            if(stock) input.max = stock;
+            const qtyInput = select.parentElement.querySelector('.req-qty');
+            
+            if(select.value) {
+                label.innerHTML = `Avail:<br><b class="${stock<5?'text-red-500':'text-green-600'}">${stock}</b> ${unit}`;
+                qtyInput.max = stock; // Set HTML validation
+            } else {
+                label.innerHTML = '-';
+                qtyInput.removeAttribute('max');
+            }
         }
 
         document.getElementById('form-withdrawal').onsubmit = async (e) => {
@@ -586,11 +668,12 @@
                 const qty = parseInt(qtyInput.value);
                 const opt = sel.options[sel.selectedIndex];
                 const stock = parseInt(opt.getAttribute('data-stock'));
+                const code = opt.getAttribute('data-code');
 
                 if (!sel.value || !qty) { error = true; return; }
-                if (qty > stock) { alert(`Error: Quantity for ${opt.text} exceeds stock (${stock})`); error = true; return; }
+                if (qty > stock) { alert(`Error: Quantity for ${opt.text} exceeds available stock (${stock})`); error = true; return; }
 
-                items.push({ id: parseInt(sel.value), name: opt.text, qty: qty, code: 'INV' });
+                items.push({ id: parseInt(sel.value), name: opt.text.split('(')[0].trim(), qty: qty, code: code });
             });
 
             if (error) return;
@@ -601,30 +684,36 @@
                 department: document.getElementById('req-dept').value,
                 reason: document.getElementById('req-reason').value,
                 date: new Date().toLocaleDateString(),
+                created_at: new Date().toISOString(),
                 status: 'Pending',
                 items: items
             });
             setLoading(false);
             e.target.reset();
             document.getElementById('withdrawal-rows').innerHTML = '';
-            showToast('Request Submitted');
+            showToast('Request Submitted Successfully');
             navTo('view-requests');
         }
 
+        // --- APPROVAL WORKFLOW ---
         async function viewRequest(id) {
             activeReqId = id;
             setLoading(true);
             const r = await db('requests', 'getOne', id);
             setLoading(false);
             
+            // Fill Modal
             document.getElementById('thpal-emp-name').innerText = r.requester;
             document.getElementById('thpal-dept').innerText = r.department;
             document.getElementById('thpal-date').innerText = r.date;
+            document.getElementById('thpal-time').innerText = new Date(r.created_at || new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             document.getElementById('thpal-reason').innerText = r.reason;
-            document.getElementById('thpal-items-body').innerHTML = r.items.map((i, idx) => `<tr><td class="p-1 border">${idx+1}</td><td class="p-1 border">${i.qty}</td><td class="p-1 border text-left pl-2">${i.name}</td><td class="p-1 border">---</td></tr>`).join('');
+            document.getElementById('thpal-items-body').innerHTML = r.items.map((i, idx) => `<tr><td class="p-1 border">${idx+1}</td><td class="p-1 border">${i.qty}</td><td class="p-1 border text-left pl-2">${i.name}</td><td class="p-1 border font-mono text-[10px]">${i.code}</td></tr>`).join('');
             
             document.getElementById('chk-approved').checked = r.status === 'Approved';
             document.getElementById('chk-declined').checked = r.status === 'Rejected';
+            
+            // Toggle Buttons
             const btns = document.getElementById('approval-buttons');
             if (r.status === 'Pending') btns.classList.remove('hidden'); else btns.classList.add('hidden');
             
@@ -636,12 +725,12 @@
             const req = await db('requests', 'getOne', activeReqId);
             
             if (status === 'Approved') {
-                // Deduct Logic
+                // Stock Deduction
                 for (const item of req.items) {
                     const invItem = await db('inventory', 'getOne', item.id);
                     if (invItem.stock < item.qty) {
                         setLoading(false);
-                        alert(`Error: Not enough stock for ${item.name}. Current: ${invItem.stock}`);
+                        alert(`CRITICAL ERROR: Stock for ${item.name} is insufficient (Current: ${invItem.stock}). Request cannot be approved.`);
                         return;
                     }
                     invItem.stock -= item.qty;
@@ -660,18 +749,36 @@
             showToast(`Request ${status}`);
         }
 
-        // --- GENERAL ---
+        // --- GENERAL ACTIONS ---
         async function viewItemDetails(id) {
             const i = await db('inventory', 'getOne', id);
-            document.getElementById('view-item-content').innerHTML = `<b>${i.name}</b> (${i.code})<br>Stock: ${i.stock} ${i.unit}<br>Loc: ${i.location}`;
+            document.getElementById('view-item-content').innerHTML = `
+                <div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">Name</span><span class="font-bold">${i.name}</span></div>
+                <div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">Code</span><span class="font-mono">${i.code}</span></div>
+                <div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">Stock</span><span>${i.stock} ${i.unit}</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Location</span><span>${i.location}</span></div>
+            `;
+            
+            // Generate QR Code
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = ''; // Clear old QR
+            new QRCode(qrContainer, {
+                text: JSON.stringify({id: i.id, code: i.code, name: i.name}),
+                width: 128,
+                height: 128
+            });
+
+            // External Links
             const btnImg = document.getElementById('btn-view-image');
             const btnSds = document.getElementById('btn-view-sds');
             if(i.image_link) { btnImg.href=i.image_link; btnImg.classList.remove('hidden'); } else btnImg.classList.add('hidden');
             if(i.sds_link) { btnSds.href=i.sds_link; btnSds.classList.remove('hidden'); } else btnSds.classList.add('hidden');
+            
             document.getElementById('view-item-modal').classList.add('open');
         }
 
         function openAddItemModal() { document.getElementById('form-inv').reset(); document.getElementById('inv-id').value=''; document.getElementById('inv-modal').classList.add('open'); }
+        
         async function editItem(id) {
             const i = await db('inventory','getOne',id);
             document.getElementById('inv-id').value=i.id; document.getElementById('inv-code').value=i.code;
@@ -680,6 +787,7 @@
             document.getElementById('inv-loc').value=i.location; document.getElementById('inv-img').value=i.image_link||''; document.getElementById('inv-sds').value=i.sds_link||'';
             document.getElementById('inv-modal').classList.add('open');
         }
+
         document.getElementById('form-inv').onsubmit = async (e) => {
             e.preventDefault(); setLoading(true);
             const data = {
@@ -690,37 +798,70 @@
             };
             const id = document.getElementById('inv-id').value;
             if(id) { data.id=id; await db('inventory','update',data); } else await db('inventory','add',data);
-            setLoading(false); closeModal('inv-modal'); renderInventory(); showToast('Saved');
+            setLoading(false); closeModal('inv-modal'); renderInventory(); showToast('Item Saved');
         }
-        async function deleteItem(id) { if(confirm('Delete?')) { await db('inventory','delete',id); renderInventory(); } }
 
+        async function deleteItem(id) { if(confirm('Are you sure you want to delete this item?')) { await db('inventory','delete',id); renderInventory(); } }
+
+        // --- DASHBOARD RENDER ---
         async function renderDashboard() {
             const [i, r, p] = await Promise.all([db('inventory','get'), db('requests','get'), db('pr_requests','get')]);
             document.getElementById('dash-total-items').innerText = i.length;
             document.getElementById('dash-low-stock').innerText = i.filter(x=>x.stock<=5).length;
             document.getElementById('dash-pending').innerText = r.filter(x=>x.status==='Pending').length;
             document.getElementById('dash-pr-active').innerText = p.length;
+            
             const ctx = document.getElementById('trading-chart').getContext('2d');
             if(chartInstance) chartInstance.destroy();
             const cats = {}; i.forEach(x=>cats[x.category]=(cats[x.category]||0)+1);
-            chartInstance = new Chart(ctx, { type:'doughnut', data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#6366f1','#10b981','#f59e0b']}]}, options:{maintainAspectRatio:false} });
+            chartInstance = new Chart(ctx, { type:'doughnut', data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#6366f1','#10b981','#f59e0b', '#ec4899', '#8b5cf6']}]}, options:{maintainAspectRatio:false} });
             
-            // Calendar
+            // Calendar Logic
             const calGrid = document.getElementById('calendar-grid'); calGrid.innerHTML = '';
-            const now = new Date(); document.getElementById('calendar-month').innerText = now.toLocaleString('default',{month:'long'});
+            const now = new Date(); document.getElementById('calendar-month').innerText = now.toLocaleString('default',{month:'long', year:'numeric'});
             const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
             const startDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
-            const eventDates = new Set([...r,...p].map(x=>new Date(x.date||x.created_at).getDate()));
+            
+            // Collect dates from requests and PRs
+            const eventDates = new Set([...r, ...p].map(x => new Date(x.date || x.created_at).getDate()));
+            
             for(let j=0; j<startDay; j++) calGrid.innerHTML += `<div></div>`;
-            for(let d=1; d<=daysInMonth; d++) calGrid.innerHTML += `<div class="calendar-day ${eventDates.has(d)?'has-event':''} bg-slate-100 dark:bg-slate-700">${d}</div>`;
+            for(let d=1; d<=daysInMonth; d++) {
+                const hasEvent = eventDates.has(d);
+                calGrid.innerHTML += `<div class="calendar-day ${hasEvent?'has-event':''} bg-slate-100 dark:bg-slate-700">${d}</div>`;
+            }
         }
 
-        async function renderLogs() { const l=await db('logs','get'); document.getElementById('logs-body').innerHTML=l.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(x=>`<tr class="border-b dark:border-slate-700"><td class="px-4 py-2 text-xs">${x.timestamp}</td><td class="px-4 py-2 font-bold text-sm">${x.action}</td><td class="px-4 py-2 text-sm">${x.details}</td></tr>`).join(''); }
-        async function renderRequests(){const r=await db('requests','get'); document.getElementById('requests-body').innerHTML=r.reverse().map(x=>`<tr class="border-b dark:border-slate-700"><td class="p-3 text-xs">#${x.id}<br>${x.date}</td><td class="p-3 font-bold text-sm">${x.requester}</td><td class="p-3 text-xs">${x.status}</td><td class="p-3 text-right"><button onclick="viewRequest(${x.id})" class="text-blue-500">View</button></td></tr>`).join('');}
-        async function renderPRs(){const p=await db('pr_requests','get'); document.getElementById('pr-requests-body').innerHTML=p.reverse().map(x=>`<tr class="border-b dark:border-slate-700"><td class="p-3 font-bold text-sm">${x.materialDescription}</td><td class="p-3 text-sm">${x.quantity}</td><td class="p-3 text-xs">${x.status}</td><td class="p-3 text-right"><button onclick="db('pr_requests','delete',${x.id}).then(renderPRs)" class="text-red-500"><i class="fas fa-trash"></i></button></td></tr>`).join('');}
+        // --- TABLE RENDERS ---
+        async function renderLogs() { const l=await db('logs','get'); document.getElementById('logs-body').innerHTML=l.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(x=>`<tr class="border-b dark:border-slate-700"><td class="px-4 py-2 text-xs font-mono">${x.timestamp.split(',')[0]}<br>${x.timestamp.split(',')[1]}</td><td class="px-4 py-2 font-bold text-sm text-brand-600">${x.action}</td><td class="px-4 py-2 text-sm">${x.details}</td></tr>`).join(''); }
+        
+        async function renderRequests() {
+            setLoading(true);
+            const r=await db('requests','get'); 
+            setLoading(false);
+            document.getElementById('requests-body').innerHTML=r.sort((a,b)=>b.id-a.id).map(x=>{
+                let badgeClass = x.status==='Approved'?'bg-green-100 text-green-700':x.status==='Rejected'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700';
+                return `<tr class="border-b dark:border-slate-700"><td class="p-3 text-xs font-mono">#${x.id}<br>${x.date}</td><td class="p-3 font-bold text-sm">${x.requester}<br><span class="text-[10px] text-slate-400 font-normal">${x.department}</span></td><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${badgeClass}">${x.status}</span></td><td class="p-3 text-right"><button onclick="viewRequest(${x.id})" class="text-brand-600 hover:text-brand-800 font-bold text-xs bg-brand-50 px-3 py-1 rounded">View</button></td></tr>`;
+            }).join('');
+        }
+        
+        async function renderPRs() {
+            setLoading(true);
+            const p=await db('pr_requests','get'); 
+            setLoading(false);
+            document.getElementById('pr-requests-body').innerHTML=p.reverse().map(x=>`<tr class="border-b dark:border-slate-700"><td class="p-3 font-bold text-sm">${x.materialDescription}</td><td class="p-3 text-sm">${x.quantity}</td><td class="p-3"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">${x.status}</span></td><td class="p-3 text-right"><button onclick="deletePR(${x.id})" class="text-red-500 hover:text-red-700 p-2"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+        }
+        
+        async function deletePR(id) { if(confirm('Delete PR?')) { await db('pr_requests','delete',id); renderPRs(); }}
         function openPREditModal() { document.getElementById('form-pr').reset(); document.getElementById('pr-id').value=''; document.getElementById('pr-modal').classList.add('open'); }
-        document.getElementById('form-pr').onsubmit = async (e)=>{e.preventDefault(); const d={materialDescription:document.getElementById('pr-desc').value,quantity:document.getElementById('pr-qty').value,status:'Pending'}; await db('pr_requests','add',d); closeModal('pr-modal'); renderPRs();}
+        document.getElementById('form-pr').onsubmit = async (e)=>{
+            e.preventDefault(); 
+            const d={materialDescription:document.getElementById('pr-desc').value,quantity:document.getElementById('pr-qty').value,status:'Pending', created_at: new Date().toISOString()}; 
+            await db('pr_requests','add',d); 
+            closeModal('pr-modal'); 
+            renderPRs();
+            showToast('PR Created');
+        }
     </script>
-    
 </body>
 </html>
