@@ -2,10 +2,8 @@
 <html lang="en" class="light">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#4f46e5" />
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>TRANS-SYSTEM Pro | Logistics Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TRANS-SYSTEM Pro | Logistics Management (Supabase)</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,808 +11,975 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/gil.js"></script>
+
     
-    <!-- Configuration -->
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Custom Config & Styles -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
-                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155' }
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.3s ease-out',
-                        'slide-up': 'slideUp 0.3s ease-out'
-                    },
-                    keyframes: {
-                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-                        slideUp: { '0%': { transform: 'translateY(10px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' },
+                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155', text: '#f1f5f9' }
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Base Styles */
-        body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        /* Global Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        .dark ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-        /* Loading Overlay */
-        #loading-overlay { display: flex; position: fixed; inset: 0; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(5px); z-index: 9999; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-        .dark #loading-overlay { background: rgba(15, 23, 42, 0.8); }
-        #loading-overlay.active { opacity: 1; pointer-events: all; }
-        .spinner { width: 48px; height: 48px; border: 5px solid #e2e8f0; border-top: 5px solid #4f46e5; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Inventory Tabs */
-        .inv-tab { border-bottom: 2px solid transparent; color: #64748b; transition: all 0.3s; white-space: nowrap; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; }
-        .inv-tab:hover { color: #4f46e5; background: rgba(99, 102, 241, 0.05); }
-        .inv-tab.active { border-color: #4f46e5; color: #4f46e5; }
-        .dark .inv-tab.active { border-color: #818cf8; color: #818cf8; }
+        /* Glass Panel */
+        .glass-panel { background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(226, 232, 240, 0.8); }
+        .dark .glass-panel { background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(51, 65, 85, 0.8); color: #f1f5f9; }
 
-        /* Modal Transitions */
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem; opacity: 0; transition: opacity 0.2s ease; }
-        .modal.open { display: flex; opacity: 1; }
-        .modal-content { transform: scale(0.95); transition: transform 0.2s ease; }
-        .modal.open .modal-content { transform: scale(1); }
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); align-items: center; justify-content: center; }
+        .modal.open { display: flex; }
 
-        /* Timeline Stepper */
-        .stepper-item { position: relative; padding-bottom: 20px; border-left: 2px solid #e2e8f0; padding-left: 20px; margin-left: 10px; }
-        .stepper-item:last-child { border-left: 0; }
-        .stepper-item::before { content: ''; position: absolute; left: -7px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #cbd5e1; }
-        .stepper-item.completed::before { background: #4f46e5; border-color: #4f46e5; }
-        .stepper-item.completed { border-color: #4f46e5; }
-        .dark .stepper-item { border-color: #334155; }
-        .dark .stepper-item::before { background: #1e293b; border-color: #475569; }
-        .dark .stepper-item.completed::before { background: #6366f1; border-color: #6366f1; }
-        .dark .stepper-item.completed { border-color: #6366f1; }
+        .badge { padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .badge-pending { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .badge-approved { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .badge-rejected { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .badge-withdrawal { background-color: #bfdbfe; color: #1e40af; border: 1px solid #93c5fd; }
+        
+        #floating-calculator { position: fixed; bottom: 20px; right: 20px; z-index: 1500; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        /* ENHANCED PR GRID LAYOUT */
+        .pr-list-grid { display: grid; grid-template-columns: 0.5fr 2.5fr 0.9fr 1fr 1fr 1.3fr 1.5fr 1fr; gap: 0.75rem; padding: 0.75rem; align-items: center; }
+        #sidebar { transition: all 0.3s ease-in-out; }
+        .sidebar-collapsed { width: 0 !important; opacity: 0; overflow: hidden; padding: 0 !important; }
 
-        /* Status Badges */
-        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px; }
-        .badge-pending { background-color: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
-        .badge-approved { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
-        .badge-ordered { background-color: #faf5ff; color: #7e22ce; border: 1px solid #d8b4fe; }
-        .badge-received { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
-        .badge-rejected { background-color: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+        /* MODAL & TABLE TWEAKS */
+        .modal-body-scroll { overflow-y: auto; scrollbar-width: thin; }
+        .table-scroll-container { overflow-y: auto; max-height: 250px; scrollbar-width: thin; border-bottom: 1px solid black; }
+        .sticky-th { position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 0 black; }
 
+        /* PRINT STYLES - THPAL FORM SPECIFIC */
         @media print {
             body * { visibility: hidden; }
             #request-details-modal, #request-details-modal * { visibility: visible; }
-            #request-details-modal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white; padding: 0; margin: 0; display: block; overflow: visible; }
+            #request-details-modal { 
+                position: absolute; left: 0; top: 0; width: 100%; height: 100%; 
+                background: white; padding: 0; margin: 0; display: block;
+            }
+            #modal-content-wrapper {
+                box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important;
+                height: auto !important; max-height: none !important; overflow: visible !important;
+            }
+            /* Reset scroll areas for print */
+            .modal-body-scroll, .table-scroll-container { overflow: visible !important; max-height: none !important; }
             .no-print { display: none !important; }
+            
+            /* Force exact colors for form */
+            .thpal-form { color: black !important; background: white !important; width: 100%; }
+            .thpal-border { border-color: black !important; }
             .thpal-bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-            .thpal-form table, .thpal-form th, .thpal-form td { border: 1px solid black; border-collapse: collapse; }
         }
+        
+        /* Form specific styles */
+        .thpal-form table { width: 100%; border-collapse: collapse; }
+        .thpal-form th, .thpal-form td { border: 1px solid black; padding: 4px; font-size: 11px; }
+        .thpal-form input[type="checkbox"] { accent-color: black; }
+        .thpal-header-line { border-bottom: 2px solid black; }
     </style>
 </head>
 
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 h-screen w-screen flex flex-col overflow-hidden transition-colors duration-300">
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay">
-        <div class="flex flex-col items-center">
-            <div class="spinner mb-4"></div>
-            <p class="font-bold text-brand-600 dark:text-brand-400 animate-pulse">Processing...</p>
-        </div>
-    </div>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col overflow-hidden transition-colors duration-300">
 
     <!-- Header -->
-    <header class="bg-brand-900 dark:bg-slate-950 text-white shadow-lg z-30 shrink-0 h-16 flex items-center justify-between px-4 lg:px-6">
-        <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-inner border border-white/10"><i class="fas fa-cube text-xl"></i></div>
-            <div><h1 class="font-bold text-lg leading-tight">TRANS-SYSTEM</h1><p class="text-[10px] text-brand-200 uppercase tracking-widest font-semibold">Logistics Pro</p></div>
-        </div>
-        <div class="flex items-center gap-3">
-            <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"><i id="theme-icon" class="fas fa-moon"></i></button>
-            <button onclick="window.location.reload()" class="w-10 h-10 rounded-full bg-yellow-500 hover:bg-yellow-400 text-brand-900 font-bold shadow-lg flex items-center justify-center transition"><i class="fas fa-sync-alt"></i></button>
+    <header class="bg-brand-900 dark:bg-slate-950 text-white shadow-xl z-20 shrink-0 border-b border-brand-800 dark:border-slate-800">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-white"><i class="fas fa-bars"></i></button>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center border border-white/20"><i class="fas fa-truck-fast text-xl text-yellow-400"></i></div>
+                    <div><h1 class="text-xl font-bold tracking-tight">TRANS-SYSTEM</h1><p class="text-[10px] text-brand-200 uppercase tracking-widest">Transportation Record Monitoring System (Cloud)</p></div>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex flex-col items-end mr-4"><span id="header-time" class="text-lg font-mono font-bold leading-none">00:00:00</span><span id="header-date" class="text-xs text-brand-300">Loading...</span></div>
+                <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition tooltip" title="Toggle Theme"><i id="theme-icon" class="fas fa-moon"></i></button>
+                <button onclick="toggleCalculator()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"><i class="fas fa-calculator"></i></button>
+                <a href="../../Trans-System.html"><div id="home-button" onclick="window.location.reload()" class="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-brand-900 border-2 border-white shadow-lg cursor-pointer" title="Home"><i class="fas fa-home text-lg"></i></div></a>
+            </div>
         </div>
     </header>
 
-    <div class="flex flex-1 overflow-hidden relative">
+    <div class="flex flex-1 overflow-hidden">
         <!-- Sidebar -->
-        <aside class="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-col z-20 border-r border-slate-800 shadow-xl">
-            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-                <p class="text-xs font-bold uppercase text-slate-500 mb-2 px-2">Dashboard</p>
-                <button onclick="navTo('view-dashboard')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition active-nav"><i class="fas fa-chart-pie w-5"></i> Overview</button>
-                <p class="text-xs font-bold uppercase text-slate-500 mt-6 mb-2 px-2">Inventory</p>
-                <button onclick="navTo('view-inventory')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i class="fas fa-boxes w-5"></i> Stock List</button>
-                <button onclick="openAddItemModal()" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition text-emerald-400"><i class="fas fa-plus-circle w-5"></i> Add Item</button>
-                <p class="text-xs font-bold uppercase text-slate-500 mt-6 mb-2 px-2">Logistics</p>
-                <button onclick="navTo('view-requests')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i class="fas fa-dolly w-5"></i> Withdrawals</button>
-                <button onclick="navTo('view-request-withdrawal')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition text-yellow-400"><i class="fas fa-hand-holding-box w-5"></i> New Request</button>
-                <button onclick="navTo('view-pr-requests')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i class="fas fa-file-invoice w-5"></i> Purchase Reqs</button>
-                <p class="text-xs font-bold uppercase text-slate-500 mt-6 mb-2 px-2">System</p>
-                <button onclick="navTo('view-audit-logs')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i class="fas fa-history w-5"></i> Audit Logs</button>
-                <button onclick="navTo('view-master-data')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i class="fas fa-cogs w-5"></i> Config</button>
+        <aside id="sidebar" class="w-64 bg-slate-900 dark:bg-slate-950 text-slate-300 flex flex-col shrink-0 shadow-2xl z-10 hidden md:flex border-r dark:border-slate-800">
+            <div class="p-4 border-b border-slate-800"><h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Navigation</h3></div>
+            <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+                <button onclick="navTo('view-dashboard', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition active-nav bg-brand-700 text-white shadow-lg"><i class="fas fa-chart-line w-5 text-center"></i> <span class="nav-text">Dashboard</span></button>
+                <button id="nav-inventory" onclick="navTo('view-inventory', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-boxes-stacked w-5 text-center"></i> <span class="nav-text">Inventory Mgmt</span></button>
+                <button id="nav-requests" onclick="navTo('view-requests', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-file-signature w-5 text-center"></i> <span class="nav-text">Withdrawal Req</span> <span id="nav-pending-badge" class="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span></button>
+                <button onclick="navTo('view-pr-requests', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-list-check w-5 text-center"></i> <span class="nav-text">PR List</span></button>
+                <div class="pt-4 pb-2 px-3 border-t border-slate-800 mt-2 nav-divider"><h3 class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Quick Actions</h3></div>
+                <button onclick="navTo('view-add-item', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-plus-circle w-5 text-center text-green-400"></i> <span class="nav-text">Add Stock</span></button>
+                <button onclick="navTo('view-request-withdrawal', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-dolly w-5 text-center text-yellow-400"></i> <span class="nav-text">Withdraw</span></button>
+                <div class="pt-4 pb-2 px-3 border-t border-slate-800 mt-2 nav-divider"><h3 class="text-[10px] font-bold uppercase tracking-wider text-slate-600">System</h3></div>
+                <button onclick="navTo('view-master-data', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-database w-5 text-center"></i> <span class="nav-text">Master Data</span></button>
+                <button onclick="navTo('view-logs', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-list-ol w-5 text-center"></i> <span class="nav-text">Audit Logs</span></button>
             </nav>
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 scroll-smooth bg-slate-50 dark:bg-slate-900" id="main-container">
-
-            <!-- DASHBOARD -->
+        <main class="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900 p-4 md:p-8 relative transition-colors duration-300" id="main-container">
+            <!-- VIEW: DASHBOARD -->
             <section id="view-dashboard" class="view-section fade-in">
-                <h2 class="text-2xl font-bold dark:text-white mb-6">Dashboard</h2>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border-l-4 border-brand-500">
-                        <p class="text-xs font-bold text-slate-500 uppercase">Items</p><h3 class="text-3xl font-bold dark:text-white mt-2" id="dash-total-items">--</h3>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Operational Dashboard</h2>
+                    <button onclick="renderDashboard()" class="text-sm bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 border border-slate-300 px-3 py-1 rounded shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition"><i class="fas fa-sync-alt mr-1"></i> Refresh Data</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-brand-600 dark:border-brand-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="document.getElementById('nav-inventory').click()">
+                        <div class="flex justify-between items-center">
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Inventory Item</p><h3 class="text-3xl font-bold text-slate-800 dark:text-white mt-1" id="dash-total-items">0</h3></div>
+                            <div class="w-12 h-12 bg-brand-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-brand-600 dark:text-brand-400 text-xl"><i class="fas fa-cubes"></i></div>
+                        </div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border-l-4 border-red-500 cursor-pointer" onclick="openLowStockTab()">
-                        <p class="text-xs font-bold text-slate-500 uppercase">Low Stock</p><h3 class="text-3xl font-bold text-red-600 mt-2" id="dash-low-stock">--</h3>
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-red-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="filterInventoryByLowStock()">
+                        <div class="flex justify-between items-center">
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Low Stock Inventory</p><h3 class="text-3xl font-bold text-red-600 dark:text-red-400 mt-1" id="dash-low-stock">0</h3></div>
+                            <div class="w-12 h-12 bg-red-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 text-xl animate-pulse"><i class="fas fa-exclamation-triangle"></i></div>
+                        </div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border-l-4 border-yellow-500">
-                        <p class="text-xs font-bold text-slate-500 uppercase">Withdrawals</p><h3 class="text-3xl font-bold text-yellow-600 mt-2" id="dash-pending">--</h3>
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-yellow-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="document.getElementById('nav-requests').click()">
+                        <div class="flex justify-between items-center">
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Pending Withdrawals</p><h3 class="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-1" id="dash-pending">0</h3></div>
+                            <div class="w-12 h-12 bg-yellow-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-yellow-600 dark:text-yellow-400 text-xl"><i class="fas fa-clock"></i></div>
+                        </div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500">
-                        <p class="text-xs font-bold text-slate-500 uppercase">Active PRs</p><h3 class="text-3xl font-bold text-emerald-600 mt-2" id="dash-pr-active">--</h3>
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-teal-500">
+                        <div class="flex justify-between items-center">
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Items Withdrawn</p><h3 class="text-3xl font-bold text-teal-600 dark:text-teal-400 mt-1" id="dash-total-withdraw">0</h3></div>
+                            <div class="w-12 h-12 bg-teal-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-teal-600 dark:text-teal-400 text-xl"><i class="fas fa-dolly-flatbed"></i></div>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
+                        <div class="flex justify-between items-center">
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Active PRs</p><h3 class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1" id="dash-pr-active">0</h3></div>
+                            <div class="w-12 h-12 bg-blue-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl"><i class="fas fa-file-invoice"></i></div>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-emerald-500">
+                        <div class="flex justify-between items-center">
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total PR Value</p><h3 class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="dash-pr-value">₱0.00</h3></div>
+                            <div class="w-12 h-12 bg-emerald-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xl"><i class="fas fa-coins"></i></div>
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700">
-                        <h3 class="font-bold mb-4 dark:text-white">Inventory Distribution</h3>
-                        <div class="h-64"><canvas id="trading-chart"></canvas></div>
+                    <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200">Categories Trends Inventory</h3>
+                            <span class="text-[10px] uppercase tracking-wider text-green-600 dark:text-green-400 font-bold bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800">Categories</span>
+                        </div>
+                        <div class="h-64 w-full relative"><canvas id="trading-chart"></canvas></div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700">
-                        <h3 class="font-bold mb-4 dark:text-white flex justify-between"><span>Activity Log</span><span id="calendar-month" class="text-xs font-normal text-slate-500"></span></h3>
-                        <div class="text-xs text-center grid grid-cols-7 mb-2 text-slate-400 font-bold"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
-                        <div id="calendar-grid" class="calendar-grid text-slate-700 dark:text-slate-300"></div>
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
+                        <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200 mb-4">Recent Transactions</h3>
+                        <ul id="recent-logs-list" class="flex-1 overflow-y-auto text-sm space-y-3 pr-2"></ul>
                     </div>
                 </div>
             </section>
 
-            <!-- INVENTORY -->
+            <!-- VIEW: INVENTORY -->
             <section id="view-inventory" class="view-section hidden fade-in">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                    <h2 class="text-2xl font-bold dark:text-white">Inventory Management</h2>
-                    <div class="flex w-full md:w-auto gap-3">
-                        <div class="relative flex-1 md:w-64">
-                            <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                            <input type="text" id="inv-search" onkeyup="renderInventory()" placeholder="Search..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 dark:bg-slate-800 dark:text-white">
-                        </div>
-                        <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white w-10 h-10 rounded-xl shadow-lg flex items-center justify-center transition" title="Export Excel"><i class="fas fa-file-excel"></i></button>
-                        <button onclick="openAddItemModal()" class="bg-brand-600 hover:bg-brand-700 text-white w-10 h-10 rounded-xl shadow-lg flex items-center justify-center transition" title="Add Item"><i class="fas fa-plus"></i></button>
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Inventory Management</h2>
+                    <div class="flex gap-2">
+                        <button onclick="navTo('view-add-item')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2"><i class="fas fa-plus"></i> Add Item</button>
+                        <button onclick="exportToExcel('inventory')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2"><i class="fas fa-file-excel"></i> Export</button>
                     </div>
                 </div>
-                <div id="inventory-tabs-container" class="flex gap-2 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto pb-1"></div>
-                <div id="category-trends-container" class="hidden mb-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm h-64 border dark:border-slate-700">
-                    <h3 id="trends-title" class="text-sm font-bold dark:text-white mb-2">Category Trends</h3>
-                    <div class="h-full pb-6"><canvas id="category-chart"></canvas></div>
-                </div>
-                <div class="w-full">
-                    <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300">
-                        <thead class="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-bold text-slate-500 dark:text-slate-400">
-                            <tr>
-                                <th class="px-4 py-3 rounded-l-lg">Item Details</th>
-                                <th class="px-4 py-3">Category</th>
-                                <th class="px-4 py-3">Stock Level</th>
-                                <th class="px-4 py-3">Location</th>
-                                <th class="px-4 py-3 text-right rounded-r-lg">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-body"></tbody>
-                    </table>
-                    <div id="inv-empty" class="hidden flex flex-col items-center justify-center py-12 text-slate-400"><i class="fas fa-box-open text-6xl mb-4"></i><p>No items found.</p></div>
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col md:flex-row gap-4 justify-between items-center">
+                        <div class="flex overflow-x-auto gap-2 pb-2 md:pb-0 w-full md:w-auto no-scrollbar" id="inventory-categories"></div>
+                        <div class="relative w-full md:w-64">
+                            <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+                            <input type="text" id="inv-search" onkeyup="renderInventory()" placeholder="Search Code, Desc..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto overflow-y-auto" style="max-height: 70vh;">
+                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0 z-10 shadow-sm">
+                                <tr><th class="px-6 py-3">Material Code</th><th class="px-6 py-3">Material Description</th><th class="px-6 py-3">Category</th><th class="px-6 py-3 text-center">Stock</th><th class="px-6 py-3">Location</th><th class="px-6 py-3 text-right">Actions</th></tr>
+                            </thead>
+                            <tbody id="inventory-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+                        </table>
+                    </div>
+                    <div id="inventory-empty" class="p-8 text-center text-slate-400 hidden"><i class="fas fa-box-open text-4xl mb-2"></i><p>No items found.</p></div>
                 </div>
             </section>
 
-            <!-- WITHDRAWALS -->
+            <!-- VIEW: WITHDRAWAL REQUESTS -->
             <section id="view-requests" class="view-section hidden fade-in">
-                <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold dark:text-white">Withdrawal History</h2><button onclick="navTo('view-request-withdrawal')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition"><i class="fas fa-plus mr-2"></i>New Request</button></div>
-                <table class="w-full mobile-table text-left text-sm text-slate-600 dark:text-slate-300">
-                     <thead class="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-bold text-slate-500 dark:text-slate-400"><tr><th class="px-4 py-3">ID / Date</th><th class="px-4 py-3">Requester</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Action</th></tr></thead>
-                     <tbody id="requests-body"></tbody>
-                </table>
-            </section>
-            
-            <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-3xl mx-auto">
-                <h2 class="text-2xl font-bold dark:text-white mb-6">Create Withdrawal Request</h2>
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl border dark:border-slate-700">
-                    <form id="form-withdrawal" class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label class="block text-xs font-bold text-slate-500 mb-1">Requester Name</label><input id="req-name" required class="w-full border p-3 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-brand-500"></div>
-                            <div><label class="block text-xs font-bold text-slate-500 mb-1">Department</label><select id="req-dept" required class="w-full border p-3 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-brand-500"></select></div>
-                        </div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Purpose / Reason</label><input id="req-reason" required class="w-full border p-3 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-brand-500"></div>
-                        
-                        <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border dark:border-slate-700">
-                            <div class="flex justify-between items-center mb-3">
-                                <span class="font-bold text-sm dark:text-white">Items to Withdraw</span>
-                                <button type="button" onclick="addWithdrawalRow()" class="text-xs bg-brand-100 text-brand-700 px-3 py-1 rounded-full font-bold hover:bg-brand-200 transition">+ Add Item</button>
-                            </div>
-                            <div id="withdrawal-rows" class="space-y-3"></div>
-                        </div>
-                        <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-xl font-bold shadow-lg transition">Submit Request</button>
-                    </form>
-                </div>
-            </section>
-
-            <!-- PURCHASE REQUESTS (ENHANCED DESIGN) -->
-            <section id="view-pr-requests" class="view-section hidden fade-in">
-                <!-- Header & Action -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                    <div>
-                        <h2 class="text-2xl font-bold dark:text-white">Purchase Requisitions</h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage external procurement, tracking, and receipts.</p>
-                    </div>
-                    <div class="flex w-full md:w-auto gap-3">
-                        <div class="relative flex-1 md:w-48">
-                            <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                            <input type="text" id="pr-search" onkeyup="renderPRs()" placeholder="Search PR/PO/Material..." class="w-full pl-10 pr-4 py-2 text-sm rounded-lg border-none shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 dark:bg-slate-800 dark:text-white">
-                        </div>
-                        <button onclick="openPREditModal()" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-brand-700 transition flex items-center whitespace-nowrap"><i class="fas fa-plus mr-2"></i>New PR</button>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Withdrawal Requests</h2>
+                    <div class="flex gap-2">
+                        <select id="req-filter-status" onchange="renderRequests()" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"><option value="All">All Statuses</option><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Rejected">Rejected</option></select>
+                        <button onclick="exportToExcel('requests')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition"><i class="fas fa-file-excel"></i></button>
                     </div>
                 </div>
-
-                <!-- KPI Cards -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center">
-                        <div class="w-10 h-10 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center mb-2"><i class="fas fa-clock"></i></div>
-                        <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Pending</span>
-                        <span id="pr-stat-pending" class="text-2xl font-bold dark:text-white">0</span>
-                    </div>
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2"><i class="fas fa-check"></i></div>
-                        <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Approved</span>
-                        <span id="pr-stat-approved" class="text-2xl font-bold dark:text-white">0</span>
-                    </div>
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center">
-                        <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mb-2"><i class="fas fa-shipping-fast"></i></div>
-                        <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Ordered</span>
-                        <span id="pr-stat-ordered" class="text-2xl font-bold dark:text-white">0</span>
-                    </div>
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center">
-                        <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-2"><i class="fas fa-box-open"></i></div>
-                        <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Received</span>
-                        <span id="pr-stat-received" class="text-2xl font-bold dark:text-white">0</span>
-                    </div>
-                </div>
-
-                <!-- Tabs -->
-                <div class="flex gap-6 border-b border-slate-200 dark:border-slate-700 mb-6">
-                    <button class="pb-2 text-sm font-bold text-brand-600 border-b-2 border-brand-600 pr-tab active" data-tab="active" onclick="switchPRTab('active', this)">Active Requests</button>
-                    <button class="pb-2 text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 border-b-2 border-transparent pr-tab" data-tab="history" onclick="switchPRTab('history', this)">Completed History</button>
-                </div>
-
-                <!-- List View -->
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow border dark:border-slate-700 overflow-hidden">
-                    <div id="pr-list-container" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
-                    <div id="pr-empty" class="hidden flex flex-col items-center justify-center py-16 text-slate-400">
-                        <div class="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4"><i class="fas fa-clipboard-list text-2xl"></i></div>
-                        <p class="font-medium">No requests found in this section.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- AUDIT LOGS -->
-            <section id="view-audit-logs" class="view-section hidden fade-in">
-                <h2 class="text-2xl font-bold dark:text-white mb-6">Audit Logs</h2>
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700 overflow-hidden">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-                        <thead class="bg-slate-100 dark:bg-slate-700 text-xs uppercase font-bold text-slate-500 dark:text-slate-400"><tr><th class="px-4 py-3">Time</th><th class="px-4 py-3">Action</th><th class="px-4 py-3">Details</th></tr></thead>
-                        <tbody id="logs-body"></tbody>
+                        <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs">
+                            <tr><th class="px-6 py-3">Req ID</th><th class="px-6 py-3">Date</th><th class="px-6 py-3">Requester</th><th class="px-6 py-3">Dept</th><th class="px-6 py-3">Items</th><th class="px-6 py-3">Status</th><th class="px-6 py-3 text-right">Action</th></tr>
+                        </thead>
+                        <tbody id="requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- MASTER DATA -->
-            <section id="view-master-data" class="view-section hidden fade-in">
-                <h2 class="text-2xl font-bold dark:text-white mb-6">Configuration</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl h-96 flex flex-col border dark:border-slate-700">
-                        <h3 class="font-bold mb-4 dark:text-white border-b pb-2">Categories</h3>
-                        <div class="flex gap-2 mb-3"><input id="add-master-categories" placeholder="New Category" class="flex-1 border rounded px-3 py-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"><button onclick="addMasterItem('categories')" class="bg-blue-600 text-white w-10 rounded hover:bg-blue-700 transition"><i class="fas fa-plus"></i></button></div>
-                        <div id="master-categories-list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+            <!-- VIEW: PR LIST -->
+            <section id="view-pr-requests" class="view-section hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Purchase Request List</h2>
+                    <div class="flex gap-2">
+                        <button onclick="openPREditModal()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2"><i class="fas fa-plus"></i> Add New PR</button>
+                        <button onclick="exportToExcel('pr_requests')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition"><i class="fas fa-file-excel"></i></button>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl h-96 flex flex-col border dark:border-slate-700">
-                        <h3 class="font-bold mb-4 dark:text-white border-b pb-2">Units</h3>
-                        <div class="flex gap-2 mb-3"><input id="add-master-units" placeholder="New Unit" class="flex-1 border rounded px-3 py-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"><button onclick="addMasterItem('units')" class="bg-purple-600 text-white w-10 rounded hover:bg-purple-700 transition"><i class="fas fa-plus"></i></button></div>
-                        <div id="master-units-list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
-                    </div>
-                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl h-96 flex flex-col border dark:border-slate-700">
-                        <h3 class="font-bold mb-4 dark:text-white border-b pb-2">Departments</h3>
-                        <div class="flex gap-2 mb-3"><input id="add-master-departments" placeholder="New Dept" class="flex-1 border rounded px-3 py-2 text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"><button onclick="addMasterItem('departments')" class="bg-orange-600 text-white w-10 rounded hover:bg-orange-700 transition"><i class="fas fa-plus"></i></button></div>
-                        <div id="master-departments-list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div class="overflow-x-auto min-w-full">
+                        <div class="pr-list-grid bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs border-b border-slate-200 dark:border-slate-600 sticky top-0">
+                            <div>PR ID</div><div>Material Code & Description</div><div class="text-center">Qty / Unit</div><div>Unit Price</div><div>Category</div><div>Date Process / Expected</div><div>PR/PO/ARF</div><div class="text-right">Status & Actions</div>
+                        </div>
+                        <div class="overflow-y-auto" style="max-height: 60vh;">
+                            <div id="pr-requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-        </main>
-        
-        <!-- Mobile Bottom Nav -->
-        <nav class="md:hidden fixed bottom-0 w-full bg-white dark:bg-slate-900 border-t dark:border-slate-800 flex justify-around py-3 z-40 shadow-[0_-5px_15px_rgba(0,0,0,0.1)]">
-            <button onclick="navTo('view-dashboard')" class="flex flex-col items-center text-slate-400 hover:text-brand-600"><i class="fas fa-home mb-1"></i><span class="text-[10px]">Home</span></button>
-            <button onclick="navTo('view-inventory')" class="flex flex-col items-center text-slate-400 hover:text-brand-600"><i class="fas fa-box mb-1"></i><span class="text-[10px]">Stock</span></button>
-            <div class="relative -top-6"><button onclick="navTo('view-request-withdrawal')" class="w-14 h-14 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-xl border-4 border-slate-50 dark:border-slate-900"><i class="fas fa-plus text-xl"></i></button></div>
-            <button onclick="navTo('view-requests')" class="flex flex-col items-center text-slate-400 hover:text-brand-600"><i class="fas fa-file-signature mb-1"></i><span class="text-[10px]">Reqs</span></button>
-            <button onclick="navTo('view-pr-requests')" class="flex flex-col items-center text-slate-400 hover:text-brand-600"><i class="fas fa-file-invoice mb-1"></i><span class="text-[10px]">PRs</span></button>
-        </nav>
-    </div>
-
-    <!-- MODALS -->
-    <!-- View Item Modal -->
-    <div id="view-item-modal" class="modal">
-        <div class="modal-content bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl p-6 relative mx-4">
-            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('view-item-modal')"><i class="fas fa-times text-xl"></i></button>
-            <h2 class="text-xl font-bold dark:text-white mb-4">Item Details</h2>
-            <div id="view-item-content" class="text-sm dark:text-slate-300 mb-6 space-y-2"></div>
-            <div class="flex justify-center mb-6 p-4 bg-white rounded-lg border">
-                <div id="qrcode"></div>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <a id="btn-view-image" target="_blank" class="block w-full text-center bg-blue-50 text-blue-600 py-3 rounded-lg font-bold hover:bg-blue-100 transition cursor-pointer"><i class="fas fa-image mr-2"></i>Image</a>
-                <a id="btn-view-sds" target="_blank" class="block w-full text-center bg-orange-50 text-orange-600 py-3 rounded-lg font-bold hover:bg-orange-100 transition cursor-pointer"><i class="fas fa-file-pdf mr-2"></i>SDS</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Inventory Form -->
-    <div id="inv-modal" class="modal">
-        <div class="glass-panel modal-content bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative mx-4">
-            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('inv-modal')"><i class="fas fa-times text-xl"></i></button>
-            <h2 class="text-xl font-bold dark:text-white mb-6">Item Editor</h2>
-            <form id="form-inv" class="space-y-4">
-                <input type="hidden" id="inv-id">
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-xs text-slate-500 font-bold ml-1">Code</label><input type="text" id="inv-code" required placeholder="Item Code" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></div>
-                    <div><label class="text-xs text-slate-500 font-bold ml-1">Name</label><input type="text" id="inv-name" required placeholder="Item Name" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-xs text-slate-500 font-bold ml-1">Category</label><select id="inv-cat" required class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></select></div>
-                    <div><label class="text-xs text-slate-500 font-bold ml-1">Unit</label><select id="inv-unit" required class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></select></div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-xs text-slate-500 font-bold ml-1">Stock</label><input type="number" id="inv-stock" required min="0" placeholder="0" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></div>
-                    <div><label class="text-xs text-slate-500 font-bold ml-1">Location</label><input type="text" id="inv-loc" placeholder="Shelf A" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white"></div>
-                </div>
-                <input type="url" id="inv-img" placeholder="Image URL (Google Drive/Direct)" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white">
-                <input type="url" id="inv-sds" placeholder="SDS Document URL" class="w-full border dark:border-slate-600 rounded p-3 dark:bg-slate-700 dark:text-white">
-                <button type="submit" class="w-full bg-brand-600 text-white py-3 rounded-xl font-bold mt-2 hover:bg-brand-700 shadow-md transition">Save Item</button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Toast -->
-    <div id="toast" class="fixed top-20 right-5 bg-slate-900/90 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-x-full transition-all duration-300 z-50 flex items-center gap-3 border border-slate-700">
-        <i class="fas fa-check-circle text-green-400 text-xl"></i><p id="toast-msg" class="font-medium">Success</p>
-    </div>
-
-    <!-- Request Details Modal -->
-    <div id="request-details-modal" class="modal">
-        <div class="modal-content bg-white w-full max-w-4xl rounded-xl shadow-2xl p-0 relative flex flex-col max-h-[90vh]">
-            <div id="print-area" class="thpal-form text-black bg-white p-8 overflow-y-auto flex-1">
-                <div class="flex justify-between items-end mb-4 border-b-2 border-black pb-2">
-                    <div class="flex items-center gap-3"><div class="border-2 border-teal-700 p-2"><h1 class="text-2xl font-bold text-teal-700">TRANS</h1></div><div><p class="font-bold text-xs uppercase">Trans-System Logistics</p><p class="text-[9px]">Inventory Management System</p></div></div>
-                    <div class="text-right"><p class="text-[9px] font-bold">Form 02 EMS-TS-SE-301 Rev 02</p></div>
-                </div>
-                <h2 class="text-center font-bold text-lg mb-4 uppercase underline">Material Entry/Exit Permit</h2>
-                <div class="bg-gray-200 p-1 text-center font-bold text-xs border border-black thpal-bg-gray">Request Details</div>
-                <table class="w-full mb-4 text-xs">
-                    <tr><td class="w-1/6 font-bold bg-gray-100 p-1">Name:</td><td id="thpal-emp-name" class="w-1/3 p-1 font-mono"></td><td class="w-1/6 font-bold bg-gray-100 p-1">Date:</td><td id="thpal-date" class="p-1 font-mono"></td></tr>
-                    <tr><td class="font-bold bg-gray-100 p-1">Dept:</td><td id="thpal-dept" class="p-1 font-mono"></td><td class="font-bold bg-gray-100 p-1">Time:</td><td id="thpal-time" class="p-1 font-mono"></td></tr>
-                </table>
-                <table class="w-full mb-4 text-xs text-center border-collapse"><thead><tr class="bg-gray-200 thpal-bg-gray"><th class="w-10 border p-1">No</th><th class="w-16 border p-1">Qty</th><th class="border p-1">Description</th><th class="w-24 border p-1">Code</th></tr></thead><tbody id="thpal-items-body"></tbody></table>
-                <div class="border border-black p-2 h-16 text-xs mb-4"><span class="font-bold">Reason/Purpose: </span><span id="thpal-reason" class="font-mono ml-2"></span></div>
-                <div class="flex justify-around text-xs border border-black p-2 mb-8"><label><input type="checkbox" id="chk-approved" disabled> Approved</label><label><input type="checkbox" id="chk-declined" disabled> Declined</label></div>
-                <div class="grid grid-cols-3 gap-8 text-center text-xs"><div><div class="border-b border-black mb-1 h-8" id="thpal-sig-req"></div>Requester</div><div><div class="border-b border-black mb-1 h-8">&nbsp;</div>Approver</div><div><div class="border-b border-black mb-1 h-8">&nbsp;</div>Security</div></div>
-            </div>
-            <div class="p-4 bg-slate-50 border-t flex justify-between no-print rounded-b-xl">
-                <button onclick="closeModal('request-details-modal')" class="text-slate-500 hover:text-slate-700 font-bold px-4">Close</button>
-                <div class="flex gap-2">
-                    <button onclick="window.print()" class="bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition"><i class="fas fa-print mr-2"></i>Print</button>
-                    <div id="approval-buttons" class="flex gap-2"><button onclick="processRequest('Rejected')" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-200 transition">Reject</button><button onclick="processRequest('Approved')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition">Approve</button></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- NEW PR Modal -->
-    <div id="pr-modal" class="modal">
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 class="font-bold text-xl mb-6 dark:text-white flex items-center gap-2"><i class="fas fa-file-invoice text-brand-500"></i> New Purchase Request</h3>
-            <form id="form-pr" class="space-y-4">
-                <input id="pr-id" type="hidden">
-                
-                <!-- Identifiers -->
-                <div class="grid grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
-                    <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">PR Number</label><input id="pr-number" placeholder="PR-001" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
-                    <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">ARF Number</label><input id="pr-arf" placeholder="ARF-2023" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
-                </div>
-
-                <!-- Product Details -->
-                <div class="space-y-3">
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="col-span-1"><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Mat. Code</label><input id="pr-matcode" placeholder="100-202" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
-                        <div class="col-span-2"><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Description</label><input id="pr-desc" required placeholder="Safety Gloves" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
+            <!-- VIEW: ADD ITEM FORM -->
+             <section id="view-add-item" class="view-section hidden fade-in max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6">Add New Inventory Item</h2>
+                <form id="form-add-item" class="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-md border border-slate-200 dark:border-slate-700">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Material Code *</label><input type="text" id="add-code" required placeholder="e.g. MTRL-001" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Material Description *</label><input type="text" id="add-name" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category *</label><select id="add-category" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border bg-white focus:ring-brand-500"></select></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Initial Stock *</label><input type="number" id="add-stock" min="0" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unit of Measure *</label><select id="add-unit" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border bg-white focus:ring-brand-500"></select></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Low Stock Threshold</label><input type="number" id="add-threshold" value="5" min="1" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Storage Location</label><input type="text" id="add-location" placeholder="e.g. Shelf A-01" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">SDS / Datasheet Link (URL)</label><input type="url" id="add-sds" placeholder="https://..." class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Priority</label><select id="pr-priority" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"><option value="Normal">Normal</option><option value="High">High</option><option value="Low">Low</option></select></div>
-                        <div class="grid grid-cols-2 gap-2">
-                             <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Qty</label><input id="pr-qty" type="number" min="1" required class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
-                             <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Unit</label><select id="pr-unit" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"><option value="Pcs">Pcs</option><option value="Sets">Sets</option><option value="Box">Box</option><option value="Liters">Liters</option></select></div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="document.getElementById('form-add-item').reset()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Reset</button>
+                        <button type="submit" class="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-md transition">Add Item</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- VIEW: WITHDRAWAL FORM -->
+            <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6">Create Withdrawal Request</h2>
+                <form id="form-withdrawal" class="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-md border border-slate-200 dark:border-slate-700">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Requester Name *</label><input type="text" id="req-name" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Department *</label><select id="req-dept" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border bg-white focus:ring-brand-500"></select></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Reason / Purpose</label><input type="text" id="req-reason" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                    </div>
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Items to Withdraw</label>
+                            <button type="button" onclick="addWithdrawalRow()" class="text-brand-600 dark:text-brand-400 text-sm font-bold hover:underline">+ Add Row</button>
                         </div>
+                        <div id="withdrawal-rows" class="space-y-3"></div>
+                    </div>
+                    <div class="flex justify-end"><button type="submit" class="px-6 py-2 bg-yellow-500 text-white font-bold rounded-lg hover:bg-yellow-600 shadow-md transition">Submit Request</button></div>
+                </form>
+            </section>
+
+             <!-- VIEW: MASTER DATA -->
+            <section id="view-master-data" class="view-section hidden fade-in">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6">Master Data Configuration</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col h-96">
+                        <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-2">Categories</h3>
+                        <div class="flex gap-2 mb-3"><input type="text" id="add-master-categories" class="flex-1 border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded text-sm focus:ring-brand-500"><button onclick="addMasterItem('categories')" class="bg-brand-600 text-white px-3 rounded text-sm hover:bg-brand-700 transition">Add</button></div>
+                        <div id="master-categories-list" class="flex-1 overflow-y-auto text-sm space-y-1"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col h-96">
+                        <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-2">Units</h3>
+                        <div class="flex gap-2 mb-3"><input type="text" id="add-master-units" class="flex-1 border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded text-sm focus:ring-brand-500"><button onclick="addMasterItem('units')" class="bg-brand-600 text-white px-3 rounded text-sm hover:bg-brand-700 transition">Add</button></div>
+                        <div id="master-units-list" class="flex-1 overflow-y-auto text-sm space-y-1"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col h-96">
+                        <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-2">Departments</h3>
+                        <div class="flex gap-2 mb-3"><input type="text" id="add-master-departments" class="flex-1 border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded text-sm focus:ring-brand-500"><button onclick="addMasterItem('departments')" class="bg-brand-600 text-white px-3 rounded text-sm hover:bg-brand-700 transition">Add</button></div>
+                        <div id="master-departments-list" class="flex-1 overflow-y-auto text-sm space-y-1"></div>
                     </div>
                 </div>
-                
-                <!-- Links -->
-                <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Image URL</label><input id="pr-img" type="url" placeholder="https://..." class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
-                <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Attachment/Link</label><input id="pr-link" type="url" placeholder="Doc Link" class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></div>
+            </section>
 
-                <div><label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Reason / Purpose</label><textarea id="pr-reason" rows="2" required class="w-full border dark:border-slate-600 p-2 text-sm rounded-lg dark:bg-slate-700 dark:text-white"></textarea></div>
-                
-                <div class="flex gap-3 mt-4">
-                    <button type="submit" class="flex-1 bg-brand-600 text-white p-3 rounded-xl font-bold hover:bg-brand-700 transition shadow-lg">Submit</button>
-                    <button type="button" onclick="closeModal('pr-modal')" class="flex-1 bg-slate-100 text-slate-700 p-3 rounded-xl font-bold hover:bg-slate-200 transition dark:bg-slate-700 dark:text-slate-300">Cancel</button>
+            <!-- VIEW: LOGS -->
+            <section id="view-logs" class="view-section hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Audit Logs</h2>
+                    <button onclick="clearLogs()" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition flex items-center gap-2">
+                        <i class="fas fa-trash-alt"></i> Clear Logs
+                    </button>
                 </div>
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300"><thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs"><tr><th class="px-4 py-2">ID</th><th class="px-4 py-2">Timestamp</th><th class="px-4 py-2">Action</th><th class="px-4 py-2">Details</th></tr></thead><tbody id="logs-body"></tbody></table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Floating Calculator -->
+    <div id="floating-calculator" class="hidden glass-panel rounded-xl w-64 overflow-hidden border border-slate-400 dark:border-slate-600 shadow-2xl">
+        <div class="bg-slate-800 text-white p-2 flex justify-between items-center cursor-move select-none" id="calc-header"><span class="text-xs font-bold uppercase tracking-wider">Calculator</span><button onclick="toggleCalculator()" class="hover:text-red-400"><i class="fas fa-times"></i></button></div>
+        <div class="bg-slate-900 text-right p-3 text-2xl font-mono text-green-400"><input id="calc-display" type="text" readonly class="bg-transparent text-right w-full outline-none" value="0"></div>
+        <div class="grid grid-cols-4 gap-1 p-2 bg-slate-200 dark:bg-slate-700">
+            <button class="p-2 bg-slate-300 dark:bg-slate-600 rounded font-bold hover:bg-slate-400 dark:hover:bg-slate-500" onclick="calcInput('C')">C</button><button class="p-2 bg-slate-300 dark:bg-slate-600 rounded hover:bg-slate-400 dark:hover:bg-slate-500" onclick="calcInput('/')">/</button><button class="p-2 bg-slate-300 dark:bg-slate-600 rounded hover:bg-slate-400 dark:hover:bg-slate-500" onclick="calcInput('*')">*</button><button class="p-2 bg-slate-300 dark:bg-slate-600 rounded hover:bg-slate-400 dark:hover:bg-slate-500" onclick="calcInput('DEL')">←</button>
+            <button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('7')">7</button><button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('8')">8</button><button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('9')">9</button><button class="p-2 bg-slate-300 dark:bg-slate-600 rounded hover:bg-slate-400 dark:hover:bg-slate-500" onclick="calcInput('-')">-</button>
+            <button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('4')">4</button><button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('5')">5</button><button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('6')">6</button><button class="p-2 bg-slate-300 dark:bg-slate-600 rounded hover:bg-slate-400 dark:hover:bg-slate-500" onclick="calcInput('+')">+</button>
+            <button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('1')">1</button><button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('2')">2</button><button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('3')">3</button><button class="p-2 bg-brand-600 text-white rounded row-span-2 hover:bg-brand-700" onclick="calcInput('=')">=</button>
+            <button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded col-span-2 hover:bg-brand-50" onclick="calcInput('0')">0</button><button class="p-2 bg-white dark:bg-slate-800 dark:text-white rounded hover:bg-brand-50" onclick="calcInput('.')">.</button>
+        </div>
+    </div>
+
+    <!-- MODAL: Withdrawal Details (THPAL FORM) -->
+    <div id="request-details-modal" class="modal">
+        <div id="modal-content-wrapper" class="glass-panel bg-white w-full max-w-5xl mx-4 rounded-xl shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 no-print z-50" onclick="closeModal('request-details-modal')"><i class="fas fa-times text-2xl"></i></button>
+            <div id="print-area" class="thpal-form text-black bg-white p-6 overflow-y-auto flex-1 modal-body-scroll">
+                <div class="flex justify-between items-end mb-4 border-b-2 border-black pb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="border-2 border-teal-600 p-1 px-2">
+                            <h1 class="text-3xl font-bold text-teal-700 tracking-tighter leading-none">THPAL</h1>
+                            <div class="h-1 bg-teal-600 w-full mt-1"></div>
+                        </div>
+                        <p class="text-xs font-bold mt-2"></br>Taganito HPAL Nickel Corporation</p>
+                    </div>
+                    <div class="text-right"><p class="text-[10px] font-bold">Form 02 EMS-THPAL-SE-301 Rev 01</p></div>
+                </div>
+                <h2 class="text-center font-bold text-xl mb-4">THPAL MATERIAL ENTRY/EXIT FORM</h2>
+                <div class="mb-0 border border-black border-b-0">
+                    <div class="bg-gray-200 text-center font-bold text-xs p-1 border-b border-black thpal-bg-gray">Authorization Details</div>
+                </div>
+                <table class="w-full text-xs mb-4">
+                    <tr><td class="font-bold bg-gray-100 w-1/6 thpal-bg-gray">Employee's Name:</td><td class="w-2/6" id="thpal-emp-name"></td><td class="font-bold bg-gray-100 w-1/6 thpal-bg-gray">Vehicle:</td><td class="w-2/6"></td></tr>
+                    <tr><td class="font-bold bg-gray-100 thpal-bg-gray">Section/Department:</td><td id="thpal-dept"></td><td class="font-bold bg-gray-100 thpal-bg-gray">Driver:</td><td></td></tr>
+                    <tr><td class="font-bold bg-gray-100 thpal-bg-gray">Date:</td><td id="thpal-date"></td><td class="font-bold bg-gray-100 thpal-bg-gray">Time:</td><td id="thpal-time"></td></tr>
+                </table>
+                <div class="mb-4 border border-black table-scroll-container">
+                    <table class="w-full text-xs border-collapse">
+                        <thead><tr class="bg-gray-100 thpal-bg-gray text-center sticky-th"><th class="w-10">SER</th><th class="w-16">UNIT</th><th class="w-16">QUANTITY</th><th>REMARKS / DESCRIPTION</th></tr></thead>
+                        <tbody id="thpal-items-body"></tbody>
+                    </table>
+                </div>
+                <div class="border border-black p-2 mb-4 h-20"><p class="text-xs font-bold mb-1">Reason for Bringing out:</p><p id="thpal-reason" class="text-sm italic pl-2"></p></div>
+                <div class="border border-black text-xs mb-6">
+                    <div class="text-center italic border-b border-black bg-gray-100 thpal-bg-gray p-1">Supervisor's Note (Please check one):</div>
+                    <div class="flex justify-around p-2"><label class="flex items-center gap-2"><input type="checkbox" id="chk-approved" disabled> Approved</label><label class="flex items-center gap-2"><input type="checkbox" id="chk-onhold" disabled> On-hold</label><label class="flex items-center gap-2"><input type="checkbox" id="chk-declined" disabled> Declined</label><label class="flex items-center gap-2"><input type="checkbox" id="chk-cancelled" disabled> Cancelled</label></div>
+                </div>
+                <div class="flex justify-between text-xs mb-8 px-4 gap-8">
+                    <div class="flex-1 text-center"><p class="mb-8 text-left">Requester:</p><div class="border-b border-black mb-1 font-bold" id="thpal-sig-req"></div></div>
+                    <div class="flex-1 text-center"><p class="mb-8 text-left">Supervisor's Signature:</p><div class="border-b border-black mb-1"></div></div>
+                    <div class="flex-1 text-center"><p class="mb-8 text-left">Authorized Security Signatory:</p><div class="border-b border-black mb-1"></div></div>
+                </div>
+                <p class="text-xs italic mb-4">Note: For IT related items, approved IT Authorization Form shall be attached.</p>
+                <div class="border-t border-black pt-2 mb-8">
+                    <p class="text-xs mb-2">To be filled-out by Security Guard at Main Gate:</p>
+                    <div class="border border-black p-2 flex justify-between text-xs"><div class="w-1/4">Name:</div><div class="w-1/4">Signature:</div><div class="w-1/4">Date:</div><div class="w-1/4">Time:</div></div>
+                </div>
+                <div class="flex justify-between text-[8px] text-gray-500 border-t-2 border-gray-300 pt-2">
+                    <div><p>Taganito Special Economic Zone</p><p>Brgy. Taganito, Claver, Surigao del Norte 8410,</p><p>Philippines Tel.: (632) 548-7140 and 548-7141</p><p>Fax: (632) 548-</p></div>
+                    <div class="text-right"><p>Mailing address and/or City Contact Numbers:</p><p>24th Floor, NAC Tower, 32nd Street near corner 9th Ave.,</p><p>Bonifacio Global City, Taguig City 1634, Philippines Tel.:</p><p>(632) 548-7110, Fax: (632) 856-3930</p></div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 p-4 bg-white border-t dark:border-slate-700 shrink-0 no-print z-20" id="modal-actions">
+                <button onclick="window.print()" class="bg-slate-600 text-white px-4 py-2 rounded hover:bg-slate-700 transition"><i class="fas fa-print"></i> Print</button>
+                <div id="approval-buttons" class="flex gap-2">
+                    <button onclick="processRequest('Rejected')" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">Reject</button>
+                    <button onclick="processRequest('Approved')" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Approve & Deduct</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Request Edit -->
+    <div id="req-edit-modal" class="modal">
+        <div class="glass-panel bg-white w-full max-w-lg mx-4 rounded-xl shadow-2xl p-6 relative">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('req-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Edit Request Details</h2>
+            <form id="form-req-edit">
+                <input type="hidden" id="req-edit-id">
+                <div class="space-y-4">
+                    <div><label class="block text-sm font-medium">Requester Name</label><input type="text" id="req-edit-name" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">Department</label><select id="req-edit-dept" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"></select></div>
+                    <div><label class="block text-sm font-medium">Reason</label><input type="text" id="req-edit-reason" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <p class="text-xs text-orange-600 italic">* To change items, please delete this request and create a new one.</p>
+                </div>
+                <div class="flex justify-end gap-3 mt-6"><button type="submit" class="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700">Save Changes</button></div>
             </form>
         </div>
     </div>
     
-    <!-- View/Manage PR Modal -->
-    <div id="view-pr-modal" class="modal">
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 class="font-bold text-lg mb-6 dark:text-white flex justify-between items-center">
-                <span>Manage Request</span>
-                <span id="view-pr-header" class="text-xs text-slate-400 font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded"></span>
-            </h3>
-            
-            <!-- Details -->
-            <div id="view-pr-content" class="mb-6 space-y-3 text-sm dark:text-slate-300"></div>
-            
-            <!-- Logistics Data Input -->
-            <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-700 mb-6">
-                <h4 class="text-xs font-bold uppercase text-slate-500 mb-3">Logistics Data</h4>
-                <div class="grid grid-cols-2 gap-3 mb-2">
-                    <div><label class="text-[10px] font-bold text-slate-400 block">P.O. Number</label><input id="view-pr-po" class="w-full text-xs p-2 rounded border dark:border-slate-600 dark:bg-slate-800 dark:text-white"></div>
-                    <div><label class="text-[10px] font-bold text-slate-400 block">Purchaser Name</label><input id="view-pr-purchaser" class="w-full text-xs p-2 rounded border dark:border-slate-600 dark:bg-slate-800 dark:text-white"></div>
+    <!-- MODAL: PR Edit -->
+    <div id="pr-edit-modal" class="modal">
+        <div class="glass-panel bg-white w-full max-w-xl mx-4 rounded-xl shadow-2xl p-6 relative">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('pr-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
+            <h2 id="pr-modal-title" class="text-xl font-bold text-slate-800 dark:text-white mb-4">Purchase Request</h2>
+            <form id="form-pr-edit">
+                <input type="hidden" id="pr-edit-id">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div><label class="block text-sm font-medium">Material Code</label><input type="text" id="pr-material-code" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">Quantity *</label><input type="number" id="pr-quantity" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">Unit *</label><select id="pr-unit" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"></select></div>
+                    <div class="md:col-span-3"><label class="block text-sm font-medium">Description *</label><input type="text" id="pr-description" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div class="md:col-span-2"><label class="block text-sm font-medium">Category</label><select id="pr-category" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"></select></div>
+                    <div><label class="block text-sm font-medium">Date Processed</label><input type="date" id="pr-date-process" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div class="md:col-span-3 pt-4 border-t dark:border-slate-600"><h3 class="font-bold text-sm">Media & Links</h3></div>
+                    <div class="md:col-span-3"><label class="block text-sm font-medium">Image/Reference Link 1 (URL)</label><input type="url" id="pr-image-link-1" placeholder="https://..." class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div class="md:col-span-3"><label class="block text-sm font-medium">Image/Reference Link 2 (URL)</label><input type="url" id="pr-image-link-2" placeholder="https://..." class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div class="md:col-span-3 pt-4 border-t dark:border-slate-600"><h3 class="font-bold text-sm">Tracking</h3></div>
+                    <div><label class="block text-sm font-medium">Expected Date</label><input type="date" id="pr-expected-date" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">Received Date</label><input type="date" id="pr-received-date" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">Vendor Name</label><input type="text" id="pr-vendor-name" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">PR Number</label><input type="text" id="pr-number" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">PO Number</label><input type="text" id="pr-po-number" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">ARF Number</label><input type="text" id="pr-arf-number" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">Purchaser</label><input type="text" id="pr-purchaser" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">Unit Price</label><input type="number" step="0.01" id="pr-unit-price" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+                    <div><label class="block text-sm font-medium">Status</label><select id="pr-status" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"><option value="Pending">Pending</option><option value="Ordered">Ordered</option><option value="Received">Received</option><option value="For Withdrawal">For Withdrawal</option><option value="Cancelled">Cancelled</option></select></div>
+                    <div class="md:col-span-3"><label class="block text-sm font-medium">Remarks / Notes</label><textarea id="pr-remarks" rows="2" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></textarea></div>
                 </div>
-                <div><label class="text-[10px] font-bold text-slate-400 block">Receiver Name</label><input id="view-pr-receiver" class="w-full text-xs p-2 rounded border dark:border-slate-600 dark:bg-slate-800 dark:text-white"></div>
-            </div>
-
-            <!-- Stepper Timeline -->
-            <div class="mb-6 pl-2">
-                <div class="stepper-item" id="step-pending"><p class="text-xs font-bold">Request Created</p><p id="date-pending" class="text-[10px] text-slate-500">-</p></div>
-                <div class="stepper-item" id="step-approved"><p class="text-xs font-bold">Approved</p><p id="date-approved" class="text-[10px] text-slate-500">-</p></div>
-                <div class="stepper-item" id="step-ordered"><p class="text-xs font-bold">Ordered</p><p id="date-ordered" class="text-[10px] text-slate-500">-</p></div>
-                <div class="stepper-item" id="step-received"><p class="text-xs font-bold">Received</p><p id="date-received" class="text-[10px] text-slate-500">-</p></div>
-            </div>
-            
-            <!-- Actions -->
-            <label class="block text-xs font-bold text-slate-500 mb-2">Update Status & Save Info</label>
-            <div id="pr-actions" class="grid grid-cols-2 gap-2 mb-4">
-                <button onclick="updatePRStatus('Approved')" class="bg-blue-100 text-blue-700 py-2 rounded-lg font-bold hover:bg-blue-200">Approve</button>
-                <button onclick="updatePRStatus('Ordered')" class="bg-purple-100 text-purple-700 py-2 rounded-lg font-bold hover:bg-purple-200">Mark Ordered</button>
-                <button onclick="updatePRStatus('Received')" class="col-span-2 bg-green-100 text-green-700 py-2 rounded-lg font-bold hover:bg-green-200">Received (Add to Stock)</button>
-                <button onclick="updatePRStatus('Rejected')" class="col-span-2 bg-red-50 text-red-600 py-2 rounded-lg font-bold hover:bg-red-100">Reject</button>
-            </div>
-            <button onclick="closeModal('view-pr-modal')" class="w-full text-slate-500 py-2 text-sm">Close</button>
+                <div class="flex justify-end gap-3 pt-4 border-t dark:border-slate-600"><button type="submit" id="pr-submit-btn" class="px-6 py-2 bg-brand-600 text-white rounded shadow hover:bg-brand-700">Save</button></div>
+            </form>
         </div>
     </div>
+    
+    <!-- MODAL: PR View -->
+    <div id="pr-view-modal" class="modal">
+        <div class="glass-panel bg-white w-full max-w-5xl mx-4 rounded-xl shadow-2xl p-6 relative">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('pr-view-modal')"><i class="fas fa-times text-2xl"></i></button>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4 border-b dark:border-slate-600 pb-2">Purchase Request Details <span id="pr-view-id-display" class="font-mono text-sm text-brand-600"></span></h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1 bg-slate-100 dark:bg-slate-700 p-4 rounded-lg flex flex-col items-center justify-center">
+                    <h3 class="font-bold mb-2 text-slate-600 dark:text-slate-300">Reference Image</h3>
+                    <div id="pr-view-image-container" class="w-full max-h-96 overflow-hidden rounded-md border border-slate-300 dark:border-slate-600"><div class="flex items-center justify-center h-48 text-slate-400"><i class="fas fa-image text-4xl"></i></div></div>
+                    <p id="pr-view-no-image" class="text-slate-500 dark:text-slate-400 italic mt-4 text-sm hidden">No primary image link provided.</p>
+                    <div id="pr-view-links" class="mt-3 text-xs w-full text-center"></div>
+                </div>
+                <div class="md:col-span-2 space-y-4"><div id="pr-view-content" class="text-sm grid grid-cols-2 gap-y-2"></div></div>
+            </div>
+            <div class="flex justify-end pt-4 mt-6 border-t dark:border-slate-700"><button onclick="closeModal('pr-view-modal')" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Close</button></div>
+        </div>
+    </div>
+    
+    <!-- MODAL: Inventory Edit -->
+    <div id="inv-edit-modal" class="modal"><div class="glass-panel bg-white w-full max-w-lg mx-4 rounded-xl shadow-2xl p-6 relative"><button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('inv-edit-modal')"><i class="fas fa-times text-2xl"></i></button><h2 id="inv-modal-title" class="text-xl font-bold text-slate-800 dark:text-white mb-4">Edit Inventory</h2><form id="form-inv-edit"><input type="hidden" id="inv-edit-id"><div class="space-y-4"><div><label class="block text-sm font-medium">Material Code</label><input type="text" id="inv-edit-code" class="w-full border dark:border-slate-600 dark:text-white p-2 rounded bg-slate-50 dark:bg-slate-700" readonly></div><div><label class="block text-sm font-medium">Description</label><input type="text" id="inv-edit-name" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium">Stock</label><input type="number" id="inv-edit-stock" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div><div><label class="block text-sm font-medium">Location</label><input type="text" id="inv-edit-loc" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div></div></div><div class="flex justify-end gap-3 mt-6"><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Update Item</button></div></form></div></div>
+    <!-- MODAL: Inventory View -->
+    <div id="inv-view-modal" class="modal"><div class="glass-panel bg-white w-full max-w-md mx-4 rounded-xl shadow-2xl p-6 relative"><button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('inv-view-modal')"><i class="fas fa-times text-2xl"></i></button><h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4 border-b dark:border-slate-600 pb-2">Item Details</h2><div id="inv-view-content" class="space-y-4 text-sm text-slate-700 dark:text-slate-200"></div></div></div>
 
-    <script>
-        // --- CONFIGURATION ---
-        const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-5 right-5 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-xl transform translate-x-full transition-transform duration-300 z-50 flex items-center gap-3"><i id="toast-icon" class="fas fa-info-circle"></i><span id="toast-msg">Notification</span></div>
+
+   <script>
+    // --- SUPABASE CONFIGURATION ---
+    // Decoded from the provided JWT/Keys
+    const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let chartInstance = null;
+    let activeReqId = null;
+    let activeCategory = 'All'; 
+
+    const DEFAULT_MASTER = {
+        categories: ['Spare Parts', 'Tires', 'Fluids', 'Electrical', 'Tools', 'Safety Gear'],
+        units: ['Pcs', 'Liters', 'Sets', 'Boxes', 'Rolls', 'Kgs'],
+        departments: ['Mining Ops', 'Maintenance', 'Safety', 'Admin', 'Logistics']
+    };
+
+    window.onload = async () => {
+        updateTime(); setInterval(updateTime, 1000);
+        await loadMasterData(); await seedPRData();
+        loadThemePreference();
+        renderDashboard(); setupCalculatorDrag();
         
-        let master = { categories: [], units: [], departments: [] };
-        let activeInvTab = 'all';
-        let activePRTab = 'active'; 
-        let activeReqId = null;
-        let activePRId = null;
-        let chartInstance = null;
-        let categoryChartInstance = null;
-        let inventoryCache = []; 
+        document.getElementById('form-pr-edit').onsubmit = submitPRForm;
+        document.getElementById('form-inv-edit').onsubmit = submitInvEdit;
+        document.getElementById('form-req-edit').onsubmit = submitReqEdit;
+        
+        document.querySelectorAll('.modal').forEach(m => {
+            m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
+        });
+        document.addEventListener('keydown', e => { if(e.key === 'Escape') document.querySelectorAll('.modal').forEach(m => m.classList.remove('open')); });
+    };
 
-        // --- INITIALIZATION ---
-        window.onload = async () => {
-            setLoading(true);
-            loadTheme();
-            await loadMasterData();
-            await renderDashboard();
-            setLoading(false);
+    // --- SUPABASE DB ACTION BRIDGE ---
+    // Acts as a wrapper to maintain compatibility with existing logic structure
+    // while directing calls to Supabase
+    async function dbAction(storeName, mode, callback) {
+        // Create a Mock Store object that mimics the old IDB interface but calls Supabase
+        const storeMock = {
+            getAll: async () => {
+                const { data, error } = await supabase.from(storeName).select('*');
+                if(error) { console.error('Supabase Error:', error); return []; }
+                return data || [];
+            },
+            get: async (key) => {
+                if(storeName === 'master') {
+                    // Special mapping for Master Data
+                    // Expects a table 'master_data' with column 'key'
+                    const { data, error } = await supabase.from('master_data').select('*').eq('key', key).single();
+                    return data; 
+                }
+                const { data, error } = await supabase.from(storeName).select('*').eq('id', key).single();
+                if(error) { console.error('Supabase Error:', error); return null; }
+                return data;
+            },
+            add: async (val) => {
+                // Remove ID if present and falsy to let Postgres handle auto-increment
+                if(!val.id) delete val.id;
+                const { data, error } = await supabase.from(storeName).insert(val).select();
+                if(error) { console.error('Supabase Error:', error); throw error; }
+                return data;
+            },
+            put: async (val) => {
+                if(storeName === 'master') {
+                     const { error } = await supabase.from('master_data').upsert(val);
+                     if(error) console.error(error);
+                     return;
+                }
+                const { error } = await supabase.from(storeName).update(val).eq('id', val.id);
+                if(error) { console.error('Supabase Error:', error); throw error; }
+            },
+            delete: async (key) => {
+                const { error } = await supabase.from(storeName).delete().eq('id', key);
+                if(error) { console.error('Supabase Error:', error); throw error; }
+            },
+            count: async () => {
+                const { count } = await supabase.from(storeName).select('*', { count: 'exact', head: true });
+                return count || 0;
+            },
+            clear: async () => {
+                // Delete all rows where ID is not 0 (effectively all)
+                const { error } = await supabase.from(storeName).delete().neq('id', 0);
+                if(error) console.error('Supabase Error:', error);
+            }
         };
 
-        function setLoading(s) { document.getElementById('loading-overlay').className = s ? 'active' : ''; }
-        function showToast(m) { const t=document.getElementById('toast'); document.getElementById('toast-msg').innerText=m; t.classList.remove('translate-x-full'); setTimeout(()=>t.classList.add('translate-x-full'),3000); }
-        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark')?'dark':'light'); }
-        function loadTheme() { if(localStorage.getItem('theme')==='dark') document.documentElement.classList.add('dark'); }
+        // Execute the callback with the mock store
+        return await callback(storeMock);
+    }
+
+    async function logAction(action, details) { await dbAction('logs', 'readwrite', store => store.add({ timestamp: new Date().toLocaleString(), action, details })); }
+
+    function navTo(viewId, btn) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+        document.getElementById(viewId).classList.remove('hidden');
+        if(btn) { document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav', 'bg-brand-700', 'text-white')); btn.classList.add('active-nav', 'bg-brand-700', 'text-white'); }
+        if (viewId === 'view-inventory') renderInventory();
+        if (viewId === 'view-requests') renderRequests();
+        if (viewId === 'view-pr-requests') renderPRRequests();
+        if (viewId === 'view-logs') renderLogs();
+        if (viewId === 'view-dashboard') renderDashboard();
+        if (viewId === 'view-master-data') renderMasterLists();
         
-        function navTo(id) {
-            document.querySelectorAll('.view-section').forEach(e=>e.classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-            if(id==='view-inventory') renderInventory();
-            if(id==='view-audit-logs') renderLogs();
-            if(id==='view-dashboard') renderDashboard();
-            if(id==='view-requests') renderRequests();
-            if(id==='view-pr-requests') renderPRs(); 
-            if(id==='view-master-data') renderMasterLists();
-            if(id==='view-request-withdrawal') prepareWithdrawalForm();
-        }
+        if(window.innerWidth < 768) { document.getElementById('sidebar').classList.add('hidden'); }
+    }
 
-        // --- DATABASE HELPER ---
-        async function db(table, op, data) {
-            try {
-                if(op==='get') { const {data:d, error}=await supabase.from(table).select('*'); if(error) throw error; return d||[]; }
-                if(op==='getOne') { const {data:d, error}=await supabase.from(table).select('*').eq('id',data).single(); if(error) throw error; return d; }
-                if(op==='add') { delete data.id; const {data:res, error} = await supabase.from(table).insert(data).select(); if(error) throw error; if(table !== 'logs') logAction('ADD', `Added record to ${table}`); return res; }
-                if(op==='update') { const { error } = await supabase.from(table).update(data).eq('id',data.id); if(error) throw error; if(table !== 'logs') logAction('EDIT', `Updated record ${data.id} in ${table}`); }
-                if(op==='delete') { const { error } = await supabase.from(table).delete().eq('id',data); if(error) throw error; if(table !== 'logs') logAction('DELETE', `Deleted record ${data} from ${table}`); }
-            } catch(e) { console.error(e); showToast("Error: " + e.message); setLoading(false); return []; }
-        }
-        async function logAction(action, details) { await supabase.from('logs').insert({ timestamp: new Date().toLocaleString(), action, details }); }
+    function showToast(msg, type='info') {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-msg').innerText = msg;
+        toast.className = `fixed top-5 right-5 px-6 py-3 rounded-lg shadow-xl transform transition-transform duration-300 z-50 flex items-center gap-3 text-white ${type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800'}`;
+        toast.classList.remove('translate-x-full');
+        setTimeout(() => toast.classList.add('translate-x-full'), 3000);
+    }
+    function updateTime() { const now = new Date(); document.getElementById('header-time').innerText = now.toLocaleTimeString(); document.getElementById('header-date').innerText = now.toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'short', day:'numeric'}); }
 
-        // --- MASTER DATA LOGIC ---
-        async function loadMasterData() {
-            const d = await db('master_data', 'get'); const c = d.find(x=>x.key==='config');
-            if(c) master = c.data; else { master = {categories:['Tires','Parts','Safety','Fluids'],units:['Pcs','Liters','Sets'],departments:['Operations','Maintenance','HR','Admin']}; await supabase.from('master_data').insert({key:'config',data:master}); }
-            ['inv-cat','inv-unit','req-dept'].forEach(id=>{ const k = id.includes('cat')?'categories':id.includes('unit')?'units':'departments'; const el = document.getElementById(id); if(el) el.innerHTML = '<option value="">Select...</option>' + master[k].map(x=>`<option value="${x}">${x}</option>`).join(''); });
-            renderMasterLists(); renderInventoryTabs();
-        }
-        function renderMasterLists() { ['categories', 'units', 'departments'].forEach(key => { const container = document.getElementById(`master-${key}-list`); container.innerHTML = master[key].map(item => `<div class="master-tag group"><span class="font-medium">${item}</span><button onclick="deleteMasterItem('${key}', '${item}')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times-circle"></i></button></div>`).join(''); }); }
-        async function addMasterItem(key) { const inputId = `add-master-${key}`; const input = document.getElementById(inputId); const val = input.value.trim(); if(!val) return; setLoading(true); if(!master[key].includes(val)) { master[key].push(val); await supabase.from('master_data').update({data:master}).eq('key','config'); input.value = ''; await loadMasterData(); showToast('Added ' + val); } setLoading(false); }
-        async function deleteMasterItem(key, val) { if(!confirm(`Delete "${val}"?`)) return; setLoading(true); master[key] = master[key].filter(i => i !== val); await supabase.from('master_data').update({data:master}).eq('key','config'); await loadMasterData(); setLoading(false); showToast('Deleted ' + val); }
-
-        // --- INVENTORY ---
-        function renderInventoryTabs() { const container = document.getElementById('inventory-tabs-container'); let html = `<button class="inv-tab active" onclick="switchInvTab('all', this)">All Items</button><button class="inv-tab text-red-500" onclick="switchInvTab('low', this)">Low Stock</button>`; master.categories.forEach(cat => html += `<button class="inv-tab" onclick="switchInvTab('${cat}', this)">${cat}</button>`); container.innerHTML = html; }
-        function switchInvTab(tab, btn) { activeInvTab = tab; document.querySelectorAll('.inv-tab').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderInventory(); }
-        function openLowStockTab() { navTo('view-inventory'); setTimeout(() => { const tabs = document.querySelectorAll('.inv-tab'); if(tabs[1]) switchInvTab('low', tabs[1]); }, 100); }
-        async function renderInventory() {
-            const items = await db('inventory', 'get'); inventoryCache = items; const term = document.getElementById('inv-search').value.toLowerCase(); const tb = document.getElementById('inventory-body'); tb.innerHTML = '';
-            let filtered = items.filter(i => (i.name||'').toLowerCase().includes(term) || (i.code||'').toLowerCase().includes(term));
-            if(activeInvTab === 'low') filtered = filtered.filter(i => i.stock <= 5); else if(activeInvTab !== 'all') filtered = filtered.filter(i => i.category === activeInvTab);
-            if(activeInvTab !== 'all' && activeInvTab !== 'low') { document.getElementById('category-trends-container').classList.remove('hidden'); renderCategoryChart(filtered); } else { document.getElementById('category-trends-container').classList.add('hidden'); }
-            if(filtered.length === 0) { document.getElementById('inv-empty').classList.remove('hidden'); return; } document.getElementById('inv-empty').classList.add('hidden');
-            filtered.forEach(i => { const isLow = i.stock <= 5; tb.innerHTML += `<tr class="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"><td class="px-4 py-3" data-label="Details"><div class="font-bold dark:text-white">${i.name}</div><div class="text-xs text-slate-500 font-mono">${i.code}</div></td><td class="px-4 py-3 text-sm dark:text-slate-300" data-label="Category">${i.category}</td><td class="px-4 py-3" data-label="Stock"><span class="font-bold ${isLow?'text-red-500':'text-emerald-600'}">${i.stock}</span> <span class="text-xs">${i.unit}</span></td><td class="px-4 py-3 text-sm dark:text-slate-300" data-label="Location">${i.location||'-'}</td><td class="px-4 py-3 text-right" data-label="Action"><div class="flex justify-end gap-2"><button onclick="viewItemDetails(${i.id})" class="text-slate-500 hover:text-brand-600 p-2"><i class="fas fa-eye"></i></button><button onclick="editItem(${i.id})" class="text-blue-500 hover:text-blue-700 p-2"><i class="fas fa-pen"></i></button><button onclick="deleteItem(${i.id})" class="text-red-500 hover:text-red-700 p-2"><i class="fas fa-trash"></i></button></div></td></tr>`; });
-        }
-        function renderCategoryChart(items) { const ctx = document.getElementById('category-chart').getContext('2d'); if(categoryChartInstance) categoryChartInstance.destroy(); categoryChartInstance = new Chart(ctx, { type: 'bar', data: { labels: items.map(i => i.code), datasets: [{ label: 'Stock', data: items.map(i => i.stock), backgroundColor: '#6366f1', borderRadius: 4 }] }, options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } }); }
-        function exportToExcel() { if(!inventoryCache.length) return showToast('No data'); const ws = XLSX.utils.json_to_sheet(inventoryCache); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Inventory"); XLSX.writeFile(wb, "Inventory.xlsx"); showToast('Excel Downloaded'); }
-
-        // --- WITHDRAWALS ---
-        async function prepareWithdrawalForm() { inventoryCache = await db('inventory', 'get'); document.getElementById('withdrawal-rows').innerHTML = ''; }
-        function addWithdrawalRow() { if(inventoryCache.length === 0) { showToast('Loading inventory...'); return; } const opts = inventoryCache.map(i => `<option value="${i.id}" data-stock="${i.stock}" data-unit="${i.unit}" data-code="${i.code}">${i.name} (${i.stock})</option>`).join(''); const div = document.createElement('div'); div.className = "flex gap-2 items-center bg-white dark:bg-slate-800 p-2 rounded-lg border dark:border-slate-600 animate-fade-in-down"; div.innerHTML = `<select class="req-item flex-1 p-2 rounded text-xs dark:bg-slate-700 dark:text-white border dark:border-slate-500" onchange="updateStockLabel(this)" required><option value="">Select Item...</option>${opts}</select><div class="text-[10px] text-slate-500 w-16 text-center stock-label">-</div><input type="number" min="1" class="req-qty w-16 p-2 rounded text-xs dark:bg-slate-700 dark:text-white border dark:border-slate-500" placeholder="Qty" required><button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 px-2"><i class="fas fa-times"></i></button>`; document.getElementById('withdrawal-rows').appendChild(div); }
-        function updateStockLabel(select) { const opt = select.options[select.selectedIndex]; const stock = parseInt(opt.getAttribute('data-stock') || 0); const unit = opt.getAttribute('data-unit') || ''; const label = select.parentElement.querySelector('.stock-label'); const qtyInput = select.parentElement.querySelector('.req-qty'); if(select.value) { label.innerHTML = `Avail:<br><b class="${stock<5?'text-red-500':'text-green-600'}">${stock}</b> ${unit}`; qtyInput.max = stock; } else { label.innerHTML = '-'; qtyInput.removeAttribute('max'); } }
-        document.getElementById('form-withdrawal').onsubmit = async (e) => { e.preventDefault(); const rows = document.querySelectorAll('#withdrawal-rows > div'); if(rows.length === 0) return showToast('Add item first'); const items = []; let error = false; rows.forEach(r => { const sel = r.querySelector('.req-item'); const qty = parseInt(r.querySelector('.req-qty').value); const opt = sel.options[sel.selectedIndex]; const stock = parseInt(opt.getAttribute('data-stock')); if (!sel.value || !qty) { error = true; return; } if (qty > stock) { alert(`Error: ${opt.text} exceeds stock`); error = true; return; } items.push({ id: parseInt(sel.value), name: opt.text.split('(')[0].trim(), qty: qty, code: opt.getAttribute('data-code') }); }); if (error) return; setLoading(true); await db('requests', 'add', { requester: document.getElementById('req-name').value, department: document.getElementById('req-dept').value, reason: document.getElementById('req-reason').value, date: new Date().toLocaleDateString(), created_at: new Date().toISOString(), status: 'Pending', items: items }); setLoading(false); e.target.reset(); document.getElementById('withdrawal-rows').innerHTML = ''; showToast('Request Submitted'); navTo('view-requests'); }
-        async function viewRequest(id) { activeReqId = id; setLoading(true); const r = await db('requests', 'getOne', id); setLoading(false); document.getElementById('thpal-emp-name').innerText = r.requester; document.getElementById('thpal-dept').innerText = r.department; document.getElementById('thpal-date').innerText = r.date; document.getElementById('thpal-time').innerText = new Date(r.created_at || new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); document.getElementById('thpal-reason').innerText = r.reason; document.getElementById('thpal-items-body').innerHTML = r.items.map((i, idx) => `<tr><td class="p-1 border">${idx+1}</td><td class="p-1 border">${i.qty}</td><td class="p-1 border text-left pl-2">${i.name}</td><td class="p-1 border font-mono text-[10px]">${i.code}</td></tr>`).join(''); document.getElementById('chk-approved').checked = r.status === 'Approved'; document.getElementById('chk-declined').checked = r.status === 'Rejected'; const btns = document.getElementById('approval-buttons'); if (r.status === 'Pending') btns.classList.remove('hidden'); else btns.classList.add('hidden'); document.getElementById('request-details-modal').classList.add('open'); }
-        async function processRequest(status) { setLoading(true); const req = await db('requests', 'getOne', activeReqId); if (status === 'Approved') { for (const item of req.items) { const invItem = await db('inventory', 'getOne', item.id); if (invItem.stock < item.qty) { setLoading(false); alert(`Insufficient stock for ${item.name}`); return; } invItem.stock -= item.qty; await db('inventory', 'update', invItem); } } req.status = status; await db('requests', 'update', req); setLoading(false); closeModal('request-details-modal'); renderInventory(); renderRequests(); renderDashboard(); showToast(`Request ${status}`); }
-
-        // --- PURCHASE REQUESTS (ENHANCED) ---
-        function switchPRTab(tab, btn) {
-            activePRTab = tab;
-            document.querySelectorAll('.pr-tab').forEach(b => {
-                b.classList.remove('active', 'border-brand-600', 'text-brand-600');
-                b.classList.add('border-transparent', 'text-slate-500');
-            });
-            btn.classList.remove('border-transparent', 'text-slate-500');
-            btn.classList.add('active', 'border-brand-600', 'text-brand-600');
-            renderPRs();
-        }
-
-        async function renderPRs() {
-            setLoading(true);
-            const p = await db('pr_requests', 'get');
-            setLoading(false);
-            
-            // Statistics
-            const stats = { Pending:0, Approved:0, Ordered:0, Received:0 };
-            p.forEach(x => stats[x.status] = (stats[x.status]||0) + 1);
-            document.getElementById('pr-stat-pending').innerText = stats.Pending;
-            document.getElementById('pr-stat-approved').innerText = stats.Approved;
-            document.getElementById('pr-stat-ordered').innerText = stats.Ordered;
-            document.getElementById('pr-stat-received').innerText = stats.Received;
-
-            const container = document.getElementById('pr-list-container');
-            container.innerHTML = '';
-            
-            // Filtering
-            const term = document.getElementById('pr-search').value.toLowerCase();
-            let filtered = p.filter(x => 
-                (x.materialDescription || '').toLowerCase().includes(term) ||
-                (x.pr_number || '').toLowerCase().includes(term) ||
-                (x.po_number || '').toLowerCase().includes(term)
-            );
-            
-            if(activePRTab === 'active') {
-                filtered = filtered.filter(x => ['Pending', 'Approved', 'Ordered'].includes(x.status));
+    let masterData = DEFAULT_MASTER;
+    
+    async function loadMasterData() {
+        try { 
+            // Check 'master_data' table in Supabase
+            const result = await dbAction('master', 'readonly', store => store.get('config')); 
+            if (result && result.data) {
+                masterData = result.data;
             } else {
-                filtered = filtered.filter(x => ['Received', 'Rejected'].includes(x.status));
+                // Initialize if not exists
+                await dbAction('master', 'readwrite', store => store.put({ key: 'config', data: DEFAULT_MASTER }));
+                masterData = DEFAULT_MASTER;
             }
-
-            if(filtered.length === 0) { document.getElementById('pr-empty').classList.remove('hidden'); return; }
-            document.getElementById('pr-empty').classList.add('hidden');
-
-            filtered.sort((a,b) => b.id - a.id).forEach(x => {
-                let badge = `badge-pending`; let icon = "fa-clock";
-                if(x.status === 'Approved') { badge = `badge-approved`; icon="fa-check"; }
-                if(x.status === 'Ordered') { badge = `badge-ordered`; icon="fa-shipping-fast"; }
-                if(x.status === 'Received') { badge = `badge-received`; icon="fa-box-open"; }
-                if(x.status === 'Rejected') { badge = `badge-rejected`; icon="fa-times"; }
-
-                const imgHtml = x.image_link ? `<img src="${x.image_link}" class="w-12 h-12 rounded object-cover border" alt="Item">` : `<div class="w-12 h-12 rounded bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400"><i class="fas fa-image"></i></div>`;
-
-                container.innerHTML += `
-                    <div class="p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition border-b dark:border-slate-700 flex flex-col md:flex-row gap-4 items-start md:items-center">
-                        <div class="shrink-0">${imgHtml}</div>
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1 flex-wrap">
-                                <span class="badge ${badge}"><i class="fas ${icon} text-[0.6rem]"></i> ${x.status}</span>
-                                ${x.pr_number ? `<span class="text-[0.65rem] font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded text-slate-500">PR: ${x.pr_number}</span>` : ''}
-                                ${x.po_number ? `<span class="text-[0.65rem] font-mono bg-purple-50 text-purple-600 px-1 rounded">PO: ${x.po_number}</span>` : ''}
-                                ${x.priority === 'High' ? '<span class="text-[0.6rem] font-bold text-red-500 bg-red-50 px-2 rounded">HIGH</span>' : ''}
-                            </div>
-                            <h4 class="font-bold text-slate-800 dark:text-white text-sm">${x.materialDescription}</h4>
-                            <p class="text-[10px] text-slate-400 font-mono mt-0.5">${x.material_code || 'No Code'}</p>
-                        </div>
-                        <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                            <div class="text-right">
-                                <p class="text-xs text-slate-400 uppercase font-bold">Qty</p>
-                                <p class="font-mono font-bold dark:text-slate-200 text-sm">${x.quantity} <span class="text-[10px] font-normal">${x.unit}</span></p>
-                            </div>
-                            <button onclick="managePR(${x.id})" class="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-600 shadow-sm transition">Manage</button>
-                        </div>
-                    </div>
-                `;
-            });
+        } catch (e) {
+            console.warn("Master data load failed (Check Supabase tables):", e);
         }
+        populateDropdowns('add-category', masterData.categories); populateDropdowns('add-unit', masterData.units); populateDropdowns('req-dept', masterData.departments);
+        populateDropdowns('pr-category', masterData.categories); populateDropdowns('pr-unit', masterData.units); populateDropdowns('req-edit-dept', masterData.departments);
+    }
+    
+    async function seedPRData() {
+        try {
+            const prCount = await dbAction('pr_requests', 'readonly', store => store.count());
+            if (prCount > 0) return; 
+            // Seed data if empty
+            const seedData = [
+                { materialCode: 'MTRL001', materialDescription: 'Heavy Duty Truck Filter Pack', unit: 'Sets', quantity: 10, unitPrice: 45.50, category: 'Spare Parts', dateProcess: '2023-11-01', prNumber: 'PR2311001', status: 'Received', imageLink1: 'https://via.placeholder.com/600x400/0000FF/FFFFFF?text=Filter+Pack+A', expectedDate: '2023-11-15', receivedDate: '2023-11-14', vendorName: 'Global Filters Inc.', remarks: 'Urgent replacement for CAT 793D' },
+                { materialCode: 'CHEM020', materialDescription: 'Industrial Lubricant (ISO 46)', unit: 'Liters', quantity: 500, unitPrice: 3.20, category: 'Fluids', dateProcess: '2023-12-01', prNumber: 'PR2312001', status: 'Pending', imageLink2: 'https://via.placeholder.com/600x400/FF0000/FFFFFF?text=Lubricant+Drum', expectedDate: '2024-01-15', receivedDate: '', vendorName: 'PetroChem Supplies', remarks: 'Large volume order, requires bulk storage preparation.' }
+            ];
+            for (const data of seedData) {
+                await dbAction('pr_requests', 'readwrite', store => store.add(data));
+            }
+        } catch(e) { console.log("Seeding skipped or failed"); }
+    }
 
-        function openPREditModal() { document.getElementById('form-pr').reset(); document.getElementById('pr-id').value=''; document.getElementById('pr-modal').classList.add('open'); }
+    function populateDropdowns(id, items) {
+        const sel = document.getElementById(id); if(!sel) return;
+        sel.innerHTML = '<option value="">Select...</option>';
+        if(items) items.forEach(i => { const opt = document.createElement('option'); opt.value = i; opt.innerText = i; sel.appendChild(opt); });
+    }
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        if(window.innerWidth >= 768) { sidebar.classList.toggle('sidebar-collapsed'); } else { sidebar.classList.toggle('hidden'); }
+    }
+
+    function toggleDarkMode() {
+        const html = document.documentElement;
+        html.classList.toggle('dark');
+        const isDark = html.classList.contains('dark');
+        document.getElementById('theme-icon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        renderDashboard();
+    }
+
+    function loadThemePreference() {
+        const pref = localStorage.getItem('theme');
+        if (pref === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = 'fas fa-sun'; }
+    }
+    
+    // --- INVENTORY ---
+    function filterCat(cat) { activeCategory = cat; renderInventory(); }
+    async function renderInventory() {
+        const items = await dbAction('inventory', 'readonly', store => store.getAll());
+        const tbody = document.getElementById('inventory-body');
+        const filter = document.getElementById('inv-search').value.toLowerCase();
+        let catHTML = `<button onclick="filterCat('All')" class="px-3 py-1 rounded-full text-xs font-bold border transition ${activeCategory === 'All' ? 'bg-brand-600 text-white border-brand-600' : 'bg-white dark:bg-slate-700 dark:text-white dark:border-slate-500 text-slate-600 border-slate-300 hover:bg-slate-50'}">All</button>`;
+        masterData.categories.forEach(c => {
+            const isActive = activeCategory === c;
+            catHTML += `<button onclick="filterCat('${c}')" class="px-3 py-1 rounded-full text-xs font-bold border transition whitespace-nowrap ${isActive ? 'bg-brand-600 text-white border-brand-600' : 'bg-white dark:bg-slate-700 dark:text-white dark:border-slate-500 text-slate-600 border-slate-300 hover:bg-slate-50'}">${c}</button>`;
+        });
+        document.getElementById('inventory-categories').innerHTML = catHTML;
+        tbody.innerHTML = ''; let count = 0;
+        items.sort((a,b) => b.id - a.id).forEach(item => {
+            const code = item.code || `ID-${item.id}`;
+            const matchesSearch = code.toLowerCase().includes(filter) || item.name.toLowerCase().includes(filter);
+            const matchesCat = activeCategory === 'All' || item.category === activeCategory;
+            if (matchesSearch && matchesCat) {
+                const isLow = item.stock <= (item.threshold || 5);
+                const row = `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-700 ${isLow ? 'bg-red-50 dark:bg-red-900/20' : ''}">
+                        <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700 dark:text-slate-200">${code}</td>
+                        <td class="px-6 py-3 text-slate-800 dark:text-white">${item.name} ${isLow ? '<span class="text-[10px] bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 px-1 rounded ml-1 font-bold border border-red-200 dark:border-red-800">LOW</span>' : ''}</td>
+                        <td class="px-6 py-3"><span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-xs font-bold">${item.category}</span></td>
+                        <td class="px-6 py-3 text-center font-bold ${isLow ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}">${item.stock} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">${item.unit}</span></td>
+                        <td class="px-6 py-3 text-xs text-slate-600 dark:text-slate-400">${item.location || '-'}</td>
+                        <td class="px-6 py-3 text-right">
+                            <div class="flex justify-end gap-2">
+                                <button onclick="viewInventory(${item.id})" class="text-blue-600 hover:bg-blue-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="View"><i class="fas fa-eye"></i></button>
+                                <button onclick="editInventory(${item.id})" class="text-yellow-600 hover:bg-yellow-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                                <button onclick="deleteItem(${item.id})" class="text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="Delete"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                tbody.innerHTML += row; count++;
+            }
+        });
+        document.getElementById('inventory-empty').classList.toggle('hidden', count > 0);
+    }
+    document.getElementById('form-add-item').onsubmit = async (e) => {
+        e.preventDefault();
+        const newItem = {
+            code: document.getElementById('add-code').value, name: document.getElementById('add-name').value,
+            category: document.getElementById('add-category').value, stock: parseInt(document.getElementById('add-stock').value),
+            unit: document.getElementById('add-unit').value, threshold: parseInt(document.getElementById('add-threshold').value),
+            location: document.getElementById('add-location').value, sds: document.getElementById('add-sds').value
+        };
+        await dbAction('inventory', 'readwrite', store => store.add(newItem));
+        await logAction('ADD_ITEM', `Added ${newItem.code}`);
+        showToast('Item Added Successfully', 'success'); e.target.reset(); renderDashboard();
+    };
+    async function editInventory(id) {
+        const item = await dbAction('inventory', 'readonly', store => store.get(id));
+        document.getElementById('inv-edit-id').value = item.id; document.getElementById('inv-edit-code').value = item.code || `ID-${item.id}`;
+        document.getElementById('inv-edit-name').value = item.name; document.getElementById('inv-edit-stock').value = item.stock;
+        document.getElementById('inv-edit-loc').value = item.location || '';
+        document.getElementById('inv-edit-modal').classList.add('open');
+    }
+    async function submitInvEdit(e) {
+        e.preventDefault(); const id = parseInt(document.getElementById('inv-edit-id').value);
+        const item = await dbAction('inventory', 'readonly', store => store.get(id));
+        item.name = document.getElementById('inv-edit-name').value; item.stock = parseInt(document.getElementById('inv-edit-stock').value);
+        item.location = document.getElementById('inv-edit-loc').value;
+        await dbAction('inventory', 'readwrite', store => store.put(item));
+        showToast('Inventory Updated', 'success'); closeModal('inv-edit-modal'); renderInventory();
+    }
+    async function viewInventory(id) {
+        const item = await dbAction('inventory', 'readonly', store => store.get(id));
+        document.getElementById('inv-view-content').innerHTML = `<div class="grid grid-cols-2 gap-y-2"><span class="font-bold text-slate-500 dark:text-slate-400">Material Code:</span> <span class="font-mono text-brand-700 dark:text-brand-400">${item.code || '-'}</span><span class="font-bold text-slate-500 dark:text-slate-400">Description:</span> <span>${item.name}</span><span class="font-bold text-slate-500 dark:text-slate-400">Category:</span> <span>${item.category}</span><span class="font-bold text-slate-500 dark:text-slate-400">Current Stock:</span> <span class="font-bold text-lg">${item.stock} <small class="font-normal text-slate-500 dark:text-slate-400">${item.unit}</small></span><span class="font-bold text-slate-500 dark:text-slate-400">Threshold:</span> <span class="text-red-600 dark:text-red-400">${item.threshold || 5}</span><span class="font-bold text-slate-500 dark:text-slate-400">Location:</span> <span>${item.location || 'N/A'}</span><span class="font-bold text-slate-500 dark:text-slate-400">SDS Link:</span> <span>${item.sds ? `<a href="${item.sds}" target="_blank" class="text-blue-600 underline hover:text-blue-800">View Document</a>` : 'N/A'}</span></div>`;
+        document.getElementById('inv-view-modal').classList.add('open');
+    }
+    async function deleteItem(id) { if(confirm('Are you sure you want to delete this item?')) { await dbAction('inventory', 'readwrite', store => store.delete(id)); renderInventory(); showToast('Item Deleted', 'error'); renderDashboard(); } }
+
+    // --- WITHDRAWAL ---
+    async function addWithdrawalRow() {
+        const container = document.getElementById('withdrawal-rows');
+        const items = await dbAction('inventory', 'readonly', store => store.getAll());
+        let options = '<option value="">Select Material...</option>';
+        items.forEach(i => options += `<option value="${i.id}" data-max="${i.stock}" data-unit="${i.unit}" data-code="${i.code||''}">${i.code||'ID-'+i.id} - ${i.name}</option>`);
+        container.innerHTML += `<div class="flex gap-2 items-center fade-in bg-slate-50 dark:bg-slate-700 p-2 rounded border border-slate-200 dark:border-slate-600"><select class="w-full border p-2 rounded text-sm req-item-select bg-white dark:bg-slate-600 dark:text-white dark:border-slate-500 focus:ring-brand-500" onchange="updateRowUnit(this)" required>${options}</select><input type="number" class="w-24 border p-2 rounded text-sm req-item-qty dark:bg-slate-600 dark:text-white dark:border-slate-500 focus:ring-brand-500" placeholder="Qty" min="1" required><span class="text-xs text-slate-500 dark:text-slate-300 w-16 req-item-unit font-bold">-</span><button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/50 p-2 rounded transition"><i class="fas fa-times"></i></button></div>`;
+    }
+    function updateRowUnit(select) { const opt = select.options[select.selectedIndex]; const row = select.parentElement; if (opt.value) { row.querySelector('.req-item-unit').innerText = opt.dataset.unit; row.querySelector('.req-item-qty').max = opt.dataset.max; } }
+    document.getElementById('form-withdrawal').onsubmit = async (e) => {
+        e.preventDefault(); const rows = document.querySelectorAll('#withdrawal-rows > div');
+        if(rows.length === 0) return showToast('Add items to withdraw', 'error');
+        const items = []; let valid = true;
+        rows.forEach(row => { const sel = row.querySelector('.req-item-select'); const qty = parseInt(row.querySelector('.req-item-qty').value); const opt = sel.options[sel.selectedIndex]; if(!sel.value || !qty) valid = false; items.push({ id: parseInt(sel.value), name: opt.text.split(' - ')[1], code: opt.dataset.code, qty, unit: opt.dataset.unit }); });
+        if(!valid) return;
+        const reqData = { requester: document.getElementById('req-name').value, department: document.getElementById('req-dept').value, reason: document.getElementById('req-reason').value, items, status: 'Pending', date: new Date().toLocaleDateString() };
+        await dbAction('requests', 'readwrite', store => store.add(reqData));
+        showToast('Request Submitted', 'success'); e.target.reset(); document.getElementById('withdrawal-rows').innerHTML = ''; navTo('view-requests');
+    };
+    
+    async function renderRequests() {
+        const all = await dbAction('requests', 'readonly', store => store.getAll());
+        const filter = document.getElementById('req-filter-status').value;
+        const tbody = document.getElementById('requests-body'); tbody.innerHTML = '';
+        all.sort((a,b) => b.id - a.id).forEach(r => {
+            if (filter !== 'All' && r.status !== filter) return;
+            const badge = r.status === 'Pending' ? 'badge-pending' : r.status === 'Approved' ? 'badge-approved' : r.status === 'Rejected' ? 'badge-rejected' : 'bg-slate-200 dark:bg-slate-600 dark:text-slate-300';
+            let actions = `<button onclick="openRequestModal(${r.id})" class="text-blue-600 hover:bg-blue-100 p-1.5 rounded transition font-bold text-xs border border-blue-200 bg-blue-50">View / Action</button>`;
+            if(r.status === 'Pending') { actions += `<button onclick="openRequestEditModal(${r.id})" class="text-yellow-600 hover:bg-yellow-100 p-1.5 rounded transition ml-2" title="Edit Details"><i class="fas fa-pencil-alt"></i></button>`; }
+            actions += `<button onclick="deleteRequest(${r.id})" class="text-red-500 hover:bg-red-100 p-1.5 rounded transition ml-1" title="Delete"><i class="fas fa-trash"></i></button>`;
+            tbody.innerHTML += `<tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"><td class="px-6 py-3 font-mono text-xs">#${r.id}</td><td class="px-6 py-3">${r.date}</td><td class="px-6 py-3 font-medium">${r.requester}</td><td class="px-6 py-3 text-xs text-slate-500 dark:text-slate-400">${r.department}</td><td class="px-6 py-3 text-xs">${r.items.length} Items</td><td class="px-6 py-3"><span class="badge ${badge}">${r.status}</span></td><td class="px-6 py-3 text-right">${actions}</td></tr>`;
+        });
+    }
+
+    async function openRequestModal(id) {
+        activeReqId = id; 
+        const req = await dbAction('requests', 'readonly', store => store.get(id));
+        document.getElementById('thpal-emp-name').innerText = req.requester;
+        document.getElementById('thpal-dept').innerText = req.department;
+        document.getElementById('thpal-date').innerText = req.date;
+        document.getElementById('thpal-time').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('thpal-reason').innerText = req.reason || '';
+        document.getElementById('thpal-sig-req').innerText = req.requester;
+        const tbody = document.getElementById('thpal-items-body'); tbody.innerHTML = '';
+        for(let i=0; i<15; i++) {
+            const item = req.items[i];
+            const ser = i + 1;
+            const unit = item ? item.unit : '';
+            const qty = item ? item.qty : '';
+            const desc = item ? `${item.code || ''} - ${item.name}` : '';
+            tbody.innerHTML += `<tr><td class="text-center h-5">${ser}</td><td class="text-center">${unit}</td><td class="text-center">${qty}</td><td class="pl-2">${desc}</td></tr>`;
+        }
+        document.getElementById('chk-approved').checked = (req.status === 'Approved');
+        document.getElementById('chk-onhold').checked = (req.status === 'Pending');
+        document.getElementById('chk-declined').checked = (req.status === 'Rejected');
+        document.getElementById('chk-cancelled').checked = false;
+        const btns = document.getElementById('approval-buttons'); 
+        if(req.status === 'Pending') btns.classList.remove('hidden'); else btns.classList.add('hidden');
+        document.getElementById('request-details-modal').classList.add('open');
+    }
+
+    async function openRequestEditModal(id) {
+        const req = await dbAction('requests', 'readonly', s=>s.get(id));
+        document.getElementById('req-edit-id').value = req.id; document.getElementById('req-edit-name').value = req.requester;
+        document.getElementById('req-edit-dept').value = req.department; document.getElementById('req-edit-reason').value = req.reason || '';
+        document.getElementById('req-edit-modal').classList.add('open');
+    }
+    async function submitReqEdit(e) {
+        e.preventDefault(); const id = parseInt(document.getElementById('req-edit-id').value);
+        const req = await dbAction('requests', 'readonly', s=>s.get(id));
+        req.requester = document.getElementById('req-edit-name').value; req.department = document.getElementById('req-edit-dept').value;
+        req.reason = document.getElementById('req-edit-reason').value;
+        await dbAction('requests', 'readwrite', s=>s.put(req));
+        showToast('Request Details Updated', 'success'); closeModal('req-edit-modal'); renderRequests();
+    }
+    async function deleteRequest(id) { if(confirm(`Delete Request #${id}?`)) { await dbAction('requests', 'readwrite', store => store.delete(id)); renderRequests(); renderDashboard(); } }
+    async function processRequest(status) {
+        const req = await dbAction('requests', 'readonly', store => store.get(activeReqId));
+        if (status === 'Approved') {
+            for (const i of req.items) {
+                const inv = await dbAction('inventory', 'readonly', s=>s.get(i.id));
+                if(inv) { if(inv.stock < i.qty) { alert(`Insufficient stock for ${inv.name}`); return; } inv.stock -= i.qty; await dbAction('inventory', 'readwrite', s=>s.put(inv)); }
+            }
+        }
+        req.status = status; await dbAction('requests', 'readwrite', s=>s.put(req));
+        closeModal('request-details-modal'); renderRequests(); renderDashboard();
+    }
+
+    // --- PR LOGIC ---
+    async function renderPRRequests() {
+        const list = document.getElementById('pr-requests-body'); list.innerHTML = '';
+        const prs = await dbAction('pr_requests', 'readonly', store => store.getAll());
+        if(prs.length === 0) { list.innerHTML = '<div class="p-8 text-center text-slate-400">No PRs found</div>'; return; }
+        prs.sort((a,b) => b.id - a.id).forEach(r => {
+            const badge = r.status === 'Pending' ? 'badge-pending' : r.status === 'Received' ? 'badge-approved' : r.status === 'For Withdrawal' ? 'badge-withdrawal' : r.status === 'Ordered' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-slate-200 dark:bg-slate-600 dark:text-slate-300';
+            const dateDisplay = `<span class="text-[10px] text-slate-500 dark:text-slate-400">P: ${r.dateProcess||'-'}</span><br><span class="text-[10px] text-orange-600 dark:text-orange-400">E: ${r.expectedDate||'N/A'}</span>`;
+            const trackingDisplay = `<span class="text-[10px] text-slate-500 dark:text-slate-400">PR: ${r.prNumber||'-'}</span><br><span class="text-[10px] text-slate-500 dark:text-slate-400">PO: ${r.poNumber||'-'}</span>`;
+            list.innerHTML += `<div class="pr-list-grid hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-700 text-xs transition">
+                <div><span class="font-mono text-slate-500 dark:text-slate-400">#${r.id}</span></div><div><span class="font-bold text-slate-700 dark:text-slate-200">${r.materialDescription}</span><br><span class="text-[10px] text-slate-500 dark:text-slate-400">${r.materialCode||'-'}</span></div><div class="text-center font-bold">${r.quantity} <span class="font-normal text-slate-500 dark:text-slate-400">${r.unit}</span></div><div class="font-mono text-green-700 dark:text-green-400">₱${(r.unitPrice||0).toFixed(2)}</div><div>${r.category}</div><div>${dateDisplay}</div><div>${trackingDisplay}</div><div class="text-right flex flex-col items-end gap-1"><span class="badge ${badge}">${r.status}</span><div class="flex gap-2 mt-1"><button onclick="openPRViewModal(${r.id})" class="text-brand-600 hover:text-brand-800 dark:text-brand-400 transition" title="View Details"><i class="fas fa-eye"></i></button><button onclick="openPREditModal(${r.id})" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 transition" title="Edit"><i class="fas fa-pencil-alt"></i></button><button onclick="deletePR(${r.id})" class="text-red-600 hover:text-red-800 dark:text-red-400 transition" title="Delete"><i class="fas fa-trash"></i></button></div></div></div>`;
+        });
+    }
+    async function openPREditModal(id=null) {
+        document.getElementById('form-pr-edit').reset(); document.getElementById('pr-edit-id').value = '';
+        if(id) {
+            const pr = await dbAction('pr_requests', 'readonly', s=>s.get(id));
+            document.getElementById('pr-edit-id').value = pr.id; document.getElementById('pr-material-code').value = pr.materialCode;
+            document.getElementById('pr-quantity').value = pr.quantity; document.getElementById('pr-unit').value = pr.unit;
+            document.getElementById('pr-description').value = pr.materialDescription; document.getElementById('pr-category').value = pr.category;
+            document.getElementById('pr-date-process').value = pr.dateProcess; document.getElementById('pr-number').value = pr.prNumber;
+            document.getElementById('pr-po-number').value = pr.poNumber; document.getElementById('pr-arf-number').value = pr.arfNumber;
+            document.getElementById('pr-purchaser').value = pr.purchaserAssign; document.getElementById('pr-unit-price').value = pr.unitPrice;
+            document.getElementById('pr-status').value = pr.status;
+            document.getElementById('pr-image-link-1').value = pr.imageLink1 || ''; document.getElementById('pr-image-link-2').value = pr.imageLink2 || '';
+            document.getElementById('pr-expected-date').value = pr.expectedDate || ''; document.getElementById('pr-received-date').value = pr.receivedDate || '';
+            document.getElementById('pr-vendor-name').value = pr.vendorName || ''; document.getElementById('pr-remarks').value = pr.remarks || '';
+        } else { 
+            document.getElementById('pr-date-process').value = new Date().toISOString().split('T')[0];
+        }
+        document.getElementById('pr-edit-modal').classList.add('open');
+    }
+    async function submitPRForm(e) {
+        e.preventDefault(); const id = document.getElementById('pr-edit-id').value;
+        const data = { 
+            materialCode: document.getElementById('pr-material-code').value, materialDescription: document.getElementById('pr-description').value, 
+            quantity: parseInt(document.getElementById('pr-quantity').value), unit: document.getElementById('pr-unit').value, 
+            category: document.getElementById('pr-category').value, dateProcess: document.getElementById('pr-date-process').value, 
+            prNumber: document.getElementById('pr-number').value, poNumber: document.getElementById('pr-po-number').value, 
+            arfNumber: document.getElementById('pr-arf-number').value, purchaserAssign: document.getElementById('pr-purchaser').value, 
+            unitPrice: parseFloat(document.getElementById('pr-unit-price').value), status: document.getElementById('pr-status').value,
+            imageLink1: document.getElementById('pr-image-link-1').value, imageLink2: document.getElementById('pr-image-link-2').value,  
+            expectedDate: document.getElementById('pr-expected-date').value, receivedDate: document.getElementById('pr-received-date').value,
+            vendorName: document.getElementById('pr-vendor-name').value, remarks: document.getElementById('pr-remarks').value 
+        };
+        if(id) { data.id = parseInt(id); await dbAction('pr_requests', 'readwrite', s=>s.put(data)); showToast('PR Updated', 'success'); } 
+        else { await dbAction('pr_requests', 'readwrite', s=>s.add(data)); showToast('PR Added', 'success'); }
+        closeModal('pr-edit-modal'); renderPRRequests(); renderDashboard();
+    }
+    async function deletePR(id) { if(confirm('Delete PR?')) await dbAction('pr_requests', 'readwrite', s=>s.delete(id)); renderPRRequests(); }
+
+    async function openPRViewModal(id) {
+        const pr = await dbAction('pr_requests', 'readonly', s=>s.get(id));
+        const container = document.getElementById('pr-view-content');
+        const imageContainer = document.getElementById('pr-view-image-container');
+        const linksContainer = document.getElementById('pr-view-links');
+        const noImage = document.getElementById('pr-view-no-image');
+        document.getElementById('pr-view-id-display').innerText = `(#${pr.id})`;
+        imageContainer.innerHTML = '';
+        const primaryImageLink = pr.imageLink1 || pr.imageLink2;
+        if (primaryImageLink) {
+            imageContainer.innerHTML = `<img src="${primaryImageLink}" onerror="this.onerror=null;this.src='https://via.placeholder.com/600x400/CCCCCC/808080?text=Image+Load+Error';" alt="Reference Image" class="w-full h-auto object-cover max-h-full">`;
+            noImage.classList.add('hidden');
+        } else {
+            imageContainer.innerHTML = `<div class="flex items-center justify-center h-48 text-slate-400"><i class="fas fa-image text-4xl"></i></div>`;
+            noImage.classList.remove('hidden');
+        }
+        linksContainer.innerHTML = '';
+        if (pr.imageLink1) linksContainer.innerHTML += `<a href="${pr.imageLink1}" target="_blank" class="mx-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"><i class="fas fa-link mr-1"></i> Link 1</a>`;
+        if (pr.imageLink2) linksContainer.innerHTML += `<a href="${pr.imageLink2}" target="_blank" class="mx-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"><i class="fas fa-link mr-1"></i> Link 2</a>`;
+
+        const totalValue = (pr.quantity * (pr.unitPrice || 0)).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
+        const badge = pr.status === 'Pending' ? 'badge-pending' : pr.status === 'Received' ? 'badge-approved' : pr.status === 'For Withdrawal' ? 'badge-withdrawal' : 'bg-slate-200 dark:bg-slate-600 dark:text-slate-300';
+        const remarksDisplay = pr.remarks ? `<div class="col-span-2 text-xs italic mt-2 p-2 bg-slate-50 dark:bg-slate-700 rounded border dark:border-slate-600">${pr.remarks}</div>` : '';
+
+        container.innerHTML = `
+            <span class="font-bold text-slate-500 dark:text-slate-400">Material Code:</span> <span class="font-mono text-brand-700 dark:text-brand-400">${pr.materialCode || '-'}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400 col-span-2">Description:</span> <span class="col-span-2">${pr.materialDescription}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">Quantity:</span> <span class="font-bold">${pr.quantity} ${pr.unit}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">Category:</span> <span>${pr.category}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">Unit Price:</span> <span>₱${(pr.unitPrice||0).toFixed(2)}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">Total Value:</span> <span class="font-bold text-lg text-emerald-600 dark:text-emerald-400">${totalValue}</span>
+            <hr class="col-span-2 my-2 dark:border-slate-600">
+            <span class="font-bold text-slate-500 dark:text-slate-400">Date Processed:</span> <span>${pr.dateProcess}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">Expected Date:</span> <span class="font-bold text-orange-600 dark:text-orange-400">${pr.expectedDate || 'N/A'}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">Received Date:</span> <span class="font-bold text-green-600 dark:text-green-400">${pr.receivedDate || 'N/A'}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">Vendor:</span> <span>${pr.vendorName || 'N/A'}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">Current Status:</span> <span><span class="badge ${badge}">${pr.status}</span></span>
+            <hr class="col-span-2 my-2 dark:border-slate-600">
+            <span class="font-bold text-slate-500 dark:text-slate-400">PR Number:</span> <span>${pr.prNumber || 'N/A'}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">PO Number:</span> <span>${pr.poNumber || 'N/A'}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">ARF Number:</span> <span>${pr.arfNumber || 'N/A'}</span>
+            <span class="font-bold text-slate-500 dark:text-slate-400">Purchaser:</span> <span>${pr.purchaserAssign || 'N/A'}</span>
+            <div class="col-span-2"><span class="font-bold text-slate-500 dark:text-slate-400">Remarks:</span></div>${remarksDisplay}
+        `;
+        document.getElementById('pr-view-modal').classList.add('open');
+    }
+
+    // --- MASTER DATA & DASHBOARD ---
+    async function addMasterItem(key) { const input = document.getElementById(`add-master-${key}`); const val = input.value.trim(); if(val) { masterData[key].push(val); await dbAction('master','readwrite',s=>s.put({key:'config',data:masterData})); input.value=''; renderMasterLists(); loadMasterData(); } }
+    async function deleteMasterItem(key, val) { if(!confirm(`Delete ${val}?`)) return; masterData[key] = masterData[key].filter(i => i !== val); await dbAction('master','readwrite',s=>s.put({key:'config',data:masterData})); renderMasterLists(); loadMasterData(); }
+    async function renderMasterLists() { ['categories','units','departments'].forEach(k => { const list = document.getElementById(`master-${k}-list`); if(list && masterData[k]) { list.innerHTML = `<ul class="divide-y divide-slate-100 dark:divide-slate-700">${masterData[k].map(i=>`<li class="py-2 px-1 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-700"><span>${i}</span><button class="text-red-400 hover:text-red-600" onclick="deleteMasterItem('${k}','${i}')"><i class="fas fa-trash-alt"></i></button></li>`).join('')}</ul>`; } }); }
+
+    async function renderDashboard() {
+        const inv = await dbAction('inventory', 'readonly', s=>s.getAll());
+        const req = await dbAction('requests', 'readonly', s=>s.getAll());
+        const pr = await dbAction('pr_requests', 'readonly', s=>s.getAll());
         
-        document.getElementById('form-pr').onsubmit = async (e) => {
-            e.preventDefault();
-            const data = {
-                pr_number: document.getElementById('pr-number').value,
-                arf_number: document.getElementById('pr-arf').value,
-                material_code: document.getElementById('pr-matcode').value,
-                materialDescription: document.getElementById('pr-desc').value,
-                quantity: parseInt(document.getElementById('pr-qty').value),
-                unit: document.getElementById('pr-unit').value,
-                reason: document.getElementById('pr-reason').value,
-                priority: document.getElementById('pr-priority').value,
-                image_link: document.getElementById('pr-img').value,
-                attachment_link: document.getElementById('pr-link').value,
-                status: 'Pending',
-                created_at: new Date().toISOString(),
-                history: [{status:'Pending', date: new Date().toISOString()}] 
-            };
-            setLoading(true);
-            await db('pr_requests', 'add', data);
-            setLoading(false);
-            closeModal('pr-modal');
-            renderPRs();
-            renderDashboard();
-            showToast('PR Created Successfully');
-        }
+        document.getElementById('dash-total-items').innerText = inv.length;
+        document.getElementById('dash-low-stock').innerText = inv.filter(i=>i.stock <= (i.threshold||5)).length;
+        document.getElementById('dash-pending').innerText = req.filter(r=>r.status === 'Pending').length;
+        document.getElementById('dash-pr-active').innerText = pr.length;
+        document.getElementById('nav-pending-badge').innerText = req.filter(r=>r.status === 'Pending').length;
+        document.getElementById('nav-pending-badge').classList.toggle('hidden', req.filter(r=>r.status === 'Pending').length === 0);
 
-        async function managePR(id) {
-            activePRId = id;
-            setLoading(true);
-            const pr = await db('pr_requests', 'getOne', id);
-            setLoading(false);
-            
-            document.getElementById('view-pr-header').innerText = pr.pr_number ? `PR: ${pr.pr_number}` : `ID: #${pr.id}`;
-            
-            // Populate Inputs for Logistics
-            document.getElementById('view-pr-po').value = pr.po_number || '';
-            document.getElementById('view-pr-purchaser').value = pr.purchaser || '';
-            document.getElementById('view-pr-receiver').value = pr.receiver || '';
+        const totalWithdrawn = req.filter(r => r.status === 'Approved').reduce((total, r) => total + r.items.reduce((sum, i) => sum + i.qty, 0), 0);
+        document.getElementById('dash-total-withdraw').innerText = totalWithdrawn;
+        const totalPRValue = pr.reduce((total, p) => total + (p.quantity * (p.unitPrice || 0)), 0);
+        document.getElementById('dash-pr-value').innerText = totalPRValue.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
 
-            const imgHtml = pr.image_link ? `<img src="${pr.image_link}" class="w-full h-32 object-cover rounded-lg border mb-2">` : '';
-            const linkHtml = pr.attachment_link ? `<a href="${pr.attachment_link}" target="_blank" class="block w-full text-center bg-slate-100 text-slate-600 text-xs py-2 rounded mt-2 hover:bg-slate-200"><i class="fas fa-paperclip mr-1"></i> Open Attachment</a>` : '';
+        const cats = {}; inv.forEach(i => cats[i.category] = (cats[i.category]||0) + i.stock);
+        const ctx = document.getElementById('trading-chart').getContext('2d');
+        if(chartInstance) chartInstance.destroy();
+        
+        const isDark = document.documentElement.classList.contains('dark');
+        const gridColor = isDark ? '#334155' : '#f1f5f9';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
 
-            document.getElementById('view-pr-content').innerHTML = `
-                ${imgHtml}
-                <div class="bg-slate-50 dark:bg-slate-700 p-4 rounded-xl border dark:border-slate-600">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h4 class="font-bold text-lg">${pr.materialDescription}</h4>
-                            <p class="text-xs font-mono text-slate-500">${pr.material_code || 'N/A'} | ARF: ${pr.arf_number || 'N/A'}</p>
-                        </div>
-                        <span class="text-xs font-bold px-2 py-1 rounded ${pr.priority==='High'?'bg-red-100 text-red-600':'bg-slate-200 text-slate-600'}">${pr.priority}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 text-sm mt-3">
-                        <div><span class="text-[10px] text-slate-400 uppercase font-bold block">Quantity</span>${pr.quantity} ${pr.unit}</div>
-                        <div><span class="text-[10px] text-slate-400 uppercase font-bold block">Date</span>${new Date(pr.created_at).toLocaleDateString()}</div>
-                    </div>
-                    <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-600">
-                         <p class="italic text-slate-600 dark:text-slate-300 text-sm">"${pr.reason}"</p>
-                    </div>
-                    ${linkHtml}
-                </div>
-            `;
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)'); gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
-            // Reset Stepper
-            document.querySelectorAll('.stepper-item').forEach(el => { el.classList.remove('completed'); el.querySelector('p:last-child').innerText = '-'; });
-            const markStep = (id, date) => { const el = document.getElementById(id); el.classList.add('completed'); el.querySelector('p:last-child').innerText = date ? new Date(date).toLocaleString() : 'Completed'; }
+        chartInstance = new Chart(ctx, { type: 'line', data: { labels: Object.keys(cats), datasets: [{ label: 'Stock Volume', data: Object.values(cats), borderColor: '#10b981', backgroundColor: gradient, borderWidth: 2, pointBackgroundColor: isDark ? '#1e293b' : '#fff', pointBorderColor: '#10b981', pointRadius: 4, fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: textColor } } } } });
+        
+        const logs = await dbAction('logs', 'readonly', s=>s.getAll());
+        const list = document.getElementById('recent-logs-list'); list.innerHTML = '';
+        logs.sort((a,b)=>b.id-a.id).slice(0,5).forEach(l=>list.innerHTML+=`<li class="border-b dark:border-slate-700 py-2 text-xs flex flex-col"><span class="flex justify-between font-bold text-slate-700 dark:text-slate-200"><span>${l.action}</span><span class="font-mono text-[10px] text-slate-400">${l.timestamp.split(',')[1]}</span></span><span class="text-slate-500 dark:text-slate-400">${l.details}</span></li>`);
+    }
+    
+    async function renderLogs() { const l = await dbAction('logs','readonly',s=>s.getAll()); document.getElementById('logs-body').innerHTML = l.sort((a,b)=>b.id-a.id).map(x=>`<tr class="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><td class="px-4 py-2 text-xs">#${x.id}</td><td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">${x.timestamp}</td><td class="px-4 py-2"><span class="badge bg-slate-200 dark:bg-slate-700 dark:text-slate-300">${x.action}</span></td><td class="px-4 py-2 text-sm">${x.details}</td></tr>`).join(''); }
+    async function clearLogs() { if(!confirm('Are you sure you want to clear all audit logs? This cannot be undone.')) return; await dbAction('logs', 'readwrite', store => store.clear()); showToast('Logs Cleared', 'success'); renderLogs(); renderDashboard(); }
 
-            markStep('step-pending', pr.created_at);
-            if(['Approved', 'Ordered', 'Received'].includes(pr.status)) markStep('step-approved');
-            if(['Ordered', 'Received'].includes(pr.status)) markStep('step-ordered');
-            if(['Received'].includes(pr.status)) markStep('step-received');
-            
-            const actions = document.getElementById('pr-actions');
-            if(pr.status === 'Received' || pr.status === 'Rejected') actions.classList.add('hidden');
-            else actions.classList.remove('hidden');
-
-            document.getElementById('view-pr-modal').classList.add('open');
-        }
-
-        async function updatePRStatus(status) {
-            setLoading(true);
-            const pr = await db('pr_requests', 'getOne', activePRId);
-            
-            // Save Logistics Data
-            pr.po_number = document.getElementById('view-pr-po').value;
-            pr.purchaser = document.getElementById('view-pr-purchaser').value;
-            pr.receiver = document.getElementById('view-pr-receiver').value;
-
-            // Receive Logic
-            if(status === 'Received' && pr.status !== 'Received') {
-                if(confirm(`Add ${pr.quantity} ${pr.unit} of "${pr.materialDescription}" to Inventory?`)) {
-                    const items = await db('inventory', 'get');
-                    const match = items.find(i => i.name.toLowerCase() === pr.materialDescription.toLowerCase());
-                    
-                    if(match) {
-                        match.stock += parseInt(pr.quantity);
-                        await db('inventory', 'update', match);
-                        showToast('Stock Updated');
-                    } else {
-                        if(confirm('Item not found in inventory. Create new item?')) {
-                             await db('inventory', 'add', {
-                                name: pr.materialDescription, code: pr.material_code || ('NEW-' + Math.floor(Math.random()*1000)),
-                                category: 'Parts', unit: pr.unit, stock: parseInt(pr.quantity), location: 'Receiving',
-                                image_link: pr.image_link
-                            });
-                            showToast('New Item Created');
-                        }
-                    }
-                }
-            }
-            
-            pr.status = status;
-            await db('pr_requests', 'update', pr);
-            setLoading(false);
-            closeModal('view-pr-modal');
-            renderPRs();
-            renderDashboard();
-            showToast(`Marked as ${status}`);
-        }
-
-        // --- DASHBOARD ---
-        async function renderDashboard() {
-            const [i, r, p] = await Promise.all([db('inventory','get'), db('requests','get'), db('pr_requests','get')]);
-            document.getElementById('dash-total-items').innerText = i.length;
-            document.getElementById('dash-low-stock').innerText = i.filter(x=>x.stock<=5).length;
-            document.getElementById('dash-pending').innerText = r.filter(x=>x.status==='Pending').length;
-            document.getElementById('dash-pr-active').innerText = p.filter(x=>x.status!=='Received').length;
-            const ctx = document.getElementById('trading-chart').getContext('2d'); if(chartInstance) chartInstance.destroy();
-            const cats = {}; i.forEach(x=>cats[x.category]=(cats[x.category]||0)+1);
-            chartInstance = new Chart(ctx, { type:'doughnut', data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#6366f1','#10b981','#f59e0b', '#ec4899']}]}, options:{maintainAspectRatio:false} });
-            const calGrid = document.getElementById('calendar-grid'); calGrid.innerHTML = '';
-            const now = new Date(); document.getElementById('calendar-month').innerText = now.toLocaleString('default',{month:'long', year:'numeric'});
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate(); const startDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
-            const eventDates = new Set([...r, ...p].map(x => new Date(x.date || x.created_at).getDate()));
-            for(let j=0; j<startDay; j++) calGrid.innerHTML += `<div></div>`;
-            for(let d=1; d<=daysInMonth; d++) { calGrid.innerHTML += `<div class="calendar-day ${eventDates.has(d)?'has-event':''} bg-slate-100 dark:bg-slate-700">${d}</div>`; }
-        }
-
-        // --- COMMON MODALS ---
-        async function viewItemDetails(id) {
-            const i = await db('inventory', 'getOne', id);
-            document.getElementById('view-item-content').innerHTML = `<div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">Name</span><span class="font-bold">${i.name}</span></div><div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">Code</span><span class="font-mono">${i.code}</span></div><div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">Stock</span><span>${i.stock} ${i.unit}</span></div>`;
-            const qrContainer = document.getElementById('qrcode'); qrContainer.innerHTML = ''; new QRCode(qrContainer, { text: JSON.stringify({id: i.id, code: i.code}), width: 128, height: 128 });
-            document.getElementById('view-item-modal').classList.add('open');
-        }
-        function openAddItemModal() { document.getElementById('form-inv').reset(); document.getElementById('inv-id').value=''; document.getElementById('inv-modal').classList.add('open'); }
-        async function editItem(id) { const i = await db('inventory','getOne',id); document.getElementById('inv-id').value=i.id; document.getElementById('inv-code').value=i.code; document.getElementById('inv-name').value=i.name; document.getElementById('inv-stock').value=i.stock; document.getElementById('inv-cat').value=i.category; document.getElementById('inv-unit').value=i.unit; document.getElementById('inv-loc').value=i.location; document.getElementById('inv-modal').classList.add('open'); }
-        document.getElementById('form-inv').onsubmit = async (e) => { e.preventDefault(); setLoading(true); const data = { code: document.getElementById('inv-code').value, name: document.getElementById('inv-name').value, category: document.getElementById('inv-cat').value, unit: document.getElementById('inv-unit').value, stock: parseInt(document.getElementById('inv-stock').value), location: document.getElementById('inv-loc').value }; const id = document.getElementById('inv-id').value; if(id) { data.id=id; await db('inventory','update',data); } else await db('inventory','add',data); setLoading(false); closeModal('inv-modal'); renderInventory(); showToast('Saved'); }
-        async function deleteItem(id) { if(confirm('Delete item?')) { await db('inventory','delete',id); renderInventory(); } }
-        async function renderRequests() { setLoading(true); const r=await db('requests','get'); setLoading(false); document.getElementById('requests-body').innerHTML=r.sort((a,b)=>b.id-a.id).map(x=>{ let badgeClass = x.status==='Approved'?'bg-green-100 text-green-700':x.status==='Rejected'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'; return `<tr class="border-b dark:border-slate-700"><td class="p-3 text-xs font-mono">#${x.id}<br>${x.date}</td><td class="p-3 font-bold text-sm">${x.requester}<br><span class="text-[10px] text-slate-400 font-normal">${x.department}</span></td><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${badgeClass}">${x.status}</span></td><td class="p-3 text-right"><button onclick="viewRequest(${x.id})" class="text-brand-600 hover:text-brand-800 font-bold text-xs bg-brand-50 px-3 py-1 rounded">View</button></td></tr>`; }).join(''); }
-        async function renderLogs() { const l=await db('logs','get'); document.getElementById('logs-body').innerHTML=l.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(x=>`<tr class="border-b dark:border-slate-700"><td class="px-4 py-2 text-xs font-mono">${x.timestamp.split(',')[0]}<br>${x.timestamp.split(',')[1]}</td><td class="px-4 py-2 font-bold text-sm text-brand-600">${x.action}</td><td class="px-4 py-2 text-sm">${x.details}</td></tr>`).join(''); }
-    </script>
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    function filterInventoryByLowStock() { document.getElementById('inv-search').value = ""; navTo('view-inventory'); }
+    function exportToExcel(t) { dbAction(t, 'readonly', s=>s.getAll()).then(d => { const ws = XLSX.utils.json_to_sheet(d); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sheet1"); XLSX.writeFile(wb, `${t}_export.xlsx`); }); }
+    function toggleCalculator(){document.getElementById('floating-calculator').classList.toggle('hidden');}
+    function setupCalculatorDrag(){ const calc = document.getElementById('floating-calculator'); let isDragging = false, offset = { x: 0, y: 0 }; document.getElementById('calc-header').addEventListener('mousedown', (e) => { isDragging = true; offset.x = e.clientX - calc.offsetLeft; offset.y = e.clientY - calc.offsetTop; }); document.addEventListener('mousemove', (e) => { if (isDragging) { calc.style.left = (e.clientX - offset.x) + 'px'; calc.style.top = (e.clientY - offset.y) + 'px'; } }); document.addEventListener('mouseup', () => isDragging = false); }
+    function calcInput(v){const d=document.getElementById('calc-display'); if(v=='C')d.value='0'; else if(v=='DEL')d.value=d.value.slice(0,-1); else if(v=='=')try{d.value=eval(d.value)}catch{d.value='Err'} else d.value=d.value=='0'?v:d.value+v;}
+   </script>
 </body>
 </html>
