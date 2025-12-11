@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TRANS-SYSTEM Pro | Logistics Management (Supabase)</title>
+    <title>TRANS-SYSTEM | Transportaion Record Monitoring System</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,9 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="js/gil.js"></script>
 
-    
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -68,6 +66,11 @@
         .table-scroll-container { overflow-y: auto; max-height: 250px; scrollbar-width: thin; border-bottom: 1px solid black; }
         .sticky-th { position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 0 black; }
 
+        /* TAB STYLES */
+        .tab-btn { border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab-btn.active { border-bottom-color: #4f46e5; color: #4f46e5; }
+        .dark .tab-btn.active { border-bottom-color: #818cf8; color: #818cf8; }
+
         /* PRINT STYLES - THPAL FORM SPECIFIC */
         @media print {
             body * { visibility: hidden; }
@@ -107,14 +110,14 @@
                 <button onclick="toggleSidebar()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-white"><i class="fas fa-bars"></i></button>
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center border border-white/20"><i class="fas fa-truck-fast text-xl text-yellow-400"></i></div>
-                    <div><h1 class="text-xl font-bold tracking-tight">TRANS-SYSTEM</h1><p class="text-[10px] text-brand-200 uppercase tracking-widest">Transportation Record Monitoring System (Cloud)</p></div>
+                    <div><h1 class="text-xl font-bold tracking-tight">TRANS-SYSTEM</h1><p class="text-[10px] text-brand-200 uppercase tracking-widest">Transportation Record Monitoring System</p></div>
                 </div>
             </div>
             <div class="flex items-center gap-4">
                 <div class="hidden md:flex flex-col items-end mr-4"><span id="header-time" class="text-lg font-mono font-bold leading-none">00:00:00</span><span id="header-date" class="text-xs text-brand-300">Loading...</span></div>
                 <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition tooltip" title="Toggle Theme"><i id="theme-icon" class="fas fa-moon"></i></button>
                 <button onclick="toggleCalculator()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"><i class="fas fa-calculator"></i></button>
-                <a href="../../Trans-System.html"><div id="home-button" onclick="window.location.reload()" class="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-brand-900 border-2 border-white shadow-lg cursor-pointer" title="Home"><i class="fas fa-home text-lg"></i></div></a>
+                <a href="#"><div id="home-button" onclick="window.location.reload()" class="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-brand-900 border-2 border-white shadow-lg cursor-pointer" title="Home"><i class="fas fa-home text-lg"></i></div></a>
             </div>
         </div>
     </header>
@@ -228,22 +231,38 @@
                 </div>
             </section>
 
-            <!-- VIEW: WITHDRAWAL REQUESTS -->
+            <!-- VIEW: WITHDRAWAL REQUESTS (ENHANCED) -->
             <section id="view-requests" class="view-section hidden fade-in">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Withdrawal Requests</h2>
-                    <div class="flex gap-2">
-                        <select id="req-filter-status" onchange="renderRequests()" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"><option value="All">All Statuses</option><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Rejected">Rejected</option></select>
+                    <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                        <div class="relative w-full md:w-64">
+                            <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+                            <input type="text" id="req-search" onkeyup="renderRequests()" placeholder="Search ID, Name..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <button onclick="navTo('view-request-withdrawal')" class="bg-brand-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-brand-700 transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i> New Request</button>
                         <button onclick="exportToExcel('requests')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition"><i class="fas fa-file-excel"></i></button>
                     </div>
                 </div>
+
+                <!-- Tab Navigation for Status -->
+                <div class="flex border-b border-slate-200 dark:border-slate-700 mb-4 space-x-6 overflow-x-auto">
+                    <button onclick="setReqFilter('All', this)" class="tab-btn active px-2 py-3 text-sm font-medium text-brand-600 dark:text-brand-400 focus:outline-none">All Requests</button>
+                    <button onclick="setReqFilter('Pending', this)" class="tab-btn px-2 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none">Pending</button>
+                    <button onclick="setReqFilter('Approved', this)" class="tab-btn px-2 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none">Approved</button>
+                    <button onclick="setReqFilter('Rejected', this)" class="tab-btn px-2 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none">Rejected</button>
+                </div>
+
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-                        <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs">
-                            <tr><th class="px-6 py-3">Req ID</th><th class="px-6 py-3">Date</th><th class="px-6 py-3">Requester</th><th class="px-6 py-3">Dept</th><th class="px-6 py-3">Items</th><th class="px-6 py-3">Status</th><th class="px-6 py-3 text-right">Action</th></tr>
-                        </thead>
-                        <tbody id="requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
-                    </table>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0">
+                                <tr><th class="px-6 py-3">Req ID</th><th class="px-6 py-3">Date</th><th class="px-6 py-3">Requester</th><th class="px-6 py-3">Dept</th><th class="px-6 py-3 text-center">Items</th><th class="px-6 py-3">Status</th><th class="px-6 py-3 text-right">Action</th></tr>
+                            </thead>
+                            <tbody id="requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+                        </table>
+                    </div>
+                    <div id="requests-empty" class="p-8 text-center text-slate-400 hidden"><i class="fas fa-inbox text-4xl mb-2"></i><p>No requests found matching criteria.</p></div>
                 </div>
             </section>
 
@@ -289,23 +308,56 @@
                 </form>
             </section>
 
-            <!-- VIEW: WITHDRAWAL FORM -->
-            <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6">Create Withdrawal Request</h2>
+            <!-- VIEW: WITHDRAWAL FORM (ENHANCED) -->
+            <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-5xl mx-auto">
+                <div class="flex items-center gap-3 mb-6">
+                    <button onclick="navTo('view-requests')" class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"><i class="fas fa-arrow-left"></i> Back</button>
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Create Withdrawal Request</h2>
+                </div>
+                
                 <form id="form-withdrawal" class="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-md border border-slate-200 dark:border-slate-700">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Requester Name *</label><input type="text" id="req-name" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
-                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Department *</label><select id="req-dept" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border bg-white focus:ring-brand-500"></select></div>
-                        <div class="md:col-span-2"><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Reason / Purpose</label><input type="text" id="req-reason" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
-                    </div>
-                    <div class="mb-6">
-                        <div class="flex justify-between items-center mb-2">
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Items to Withdraw</label>
-                            <button type="button" onclick="addWithdrawalRow()" class="text-brand-600 dark:text-brand-400 text-sm font-bold hover:underline">+ Add Row</button>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 border-b border-slate-200 dark:border-slate-700 pb-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Requester Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="req-name" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border focus:ring-2 focus:ring-brand-500 outline-none">
                         </div>
-                        <div id="withdrawal-rows" class="space-y-3"></div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Department <span class="text-red-500">*</span></label>
+                            <select id="req-dept" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border bg-white focus:ring-2 focus:ring-brand-500 outline-none"></select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Reason / Purpose</label>
+                            <input type="text" id="req-reason" placeholder="e.g. For maintenance of Truck #4" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
                     </div>
-                    <div class="flex justify-end"><button type="submit" class="px-6 py-2 bg-yellow-500 text-white font-bold rounded-lg hover:bg-yellow-600 shadow-md transition">Submit Request</button></div>
+
+                    <div class="mb-6">
+                        <div class="flex justify-between items-end mb-3">
+                            <div>
+                                <h3 class="font-bold text-slate-800 dark:text-white">Items to Withdraw</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Select items from inventory. Ensure sufficient stock exists.</p>
+                            </div>
+                            <button type="button" onclick="addWithdrawalRow()" class="px-3 py-1.5 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 rounded-lg text-sm font-bold hover:bg-brand-100 dark:hover:bg-brand-900/50 transition border border-brand-200 dark:border-brand-800">+ Add Item Row</button>
+                        </div>
+                        
+                        <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                            <div class="grid grid-cols-12 gap-4 p-3 bg-slate-100 dark:bg-slate-700 text-xs font-bold uppercase text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-600">
+                                <div class="col-span-7">Item Description</div>
+                                <div class="col-span-2 text-center">Available</div>
+                                <div class="col-span-2">Quantity</div>
+                                <div class="col-span-1 text-center"></div>
+                            </div>
+                            <div id="withdrawal-rows" class="p-3 space-y-2">
+                                <!-- Rows added via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4">
+                        <button type="submit" id="btn-submit-req" class="px-8 py-3 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-700 shadow-md transition flex items-center gap-2">
+                            <i class="fas fa-paper-plane"></i> Submit Request
+                        </button>
+                    </div>
                 </form>
             </section>
 
@@ -471,6 +523,44 @@
         </div>
     </div>
     
+
+
+
+<!-- MODAL: Stock Adjustment (Add/Deduct) -->
+    <div id="stock-adjust-modal" class="modal">
+        <div class="glass-panel bg-white w-full max-w-lg mx-4 rounded-xl shadow-2xl p-6 relative">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('stock-adjust-modal')"><i class="fas fa-times text-2xl"></i></button>
+            <h2 id="adjust-modal-title" class="text-xl font-bold text-slate-800 dark:text-white mb-4">Stock Adjustment</h2>
+            <form id="form-stock-adjust">
+                <input type="hidden" id="adjust-item-id">
+                <input type="hidden" id="adjust-type">
+
+                <div class="mb-4">
+                    <p class="text-lg font-semibold dark:text-slate-200 mb-1" id="adjust-item-name-display"></p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Current Stock: <span id="adjust-current-stock" class="font-bold text-brand-600">0</span></p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium">Quantity to Adjust <span class="text-red-500">*</span></label>
+                        <input type="number" id="adjust-qty" min="1" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Reason / Reference (e.g., PO #, Scrap, Transfer)</label>
+                        <input type="text" id="adjust-reason" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded focus:ring-brand-500">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="submit" id="btn-adjust-submit" class="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 transition">Confirm Adjustment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+
+
     <!-- MODAL: PR View -->
     <div id="pr-view-modal" class="modal">
         <div class="glass-panel bg-white w-full max-w-5xl mx-4 rounded-xl shadow-2xl p-6 relative">
@@ -499,7 +589,6 @@
 
    <script>
     // --- SUPABASE CONFIGURATION ---
-    // Decoded from the provided JWT/Keys
     const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -507,6 +596,7 @@
     let chartInstance = null;
     let activeReqId = null;
     let activeCategory = 'All'; 
+    let activeReqFilter = 'All'; // New filter for withdrawal tabs
 
     const DEFAULT_MASTER = {
         categories: ['Spare Parts', 'Tires', 'Fluids', 'Electrical', 'Tools', 'Safety Gear'],
@@ -524,6 +614,9 @@
         document.getElementById('form-inv-edit').onsubmit = submitInvEdit;
         document.getElementById('form-req-edit').onsubmit = submitReqEdit;
         
+        // Initial setup for requests
+        addWithdrawalRow(); 
+        
         document.querySelectorAll('.modal').forEach(m => {
             m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
         });
@@ -531,10 +624,7 @@
     };
 
     // --- SUPABASE DB ACTION BRIDGE ---
-    // Acts as a wrapper to maintain compatibility with existing logic structure
-    // while directing calls to Supabase
     async function dbAction(storeName, mode, callback) {
-        // Create a Mock Store object that mimics the old IDB interface but calls Supabase
         const storeMock = {
             getAll: async () => {
                 const { data, error } = await supabase.from(storeName).select('*');
@@ -543,8 +633,6 @@
             },
             get: async (key) => {
                 if(storeName === 'master') {
-                    // Special mapping for Master Data
-                    // Expects a table 'master_data' with column 'key'
                     const { data, error } = await supabase.from('master_data').select('*').eq('key', key).single();
                     return data; 
                 }
@@ -553,7 +641,6 @@
                 return data;
             },
             add: async (val) => {
-                // Remove ID if present and falsy to let Postgres handle auto-increment
                 if(!val.id) delete val.id;
                 const { data, error } = await supabase.from(storeName).insert(val).select();
                 if(error) { console.error('Supabase Error:', error); throw error; }
@@ -577,13 +664,10 @@
                 return count || 0;
             },
             clear: async () => {
-                // Delete all rows where ID is not 0 (effectively all)
                 const { error } = await supabase.from(storeName).delete().neq('id', 0);
                 if(error) console.error('Supabase Error:', error);
             }
         };
-
-        // Execute the callback with the mock store
         return await callback(storeMock);
     }
 
@@ -606,6 +690,11 @@
     function showToast(msg, type='info') {
         const toast = document.getElementById('toast');
         document.getElementById('toast-msg').innerText = msg;
+        const icon = document.getElementById('toast-icon');
+        if(type==='success') icon.className = "fas fa-check-circle";
+        else if(type==='error') icon.className = "fas fa-exclamation-circle";
+        else icon.className = "fas fa-info-circle";
+        
         toast.className = `fixed top-5 right-5 px-6 py-3 rounded-lg shadow-xl transform transition-transform duration-300 z-50 flex items-center gap-3 text-white ${type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800'}`;
         toast.classList.remove('translate-x-full');
         setTimeout(() => toast.classList.add('translate-x-full'), 3000);
@@ -616,18 +705,10 @@
     
     async function loadMasterData() {
         try { 
-            // Check 'master_data' table in Supabase
             const result = await dbAction('master', 'readonly', store => store.get('config')); 
-            if (result && result.data) {
-                masterData = result.data;
-            } else {
-                // Initialize if not exists
-                await dbAction('master', 'readwrite', store => store.put({ key: 'config', data: DEFAULT_MASTER }));
-                masterData = DEFAULT_MASTER;
-            }
-        } catch (e) {
-            console.warn("Master data load failed (Check Supabase tables):", e);
-        }
+            if (result && result.data) masterData = result.data;
+            else await dbAction('master', 'readwrite', store => store.put({ key: 'config', data: DEFAULT_MASTER }));
+        } catch (e) { console.warn("Master data load issue", e); }
         populateDropdowns('add-category', masterData.categories); populateDropdowns('add-unit', masterData.units); populateDropdowns('req-dept', masterData.departments);
         populateDropdowns('pr-category', masterData.categories); populateDropdowns('pr-unit', masterData.units); populateDropdowns('req-edit-dept', masterData.departments);
     }
@@ -636,15 +717,12 @@
         try {
             const prCount = await dbAction('pr_requests', 'readonly', store => store.count());
             if (prCount > 0) return; 
-            // Seed data if empty
             const seedData = [
                 { materialCode: 'MTRL001', materialDescription: 'Heavy Duty Truck Filter Pack', unit: 'Sets', quantity: 10, unitPrice: 45.50, category: 'Spare Parts', dateProcess: '2023-11-01', prNumber: 'PR2311001', status: 'Received', imageLink1: 'https://via.placeholder.com/600x400/0000FF/FFFFFF?text=Filter+Pack+A', expectedDate: '2023-11-15', receivedDate: '2023-11-14', vendorName: 'Global Filters Inc.', remarks: 'Urgent replacement for CAT 793D' },
-                { materialCode: 'CHEM020', materialDescription: 'Industrial Lubricant (ISO 46)', unit: 'Liters', quantity: 500, unitPrice: 3.20, category: 'Fluids', dateProcess: '2023-12-01', prNumber: 'PR2312001', status: 'Pending', imageLink2: 'https://via.placeholder.com/600x400/FF0000/FFFFFF?text=Lubricant+Drum', expectedDate: '2024-01-15', receivedDate: '', vendorName: 'PetroChem Supplies', remarks: 'Large volume order, requires bulk storage preparation.' }
+                { materialCode: 'CHEM020', materialDescription: 'Industrial Lubricant (ISO 46)', unit: 'Liters', quantity: 500, unitPrice: 3.20, category: 'Fluids', dateProcess: '2023-12-01', prNumber: 'PR2312001', status: 'Pending', imageLink2: 'https://via.placeholder.com/600x400/FF0000/FFFFFF?text=Lubricant+Drum', expectedDate: '2024-01-15', receivedDate: '', vendorName: 'PetroChem Supplies', remarks: 'Large volume order' }
             ];
-            for (const data of seedData) {
-                await dbAction('pr_requests', 'readwrite', store => store.add(data));
-            }
-        } catch(e) { console.log("Seeding skipped or failed"); }
+            for (const data of seedData) await dbAction('pr_requests', 'readwrite', store => store.add(data));
+        } catch(e) { console.log("Seeding skipped"); }
     }
 
     function populateDropdowns(id, items) {
@@ -745,38 +823,175 @@
     }
     async function deleteItem(id) { if(confirm('Are you sure you want to delete this item?')) { await dbAction('inventory', 'readwrite', store => store.delete(id)); renderInventory(); showToast('Item Deleted', 'error'); renderDashboard(); } }
 
-    // --- WITHDRAWAL ---
+    // --- WITHDRAWAL (ENHANCED) ---
     async function addWithdrawalRow() {
         const container = document.getElementById('withdrawal-rows');
         const items = await dbAction('inventory', 'readonly', store => store.getAll());
-        let options = '<option value="">Select Material...</option>';
-        items.forEach(i => options += `<option value="${i.id}" data-max="${i.stock}" data-unit="${i.unit}" data-code="${i.code||''}">${i.code||'ID-'+i.id} - ${i.name}</option>`);
-        container.innerHTML += `<div class="flex gap-2 items-center fade-in bg-slate-50 dark:bg-slate-700 p-2 rounded border border-slate-200 dark:border-slate-600"><select class="w-full border p-2 rounded text-sm req-item-select bg-white dark:bg-slate-600 dark:text-white dark:border-slate-500 focus:ring-brand-500" onchange="updateRowUnit(this)" required>${options}</select><input type="number" class="w-24 border p-2 rounded text-sm req-item-qty dark:bg-slate-600 dark:text-white dark:border-slate-500 focus:ring-brand-500" placeholder="Qty" min="1" required><span class="text-xs text-slate-500 dark:text-slate-300 w-16 req-item-unit font-bold">-</span><button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/50 p-2 rounded transition"><i class="fas fa-times"></i></button></div>`;
+        
+        let options = '<option value="">-- Select Material --</option>';
+        items.sort((a,b) => a.name.localeCompare(b.name)).forEach(i => {
+            const display = `${i.code ? i.code + ' - ' : ''}${i.name}`;
+            options += `<option value="${i.id}" data-max="${i.stock}" data-unit="${i.unit}" data-code="${i.code||''}">${display}</option>`;
+        });
+
+        const rowId = 'row-' + Date.now();
+        const rowHTML = `
+            <div id="${rowId}" class="grid grid-cols-12 gap-4 items-center fade-in bg-white dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-600 shadow-sm">
+                <div class="col-span-7">
+                    <select class="w-full border p-2 rounded text-sm req-item-select dark:bg-slate-700 dark:text-white dark:border-slate-500 focus:ring-brand-500" onchange="updateRowDetails(this)" required>
+                        ${options}
+                    </select>
+                </div>
+                <div class="col-span-2 text-center text-xs font-bold">
+                    <span class="req-item-available text-slate-500 dark:text-slate-400">-</span>
+                </div>
+                <div class="col-span-2">
+                    <input type="number" oninput="validateRowQty(this)" class="w-full border p-2 rounded text-sm req-item-qty dark:bg-slate-700 dark:text-white dark:border-slate-500 focus:ring-brand-500 text-center" placeholder="0" min="1" required>
+                    <div class="text-[10px] text-red-500 hidden qty-error">Exceeds Stock</div>
+                </div>
+                <div class="col-span-1 text-center">
+                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/50 p-2 rounded transition"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', rowHTML);
     }
-    function updateRowUnit(select) { const opt = select.options[select.selectedIndex]; const row = select.parentElement; if (opt.value) { row.querySelector('.req-item-unit').innerText = opt.dataset.unit; row.querySelector('.req-item-qty').max = opt.dataset.max; } }
+
+    function updateRowDetails(select) {
+        const row = select.closest('div[id^="row-"]');
+        const opt = select.options[select.selectedIndex];
+        const availableSpan = row.querySelector('.req-item-available');
+        const qtyInput = row.querySelector('.req-item-qty');
+        
+        if (select.value) {
+            const maxStock = parseInt(opt.dataset.max);
+            const unit = opt.dataset.unit;
+            availableSpan.innerHTML = `<span class="${maxStock === 0 ? 'text-red-600' : 'text-green-600'}">${maxStock} ${unit}</span>`;
+            qtyInput.max = maxStock;
+            qtyInput.value = ''; // Reset qty on change
+            validateRowQty(qtyInput);
+        } else {
+            availableSpan.innerText = '-';
+            qtyInput.removeAttribute('max');
+        }
+    }
+
+    function validateRowQty(input) {
+        const row = input.closest('div[id^="row-"]');
+        const max = parseInt(input.max);
+        const val = parseInt(input.value);
+        const errorMsg = row.querySelector('.qty-error');
+        const btn = document.getElementById('btn-submit-req');
+        
+        if (max && val > max) {
+            input.classList.add('border-red-500', 'bg-red-50');
+            errorMsg.classList.remove('hidden');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            input.classList.remove('border-red-500', 'bg-red-50');
+            errorMsg.classList.add('hidden');
+            // Re-enable button only if no other errors exist
+            if (!document.querySelector('.qty-error:not(.hidden)')) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    }
+
     document.getElementById('form-withdrawal').onsubmit = async (e) => {
-        e.preventDefault(); const rows = document.querySelectorAll('#withdrawal-rows > div');
-        if(rows.length === 0) return showToast('Add items to withdraw', 'error');
-        const items = []; let valid = true;
-        rows.forEach(row => { const sel = row.querySelector('.req-item-select'); const qty = parseInt(row.querySelector('.req-item-qty').value); const opt = sel.options[sel.selectedIndex]; if(!sel.value || !qty) valid = false; items.push({ id: parseInt(sel.value), name: opt.text.split(' - ')[1], code: opt.dataset.code, qty, unit: opt.dataset.unit }); });
-        if(!valid) return;
-        const reqData = { requester: document.getElementById('req-name').value, department: document.getElementById('req-dept').value, reason: document.getElementById('req-reason').value, items, status: 'Pending', date: new Date().toLocaleDateString() };
+        e.preventDefault();
+        const rows = document.querySelectorAll('#withdrawal-rows > div');
+        if(rows.length === 0) return showToast('Please add items to withdraw', 'error');
+        
+        const items = [];
+        const seenIds = new Set();
+        let valid = true;
+
+        for (const row of rows) {
+            const sel = row.querySelector('.req-item-select');
+            const qtyInput = row.querySelector('.req-item-qty');
+            const qty = parseInt(qtyInput.value);
+            const opt = sel.options[sel.selectedIndex];
+
+            if(!sel.value || !qty || qty <= 0) { valid = false; break; }
+            if(seenIds.has(sel.value)) { showToast('Duplicate item selected. Please combine quantities.', 'error'); return; }
+            
+            seenIds.add(sel.value);
+            items.push({ 
+                id: parseInt(sel.value), 
+                name: opt.text.includes(' - ') ? opt.text.split(' - ')[1] : opt.text, 
+                code: opt.dataset.code, 
+                qty, 
+                unit: opt.dataset.unit 
+            });
+        }
+
+        if(!valid) return showToast('Please fill out all item details correctly.', 'error');
+
+        const reqData = { 
+            requester: document.getElementById('req-name').value, 
+            department: document.getElementById('req-dept').value, 
+            reason: document.getElementById('req-reason').value, 
+            items, 
+            status: 'Pending', 
+            date: new Date().toLocaleDateString() 
+        };
+
         await dbAction('requests', 'readwrite', store => store.add(reqData));
-        showToast('Request Submitted', 'success'); e.target.reset(); document.getElementById('withdrawal-rows').innerHTML = ''; navTo('view-requests');
+        showToast('Request Submitted Successfully', 'success'); 
+        e.target.reset(); 
+        document.getElementById('withdrawal-rows').innerHTML = ''; 
+        addWithdrawalRow(); // Add one empty row back
+        navTo('view-requests');
+        renderDashboard(); // FIX: Update pending badge/dashboard stats
     };
     
+    function setReqFilter(status, btn) {
+        activeReqFilter = status;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderRequests();
+    }
+
     async function renderRequests() {
         const all = await dbAction('requests', 'readonly', store => store.getAll());
-        const filter = document.getElementById('req-filter-status').value;
-        const tbody = document.getElementById('requests-body'); tbody.innerHTML = '';
+        const search = document.getElementById('req-search').value.toLowerCase();
+        const tbody = document.getElementById('requests-body'); 
+        tbody.innerHTML = '';
+        
+        let count = 0;
         all.sort((a,b) => b.id - a.id).forEach(r => {
-            if (filter !== 'All' && r.status !== filter) return;
+            // Filter Logic
+            if (activeReqFilter !== 'All' && r.status !== activeReqFilter) return;
+            const matchesSearch = r.requester.toLowerCase().includes(search) || 
+                                  r.department.toLowerCase().includes(search) || 
+                                  r.id.toString().includes(search);
+            if (!matchesSearch) return;
+
+            count++;
             const badge = r.status === 'Pending' ? 'badge-pending' : r.status === 'Approved' ? 'badge-approved' : r.status === 'Rejected' ? 'badge-rejected' : 'bg-slate-200 dark:bg-slate-600 dark:text-slate-300';
-            let actions = `<button onclick="openRequestModal(${r.id})" class="text-blue-600 hover:bg-blue-100 p-1.5 rounded transition font-bold text-xs border border-blue-200 bg-blue-50">View / Action</button>`;
-            if(r.status === 'Pending') { actions += `<button onclick="openRequestEditModal(${r.id})" class="text-yellow-600 hover:bg-yellow-100 p-1.5 rounded transition ml-2" title="Edit Details"><i class="fas fa-pencil-alt"></i></button>`; }
-            actions += `<button onclick="deleteRequest(${r.id})" class="text-red-500 hover:bg-red-100 p-1.5 rounded transition ml-1" title="Delete"><i class="fas fa-trash"></i></button>`;
-            tbody.innerHTML += `<tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"><td class="px-6 py-3 font-mono text-xs">#${r.id}</td><td class="px-6 py-3">${r.date}</td><td class="px-6 py-3 font-medium">${r.requester}</td><td class="px-6 py-3 text-xs text-slate-500 dark:text-slate-400">${r.department}</td><td class="px-6 py-3 text-xs">${r.items.length} Items</td><td class="px-6 py-3"><span class="badge ${badge}">${r.status}</span></td><td class="px-6 py-3 text-right">${actions}</td></tr>`;
+            
+            let actions = `<button onclick="openRequestModal(${r.id})" class="text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-700 p-1.5 px-3 rounded transition font-bold text-xs border border-brand-200 dark:border-slate-600">Details</button>`;
+            
+            if(r.status === 'Pending') { 
+                actions += `<button onclick="openRequestEditModal(${r.id})" class="text-yellow-600 hover:bg-yellow-50 dark:hover:bg-slate-700 p-1.5 rounded transition ml-2" title="Edit Details"><i class="fas fa-pencil-alt"></i></button>`; 
+            }
+            actions += `<button onclick="deleteRequest(${r.id})" class="text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 p-1.5 rounded transition ml-1" title="Delete"><i class="fas fa-trash"></i></button>`;
+            
+            const row = `
+                <tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                    <td class="px-6 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">#${r.id}</td>
+                    <td class="px-6 py-3 text-xs whitespace-nowrap">${r.date}</td>
+                    <td class="px-6 py-3 font-medium text-slate-800 dark:text-white">${r.requester}</td>
+                    <td class="px-6 py-3 text-xs text-slate-500 dark:text-slate-400">${r.department}</td>
+                    <td class="px-6 py-3 text-center"><span class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold">${r.items.length} Items</span></td>
+                    <td class="px-6 py-3"><span class="badge ${badge}">${r.status}</span></td>
+                    <td class="px-6 py-3 text-right">${actions}</td>
+                </tr>`;
+            tbody.innerHTML += row;
         });
+        
+        document.getElementById('requests-empty').classList.toggle('hidden', count > 0);
     }
 
     async function openRequestModal(id) {
@@ -789,6 +1004,8 @@
         document.getElementById('thpal-reason').innerText = req.reason || '';
         document.getElementById('thpal-sig-req').innerText = req.requester;
         const tbody = document.getElementById('thpal-items-body'); tbody.innerHTML = '';
+        
+        // Fill 15 rows for the form standard
         for(let i=0; i<15; i++) {
             const item = req.items[i];
             const ser = i + 1;
@@ -797,10 +1014,12 @@
             const desc = item ? `${item.code || ''} - ${item.name}` : '';
             tbody.innerHTML += `<tr><td class="text-center h-5">${ser}</td><td class="text-center">${unit}</td><td class="text-center">${qty}</td><td class="pl-2">${desc}</td></tr>`;
         }
+        
         document.getElementById('chk-approved').checked = (req.status === 'Approved');
         document.getElementById('chk-onhold').checked = (req.status === 'Pending');
         document.getElementById('chk-declined').checked = (req.status === 'Rejected');
         document.getElementById('chk-cancelled').checked = false;
+        
         const btns = document.getElementById('approval-buttons'); 
         if(req.status === 'Pending') btns.classList.remove('hidden'); else btns.classList.add('hidden');
         document.getElementById('request-details-modal').classList.add('open');
@@ -819,18 +1038,42 @@
         req.reason = document.getElementById('req-edit-reason').value;
         await dbAction('requests', 'readwrite', s=>s.put(req));
         showToast('Request Details Updated', 'success'); closeModal('req-edit-modal'); renderRequests();
+        renderDashboard(); // FIX: Update pending badge/dashboard stats
     }
     async function deleteRequest(id) { if(confirm(`Delete Request #${id}?`)) { await dbAction('requests', 'readwrite', store => store.delete(id)); renderRequests(); renderDashboard(); } }
+    
     async function processRequest(status) {
         const req = await dbAction('requests', 'readonly', store => store.get(activeReqId));
+        
         if (status === 'Approved') {
+            // Strict Inventory Check before Approval
+            let insufficient = false;
             for (const i of req.items) {
                 const inv = await dbAction('inventory', 'readonly', s=>s.get(i.id));
-                if(inv) { if(inv.stock < i.qty) { alert(`Insufficient stock for ${inv.name}`); return; } inv.stock -= i.qty; await dbAction('inventory', 'readwrite', s=>s.put(inv)); }
+                if (!inv || inv.stock < i.qty) {
+                    alert(`Cannot Approve: Insufficient stock for ${i.name}. Available: ${inv ? inv.stock : 0}`);
+                    insufficient = true;
+                    break;
+                }
             }
+            if (insufficient) return;
+
+            // Deduct Stock
+            for (const i of req.items) {
+                const inv = await dbAction('inventory', 'readonly', s=>s.get(i.id));
+                inv.stock -= i.qty;
+                await dbAction('inventory', 'readwrite', s=>s.put(inv));
+            }
+            await logAction('APPROVE_REQ', `Approved Req #${req.id} for ${req.requester}`);
+        } else {
+             await logAction('REJECT_REQ', `Rejected Req #${req.id}`);
         }
-        req.status = status; await dbAction('requests', 'readwrite', s=>s.put(req));
-        closeModal('request-details-modal'); renderRequests(); renderDashboard();
+        
+        req.status = status; 
+        await dbAction('requests', 'readwrite', s=>s.put(req));
+        closeModal('request-details-modal'); 
+        renderRequests(); 
+        renderDashboard();
     }
 
     // --- PR LOGIC ---
@@ -981,5 +1224,11 @@
     function setupCalculatorDrag(){ const calc = document.getElementById('floating-calculator'); let isDragging = false, offset = { x: 0, y: 0 }; document.getElementById('calc-header').addEventListener('mousedown', (e) => { isDragging = true; offset.x = e.clientX - calc.offsetLeft; offset.y = e.clientY - calc.offsetTop; }); document.addEventListener('mousemove', (e) => { if (isDragging) { calc.style.left = (e.clientX - offset.x) + 'px'; calc.style.top = (e.clientY - offset.y) + 'px'; } }); document.addEventListener('mouseup', () => isDragging = false); }
     function calcInput(v){const d=document.getElementById('calc-display'); if(v=='C')d.value='0'; else if(v=='DEL')d.value=d.value.slice(0,-1); else if(v=='=')try{d.value=eval(d.value)}catch{d.value='Err'} else d.value=d.value=='0'?v:d.value+v;}
    </script>
+
+<script src="js/withdrawal-extension.js"></script>
+<script src="js/prlist.js"></script>
+<script src="js/inventorymanagement.js"></script>
+    <script src="js/categ.js"></script>
+<script src="js/chat.js"></script>
 </body>
 </html>
