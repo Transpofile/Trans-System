@@ -1,0 +1,453 @@
+// inventorymanagement.js
+
+// Ensure necessary globals are accessible
+/*
+ * Globals assumed available:
+ * - supabase, dbAction, showToast, logAction, masterData, activeCategory,
+ * - renderDashboard, closeModal, navTo
+ */
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Attach form handlers defined in this module
+    const addItemForm = document.getElementById('form-add-item');
+    if (addItemForm) {
+        addItemForm.onsubmit = submitAddItemForm;
+    }
+
+    const editInvForm = document.getElementById('form-inv-edit');
+    if (editInvForm) {
+        editInvForm.onsubmit = submitInvEdit;
+    }
+    
+    const adjustForm = document.getElementById('form-stock-adjust');
+    if (adjustForm) {
+        adjustForm.onsubmit = submitStockAdjustment;
+    }
+});
+
+
+/**
+ * Sets the active category filter for inventory rendering.
+ * @param {string} cat - The category name or 'All'.
+ */
+function filterCat(cat) { 
+    window.activeCategory = cat; 
+    renderInventory(); 
+}
+
+/**
+ * Filters inventory and navigates to the view. Used by dashboard links.
+ */
+function filterInventoryByLowStock() { 
+    const searchInput = document.getElementById('inv-search');
+    if(searchInput) searchInput.value = ""; 
+    
+    filterCat('All'); 
+    navTo('view-inventory'); 
+}
+
+
+/**
+ * Fetches, filters, and renders the inventory table and category filters.
+ */
+async function renderInventory() {
+    const items = await dbAction('inventory', 'readonly', store => store.getAll());
+    const tbody = document.getElementById('inventory-body');
+    const searchInput = document.getElementById('inv-search');
+    const filter = searchInput ? searchInput.value.toLowerCase() : '';
+    
+    // --- Render Categories ---
+    let catHTML = `<button onclick="filterCat('All')" class="px-3 py-1 rounded-full text-xs font-bold border transition ${activeCategory === 'All' ? 'bg-brand-600 text-white border-brand-600' : 'bg-white dark:bg-slate-700 dark:text-white dark:border-slate-500 text-slate-600 border-slate-300 hover:bg-slate-50'}">All</button>`;
+    
+    if (masterData && masterData.categories) {
+        masterData.categories.forEach(c => {
+            const isActive = activeCategory === c;
+            catHTML += `<button onclick="filterCat('${c}')" class="px-3 py-1 rounded-full text-xs font-bold border transition whitespace-nowrap ${isActive ? 'bg-brand-600 text-white border-brand-600' : 'bg-white dark:bg-slate-700 dark:text-white dark:border-slate-500 text-slate-600 border-slate-300 hover:bg-slate-50'}">${c}</button>`;
+        });
+    }
+
+    const catContainer = document.getElementById('inventory-categories');
+    if(catContainer) catContainer.innerHTML = catHTML;
+    
+    if(!tbody) return;
+    tbody.innerHTML = ''; 
+    let count = 0;
+
+    // --- Render Rows ---
+    items.sort((a, b) => b.id - a.id).forEach(item => {
+        const code = item.code || `ID-${item.id}`;
+        const matchesSearch = code.toLowerCase().includes(filter) || item.name.toLowerCase().includes(filter);
+        const matchesCat = activeCategory === 'All' || item.category === activeCategory;
+
+        if (matchesSearch && matchesCat) {
+            const isLow = item.stock <= (item.threshold || 5);
+            
+            // Generate a small thumbnail if image exists, else generic icon
+            const imgThumb = item.image 
+                ? `<img src="${item.image}" class="w-8 h-8 rounded object-cover border border-slate-200 dark:border-slate-600 mr-2 inline-block">` 
+                : ``;
+
+            const row = `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-700 ${isLow ? 'bg-red-50 dark:bg-red-900/20' : ''}">
+                    <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700 dark:text-slate-200">${code}</td>
+                    <td class="px-6 py-3 text-slate-800 dark:text-white flex items-center">
+                        ${imgThumb}
+                        <span>${item.name} ${isLow ? '<span class="text-[10px] bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 px-1 rounded ml-1 font-bold border border-red-200 dark:border-red-800">LOW</span>' : ''}</span>
+                    </td>
+                    <td class="px-6 py-3"><span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-xs font-bold">${item.category}</span></td>
+                    <td class="px-6 py-3 text-center font-bold ${isLow ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}">${item.stock} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">${item.unit}</span></td>
+                    <td class="px-6 py-3 text-xs text-slate-600 dark:text-slate-400">${item.location || '-'}</td>
+                    <td class="px-6 py-3 text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick="openStockAdjustment(${item.id}, 'In')" class="text-green-600 hover:bg-green-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="Stock In"><i class="fas fa-arrow-up"></i></button>
+                            <button onclick="openStockAdjustment(${item.id}, 'Out')" class="text-orange-600 hover:bg-orange-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="Stock Out"><i class="fas fa-arrow-down"></i></button>
+                            <button onclick="viewInventory(${item.id})" class="text-blue-600 hover:bg-blue-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="View Details"><i class="fas fa-eye"></i></button>
+                            <button onclick="editInventory(${item.id})" class="text-yellow-600 hover:bg-yellow-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="Edit Metadata"><i class="fas fa-pencil-alt"></i></button>
+                            <button onclick="deleteItem(${item.id})" class="text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="Delete Item"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            tbody.innerHTML += row; count++;
+        }
+    });
+    
+    const emptyMsg = document.getElementById('inventory-empty');
+    if(emptyMsg) emptyMsg.classList.toggle('hidden', count > 0);
+}
+
+// --- CRUD & Metadata Editing ---
+
+/**
+ * Helper: Handle image input. Prefers File object (converted to Base64) or falls back to URL string.
+ */
+async function processImageInput(fileInputId, urlInputId) {
+    // 1. Check for file upload
+    const fileInput = document.getElementById(fileInputId);
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result); // Base64 string
+            reader.onerror = (e) => reject(e);
+            reader.readAsDataURL(fileInput.files[0]);
+        });
+    }
+    
+    // 2. Fallback to URL text input
+    const urlInput = document.getElementById(urlInputId);
+    if (urlInput && urlInput.value.trim() !== "") {
+        return urlInput.value.trim();
+    }
+
+    return null;
+}
+
+/**
+ * Handles the submission of the Add New Item form.
+ */
+async function submitAddItemForm(e) {
+    e.preventDefault();
+    
+    // Attempt to process image first
+    let imageSource = null;
+    try {
+        // Assuming IDs 'add-image-file' for file input and 'add-image' for URL
+        imageSource = await processImageInput('add-image-file', 'add-image');
+    } catch (err) {
+        console.warn("Image processing failed", err);
+    }
+
+    const newItem = {
+        code: document.getElementById('add-code').value.trim(), 
+        name: document.getElementById('add-name').value.trim(),
+        category: document.getElementById('add-category').value, 
+        stock: parseInt(document.getElementById('add-stock').value) || 0,
+        unit: document.getElementById('add-unit').value, 
+        threshold: parseInt(document.getElementById('add-threshold').value) || 5,
+        location: document.getElementById('add-location').value.trim(), 
+        sds: document.getElementById('add-sds').value.trim(),
+        image: imageSource || '' // Save image data
+    };
+    
+    if (!newItem.code || !newItem.name) {
+        return showToast('Material Code and Description are required.', 'error');
+    }
+
+    // Check for duplicate material code
+    const existingItems = await dbAction('inventory', 'readonly', store => store.getAll());
+    if (existingItems.some(i => i.code === newItem.code)) {
+        return showToast(`Material Code ${newItem.code} already exists.`, 'error');
+    }
+
+    try {
+        await dbAction('inventory', 'readwrite', store => store.add(newItem));
+        await logAction('ADD_ITEM', `Added new material: ${newItem.code} - ${newItem.name}`);
+        showToast('Item Added Successfully', 'success'); 
+        e.target.reset(); 
+        renderDashboard();
+    } catch (error) {
+        console.error("Error adding item:", error);
+        showToast('Error adding item. Check console.', 'error');
+    }
+}
+
+/**
+ * Opens the Inventory Metadata Edit Modal.
+ */
+async function editInventory(id) {
+    const item = await dbAction('inventory', 'readonly', store => store.get(id));
+    
+    // Populate Standard Fields
+    setVal('inv-edit-id', item.id);
+    setVal('inv-edit-code', item.code || `ID-${item.id}`);
+    setVal('inv-edit-name', item.name);
+    setVal('inv-edit-loc', item.location || '');
+    
+    // Populate Image URL if the input exists in the edit modal
+    setVal('inv-edit-image', item.image || '');
+
+    // Prevent editing stock via this modal
+    const stockInput = document.getElementById('inv-edit-stock');
+    if(stockInput) {
+        stockInput.value = item.stock; 
+        stockInput.setAttribute('readonly', true); 
+        stockInput.classList.add('bg-slate-200', 'cursor-not-allowed');
+    }
+
+    document.getElementById('inv-edit-modal').classList.add('open');
+}
+
+// Helper to safely set value
+function setVal(id, val) {
+    const el = document.getElementById(id);
+    if(el) el.value = val;
+}
+
+/**
+ * Handles submission of Inventory Metadata (non-stock related fields).
+ */
+async function submitInvEdit(e) {
+    e.preventDefault(); 
+    const id = parseInt(document.getElementById('inv-edit-id').value);
+    
+    try {
+        const item = await dbAction('inventory', 'readonly', store => store.get(id));
+        const oldName = item.name;
+
+        // Update fields
+        item.name = document.getElementById('inv-edit-name').value; 
+        item.location = document.getElementById('inv-edit-loc').value;
+        
+        // Update Image if input exists
+        const imgInput = document.getElementById('inv-edit-image');
+        if (imgInput) {
+            item.image = imgInput.value.trim();
+        }
+
+        await dbAction('inventory', 'readwrite', store => store.put(item));
+        await logAction('UPDATE_META', `Updated metadata for ${item.code}. Old Name: ${oldName}`);
+        
+        showToast('Inventory Metadata Updated', 'success'); 
+        closeModal('inv-edit-modal'); 
+        renderInventory();
+    } catch (error) {
+        console.error("Error updating inventory metadata:", error);
+        showToast('Error updating item.', 'error');
+    }
+}
+
+/**
+ * ENHANCED: Views detailed information about an inventory item with Picture Display.
+ */
+async function viewInventory(id) {
+    const item = await dbAction('inventory', 'readonly', store => store.get(id));
+    if (!item) return;
+
+    const isLow = item.stock <= (item.threshold || 5);
+    
+    // Color Logic
+    let stockStatusClass = 'text-green-600 dark:text-green-400';
+    if (isLow) stockStatusClass = 'text-red-600 dark:text-red-400';
+    if (item.stock === 0) stockStatusClass = 'text-red-800 dark:text-red-600';
+
+    // Image Logic
+    // If no image is provided, show a placeholder
+    const imgSrc = item.image && item.image.length > 0 
+        ? item.image 
+        : 'https://placehold.co/400x400/e2e8f0/475569?text=No+Image';
+
+    const contentDiv = document.getElementById('inv-view-content');
+
+    // Enhanced Layout: Split view (Image Left, Details Right)
+    contentDiv.innerHTML = `
+        <div class="flex flex-col md:flex-row gap-6">
+            <!-- Left Side: Image Display -->
+            <div class="w-full md:w-1/3 flex flex-col items-center">
+                <div class="w-full aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-sm relative group">
+                    <img src="${imgSrc}" alt="${item.name}" class="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105">
+                </div>
+                <div class="mt-2 text-center">
+                    <span class="text-xs font-mono text-slate-400">${item.code || 'ID-'+item.id}</span>
+                </div>
+            </div>
+
+            <!-- Right Side: Details Grid -->
+            <div class="w-full md:w-2/3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-4">
+                    
+                    <!-- Full Width Header for Mobile -->
+                    <div class="col-span-1 sm:col-span-2 border-b border-slate-100 dark:border-slate-700 pb-2 mb-2">
+                        <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Item Description</label>
+                        <div class="text-lg font-bold text-slate-800 dark:text-white leading-tight">${item.name}</div>
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Category</label>
+                        <span class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-sm font-bold">${item.category}</span>
+                    </div>
+
+                    <!-- Location -->
+                    <div>
+                        <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Location</label>
+                        <div class="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <i class="fas fa-map-marker-alt text-slate-400"></i> ${item.location || 'Not Assigned'}
+                        </div>
+                    </div>
+
+                    <!-- Stock Status -->
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                        <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Current Stock</label>
+                        <div class="text-2xl font-bold ${stockStatusClass}">
+                            ${item.stock} <span class="text-sm font-normal text-slate-500">${item.unit}</span>
+                        </div>
+                        ${isLow ? `<div class="mt-1 text-xs font-bold text-red-500"><i class="fas fa-exclamation-triangle"></i> Low Stock Warning</div>` : ''}
+                    </div>
+
+                    <!-- Threshold & SDS -->
+                    <div class="flex flex-col justify-between p-3">
+                        <div class="mb-3">
+                            <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Min Threshold</label>
+                            <span class="font-mono font-bold text-slate-600 dark:text-slate-400">${item.threshold || 5} ${item.unit}</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Safety Data Sheet</label>
+                            ${item.sds 
+                                ? `<a href="${item.sds}" target="_blank" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium transition"><i class="fas fa-file-pdf"></i> View Document</a>` 
+                                : '<span class="text-sm text-slate-400 italic">No SDS on file</span>'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('inv-view-modal').classList.add('open');
+}
+
+/**
+ * Deletes an inventory item.
+ */
+async function deleteItem(id) { 
+    if(confirm('Are you sure you want to permanently delete this item? This action is irreversible.')) { 
+        const item = await dbAction('inventory', 'readonly', s=>s.get(id));
+        if (item) {
+            await dbAction('inventory', 'readwrite', store => store.delete(id)); 
+            await logAction('DELETE_ITEM', `Permanently deleted item: ${item.code} (${item.name})`);
+            renderInventory(); 
+            showToast('Item Deleted', 'error'); 
+            renderDashboard(); 
+        }
+    } 
+}
+
+
+// --- Robust Stock Adjustment Logic ---
+
+let currentInventoryItem = null;
+
+/**
+ * Opens the Stock Adjustment Modal (for Stock In or Stock Out).
+ */
+async function openStockAdjustment(id, type) {
+    currentInventoryItem = await dbAction('inventory', 'readonly', store => store.get(id));
+    if (!currentInventoryItem) {
+        return showToast('Item not found.', 'error');
+    }
+
+    const title = type === 'In' ? 'Stock In (Receive Inventory)' : 'Stock Out (Manual Deduction)';
+    
+    document.getElementById('adjust-modal-title').innerText = title;
+    document.getElementById('adjust-type').value = type;
+    document.getElementById('adjust-item-id').value = id;
+    document.getElementById('adjust-item-name-display').innerText = currentInventoryItem.name;
+    document.getElementById('adjust-current-stock').innerText = `${currentInventoryItem.stock} ${currentInventoryItem.unit}`;
+    
+    const qtyInput = document.getElementById('adjust-qty');
+    qtyInput.value = '';
+    qtyInput.removeAttribute('max'); 
+    
+    document.getElementById('adjust-reason').value = '';
+    
+    const btnSubmit = document.getElementById('btn-adjust-submit');
+
+    // UI Logic
+    if (type === 'Out') {
+        qtyInput.max = currentInventoryItem.stock;
+        qtyInput.placeholder = `Max ${currentInventoryItem.stock}`;
+        btnSubmit.innerText = 'Confirm Deduction';
+        btnSubmit.className = "px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded font-bold transition shadow-lg";
+    } else {
+         qtyInput.placeholder = `Enter quantity to add`;
+         btnSubmit.innerText = 'Confirm Addition';
+         btnSubmit.className = "px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold transition shadow-lg";
+    }
+
+    document.getElementById('stock-adjust-modal').classList.add('open');
+}
+
+/**
+ * Handles the submission of the stock adjustment form.
+ */
+async function submitStockAdjustment(e) {
+    e.preventDefault();
+    const id = parseInt(document.getElementById('adjust-item-id').value);
+    const type = document.getElementById('adjust-type').value;
+    const qty = parseInt(document.getElementById('adjust-qty').value);
+    const reason = document.getElementById('adjust-reason').value.trim();
+
+    if (isNaN(qty) || qty <= 0) {
+        return showToast('Please enter a valid quantity.', 'error');
+    }
+    if (!reason) {
+        return showToast('Reason/Reference is required for audit logs.', 'error');
+    }
+
+    let item = await dbAction('inventory', 'readonly', store => store.get(id));
+    let newStock = item.stock;
+    let logMessage = '';
+
+    if (type === 'In') {
+        newStock += qty;
+        logMessage = `Stock IN: ${qty} ${item.unit} of ${item.code} - ${item.name}. Reason: ${reason}. New Stock: ${newStock}`;
+    } else if (type === 'Out') {
+        if (newStock < qty) {
+            return showToast('Cannot deduct that much. Stock is insufficient.', 'error');
+        }
+        newStock -= qty;
+        logMessage = `Stock OUT: ${qty} ${item.unit} of ${item.code} - ${item.name}. Reason: ${reason}. New Stock: ${newStock}`;
+    }
+
+    try {
+        item.stock = newStock;
+        await dbAction('inventory', 'readwrite', store => store.put(item));
+        await logAction(`STOCK_${type.toUpperCase()}`, logMessage);
+        
+        showToast(`Stock successfully adjusted (${type}).`, 'success');
+        closeModal('stock-adjust-modal');
+        renderInventory();
+        renderDashboard(); 
+    } catch (error) {
+        console.error("Error processing stock adjustment:", error);
+        showToast('Error adjusting stock. Check console.', 'error');
+    }
+}
