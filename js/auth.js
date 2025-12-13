@@ -5,7 +5,7 @@ const CONFIG = {
     // Adjust these paths relative to where your HTML files are located
     PAGES: {
         LOGIN: "Login.html", 
-        DASHBOARD: "../../Trans-System.html"
+        DASHBOARD: "../index.html"
     },
     ROLES: {
         ADMIN: "admin",
@@ -181,4 +181,5 @@ document.addEventListener('DOMContentLoaded', () => {
             Auth.logout();
         });
     }
+
 });
