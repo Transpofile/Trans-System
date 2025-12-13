@@ -4,7 +4,7 @@ const CONFIG = {
     SESSION_KEY: "gwebapps_session",
     // Adjust these paths relative to where your HTML files are located
     PAGES: {
-        LOGIN: "Login.html", 
+        LOGIN: "../Login.html", 
         DASHBOARD: "../index.html"
     },
     ROLES: {
@@ -56,7 +56,7 @@ const Auth = {
         const filename = currentPath.substring(currentPath.lastIndexOf('/') + 1);
 
         // If we are on the Login page, do nothing (Login UI handles itself)
-        if (filename === CONFIG.PAGES.LOGIN || filename === "../Login.html") return;
+        if (filename === CONFIG.PAGES.LOGIN || filename === "Login.html") return;
 
         // If no session, redirect to Login
         if (!sessionJson) {
@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 });
+
 
 
 
