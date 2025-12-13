@@ -4,7 +4,7 @@ const CONFIG = {
     SESSION_KEY: "gwebapps_session",
     // Adjust these paths relative to where your HTML files are located
     PAGES: {
-        LOGIN: "Login.html", 
+        LOGIN: "../Login.html", 
         DASHBOARD: "../index.html"
     },
     ROLES: {
@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 });
+
 
 
 
