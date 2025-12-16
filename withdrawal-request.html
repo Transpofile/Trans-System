@@ -8,456 +8,368 @@
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
-    <!-- Supabase JS Library -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- Config -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
-                    }
+                        brand: { 50: '#f5f7ff', 100: '#ebf0fe', 500: '#4f46e5', 600: '#4338ca', 700: '#3730a3', 900: '#1e1b4b' },
+                    },
+                    borderRadius: { 'xl': '1rem', '2xl': '1.5rem' }
                 }
             }
         }
     </script>
+    
     <style>
-        body { -webkit-tap-highlight-color: transparent; }
-        /* Smooth fade in */
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #f8fafc; }
         
-        /* Loading Overlay */
-        #loader { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 50; display: flex; justify-content: center; align-items: center; transition: opacity 0.3s; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        
+        /* Smooth Animations */
+        .row-appear { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+
+        #loader { position: fixed; inset: 0; background: #ffffff; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner-custom { width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
+<body class="text-slate-900 pb-10">
 
     <!-- Loading Screen -->
-    <div id="loader"><div class="spinner"></div></div>
+    <div id="loader">
+        <div class="spinner-custom mb-4"></div>
+        <p class="text-brand-900 font-bold animate-pulse text-sm tracking-widest uppercase">Initializing System</p>
+    </div>
 
     <!-- Header -->
-    <header class="bg-brand-900 text-white shadow-lg sticky top-0 z-40">
-        <div class="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-white/10 rounded flex items-center justify-center"><i class="fas fa-qrcode text-yellow-400"></i></div>
+    <header class="bg-brand-900 text-white shadow-2xl sticky top-0 z-40 rounded-b-3xl">
+        <div class="max-w-2xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
+                    <i class="fas fa-truck-ramp-box text-yellow-400 text-xl"></i>
+                </div>
                 <div>
-                    <h1 class="text-lg font-bold leading-none">TRANS-SYSTEM</h1>
-                    <p class="text-[10px] text-brand-200 uppercase">Withdraw Item Inside the Transpo Storage</p>
+                    <h1 class="text-xl font-extrabold tracking-tight">TRANS-STORAGE</h1>
+                    <p class="text-[10px] text-brand-200 font-medium uppercase tracking-wider opacity-80">Inventory Withdrawal Portal</p>
                 </div>
             </div>
-            
+            <div id="gps-status" class="bg-black/20 px-3 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-2 border border-white/10">
+                <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse" id="gps-dot"></div>
+                <span id="gps-text">GPS OFF</span>
+            </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="max-w-3xl mx-auto p-4 pb-20 fade-in">
+    <main class="max-w-2xl mx-auto px-4 mt-6 space-y-6">
         
-        <!-- Context Alert (If scanned specific item) -->
-        <div id="scan-alert" class="hidden bg-green-100 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center gap-3 shadow-sm">
-            <i class="fas fa-check-circle text-xl"></i>
-            <div>
-                <p class="font-bold text-sm">Item Scanned Successfully</p>
-                <p class="text-xs" id="scan-msg">Item added to your list.</p>
+        <!-- Scanned Item Banner -->
+        <div id="scan-alert" class="hidden bg-indigo-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between animate-bounce">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-barcode text-2xl"></i>
+                <div>
+                    <p class="text-xs font-bold uppercase opacity-80">Auto-Detected Item</p>
+                    <p class="font-semibold" id="scan-msg">Item Found</p>
+                </div>
             </div>
+            <button onclick="$('#scan-alert').fadeOut()" class="text-white/50"><i class="fas fa-times"></i></button>
         </div>
 
-        <!-- Location Status Indicator -->
-        <div id="gps-status" class="text-[10px] text-slate-400 text-right mb-2 flex items-center justify-end gap-1">
-            <i class="fas fa-satellite-dish"></i> <span>Initializing GPS...</span>
-        </div>
+        <form id="withdrawal-form" class="space-y-6">
+            
+            <!-- Requester Info -->
+            <section class="glass-card p-6 rounded-3xl shadow-sm border border-slate-200">
+                <div class="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
+                    <i class="fas fa-user-circle text-brand-500"></i>
+                    <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Requester Information</h2>
+                </div>
 
-        <form id="mobile-withdrawal-form" class="space-y-4">
-            <!-- Section 1: User Info -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-
-                <p align="left" style="font-size:11px;"><span style="color:red;">Note:</span> Please Contact Person incharge, After Submited Your Request to Open the Transpo Storage to get the Item you requested, </br><span style="color:red;">Contact Number:</span> 09777120595</p></br>	 	
-
-                <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-4 border-b pb-2">Requester Details</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Your Name *</label>
-                        <input type="text" id="req-name" required placeholder="Enter full name" class="w-full border-slate-300 rounded-lg p-3 border focus:ring-2 focus:ring-brand-500 outline-none text-sm shadow-sm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Full Name</label>
+                        <input type="text" id="req-name" required placeholder="Ex. Juan Dela Cruz" 
+                            class="w-full bg-slate-50 border-slate-200 rounded-xl p-3.5 border focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none text-sm">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Department *</label>
-                        <select id="req-dept" required class="w-full border-slate-300 rounded-lg p-3 border bg-white focus:ring-2 focus:ring-brand-500 outline-none text-sm shadow-sm">
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Department</label>
+                        <select id="req-dept" required 
+                            class="w-full bg-slate-50 border-slate-200 rounded-xl p-3.5 border focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none text-sm appearance-none cursor-pointer">
                             <option value="">Select Department...</option>
-                            <!-- Populated via JS -->
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Purpose / Reason</label>
-                        <textarea id="req-reason" rows="2" placeholder="e.g., Repair for Truck #4" class="w-full border-slate-300 rounded-lg p-3 border focus:ring-2 focus:ring-brand-500 outline-none text-sm shadow-sm"></textarea>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Work Order / Purpose</label>
+                        <textarea id="req-reason" rows="2" placeholder="Describe why you need these items..." 
+                            class="w-full bg-slate-50 border-slate-200 rounded-xl p-3.5 border focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none text-sm"></textarea>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Section 2: Items -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-4 border-b pb-2">
-                    <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide">Items Needed</h2>
-                    <button type="button" onclick="addItemRow()" class="text-brand-600 text-xs font-bold hover:bg-brand-50 px-3 py-1 rounded transition border border-brand-200">+ Add Item</button>
+            <!-- Items List -->
+            <section class="glass-card p-6 rounded-3xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-boxes-stacked text-brand-500"></i>
+                        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Requested Items</h2>
+                    </div>
+                    <button type="button" onclick="addItemRow()" 
+                        class="bg-brand-50 text-brand-600 text-xs font-bold py-2 px-4 rounded-xl hover:bg-brand-100 transition-colors border border-brand-200 flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
                 </div>
                 
-                <div id="items-container" class="space-y-3">
-                    <!-- Rows will be injected here -->
+                <div id="items-container" class="space-y-4">
+                    <!-- Rows injected here -->
                 </div>
                 
-                <div id="empty-state" class="text-center py-6 text-slate-400">
-                    <i class="fas fa-box-open text-3xl mb-2 opacity-50"></i>
-                    <p class="text-sm">No items added yet.</p>
+                <div id="empty-state" class="text-center py-10">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-box-open text-slate-300 text-2xl"></i>
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium">No items added to this request.</p>
                 </div>
-            </div>
+            </section>
 
-            <!-- Submit -->
-            <button type="submit" id="submit-btn" class="w-full bg-brand-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-brand-700 active:scale-[0.98] transition flex items-center justify-center gap-2 text-lg">
-                <i class="fas fa-paper-plane"></i> Submit Request
-            </button>
+            <!-- Submission Area -->
+            <div class="space-y-4">
+                <div class="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3">
+                    <i class="fas fa-info-circle text-amber-500 mt-1"></i>
+                    <p class="text-[11px] text-amber-800 leading-relaxed">
+                        <strong>Notice:</strong> After submission, please contact the Person In-Charge to unlock the storage. <br/>
+                        <span class="font-bold"><i class="fas fa-phone mr-1"></i> 0977-712-0595</span>
+                    </p>
+                </div>
+
+                <button type="submit" id="submit-btn" 
+                    class="w-full bg-brand-600 text-white font-extrabold py-5 rounded-2xl shadow-xl shadow-brand-500/20 hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-lg group">
+                    <span>Submit Request</span>
+                    <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </button>
+            </div>
         </form>
-
     </main>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-50 text-sm flex items-center gap-2 min-w-[300px] justify-center">
-        <i id="toast-icon" class="fas fa-info-circle"></i> <span id="toast-msg">Message</span>
+    <!-- Toast UI -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl opacity-0 translate-y-10 transition-all duration-300 z-50 pointer-events-none min-w-[320px]">
+        <i id="toast-icon" class="text-lg"></i>
+        <span id="toast-msg" class="text-sm font-bold uppercase tracking-wide"></span>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
         const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let inventoryList = [];
-        let urlItemId = null;
-        let collectedDeviceData = null; // To store GPS/IP/Device info
+        let collectedDeviceData = {};
 
-        // --- INITIALIZATION ---
-        window.onload = async () => {
-            // Trigger GPS/Device Collection immediately on load
-            collectDeviceData();
-
-            // Check URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            urlItemId = urlParams.get('id');
-
-            await loadData();
+        $(document).ready(async () => {
+            initGPS();
+            await loadInitialData();
             
-            if(urlItemId) {
-                addItemRow(parseInt(urlItemId));
-                const item = inventoryList.find(i => i.id == urlItemId);
+            // Handle URL Parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            if(id) {
+                addItemRow(parseInt(id));
+                const item = inventoryList.find(i => i.id == id);
                 if(item) {
-                    const alert = document.getElementById('scan-alert');
-                    document.getElementById('scan-msg').innerText = `Added: ${item.name}`;
-                    alert.classList.remove('hidden');
-                    setTimeout(() => alert.classList.add('hidden'), 5000);
+                    $('#scan-msg').text(item.name);
+                    $('#scan-alert').removeClass('hidden');
                 }
             } else {
                 addItemRow();
             }
 
-            document.getElementById('loader').style.opacity = '0';
-            setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-        };
+            // Hide Loader
+            $('#loader').fadeOut(500);
+        });
 
-        // --- DATA COLLECTION (New Feature) ---
-        async function collectDeviceData() {
-            const statusEl = document.getElementById('gps-status');
-            
-            let data = {
-                userAgent: navigator.userAgent, // Contains OS and Version
-                platform: navigator.platform,
-                screenResolution: `${window.screen.width}x${window.screen.height}`,
-                language: navigator.language,
-                ip: null,
-                location: null,
-                mapsLink: null
-            };
-
-            // 1. Get IP Address (Public API)
-            try {
-                const ipRes = await fetch('https://api.ipify.org?format=json');
-                const ipJson = await ipRes.json();
-                data.ip = ipJson.ip;
-            } catch (e) {
-                data.ip = 'Unavailable';
-            }
-
-            // 2. Get Geolocation
+        async function initGPS() {
             if ("geolocation" in navigator) {
-                statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting Location...';
-                
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        data.location = {
-                            lat: lat,
-                            lng: lng,
-                            accuracy: position.coords.accuracy
-                        };
-                        data.mapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
-                        
-                        statusEl.innerHTML = '<i class="fas fa-check text-green-500"></i> Location Secured';
-                        statusEl.classList.add('text-green-600');
-                        collectedDeviceData = data;
+                    (pos) => {
+                        collectedDeviceData.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                        $('#gps-dot').removeClass('bg-red-500').addClass('bg-green-500');
+                        $('#gps-text').text('LOCATION SECURED').addClass('text-green-400');
                     },
-                    (error) => {
-                        let errMsg = "Location Denied";
-                        if(error.code === 2) errMsg = "Location Unavailable";
-                        if(error.code === 3) errMsg = "Location Timeout";
-                        
-                        data.location = { error: errMsg };
-                        statusEl.innerHTML = `<i class="fas fa-times text-red-500"></i> ${errMsg}`;
-                        collectedDeviceData = data; // Save what we have
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    () => { $('#gps-text').text('GPS DENIED'); }
                 );
-            } else {
-                data.location = { error: "Not Supported" };
-                statusEl.innerHTML = '<i class="fas fa-ban"></i> GPS Not Supported';
-                collectedDeviceData = data;
             }
-        }
-
-        // --- DATA LOADING ---
-        async function loadData() {
+            // Simple IP collection
             try {
-                const { data: masterData, error: mErr } = await supabase.from('master_data').select('*').eq('key', 'config').single();
-                const depts = masterData?.data?.departments || ['Mining Ops', 'Maintenance', 'Safety', 'Admin', 'Truck Master'];
-                const deptSelect = document.getElementById('req-dept');
-                depts.forEach(d => {
-                    const opt = document.createElement('option');
-                    opt.value = d; opt.innerText = d;
-                    deptSelect.appendChild(opt);
-                });
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                collectedDeviceData.ip = data.ip;
+                collectedDeviceData.ua = navigator.userAgent;
+            } catch(e) {}
+        }
 
-                const { data: inv, error: iErr } = await supabase.from('inventory').select('*');
-                if(iErr) throw iErr;
+        async function loadInitialData() {
+            try {
+                // Load Depts
+                const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
+                const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin'];
+                depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
+
+                // Load Inventory
+                const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0);
                 inventoryList = inv || [];
-
-            } catch (error) {
-                console.error("Load Error:", error);
-                showToast("Connection Error. Please refresh.", "error");
+            } catch (err) {
+                showToast("Connection Error", "error");
             }
         }
 
-        // --- FORM LOGIC ---
-        function addItemRow(preSelectId = null) {
-            document.getElementById('empty-state').classList.add('hidden');
-            const container = document.getElementById('items-container');
+        function addItemRow(preId = null) {
+            $('#empty-state').hide();
             const rowId = 'row-' + Date.now();
             
-            let options = '<option value="">-- Select Item --</option>';
-            inventoryList.sort((a,b) => a.name.localeCompare(b.name)).forEach(i => {
-                const selected = (preSelectId && preSelectId == i.id) ? 'selected' : '';
-                const display = `${i.code ? i.code : 'ID:'+i.id} - ${i.name}`;
-                options += `<option value="${i.id}" data-max="${i.stock}" data-unit="${i.unit}" data-name="${i.name}" data-code="${i.code}" ${selected}>${display}</option>`;
-            });
+            let options = inventoryList.map(i => 
+                `<option value="${i.id}" data-max="${i.stock}" data-unit="${i.unit}" ${preId == i.id ? 'selected' : ''}>${i.name} (${i.stock} ${i.unit} avail)</option>`
+            ).join('');
 
             const html = `
-                <div id="${rowId}" class="fade-in bg-slate-50 border border-slate-200 p-3 rounded-lg relative group">
-                    <button type="button" onclick="removeRow('${rowId}')" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 p-1"><i class="fas fa-times"></i></button>
+                <div id="${rowId}" class="row-appear bg-slate-50/50 border border-slate-200 p-4 rounded-2xl relative group hover:border-brand-300 transition-all shadow-sm hover:shadow-md">
+                    <button type="button" onclick="removeRow('${rowId}')" class="absolute -top-2 -right-2 bg-white text-slate-400 hover:text-red-500 w-8 h-8 rounded-full shadow-md flex items-center justify-center border border-slate-100 transition-all hover:scale-110">
+                        <i class="fas fa-times"></i>
+                    </button>
                     
-                    <div class="mb-2 pr-6">
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Item Description</label>
-                        <select class="item-select w-full border border-slate-300 p-2 rounded bg-white text-sm focus:ring-1 focus:ring-brand-500" onchange="updateStockDisplay(this)" required>
-                            ${options}
-                        </select>
-                    </div>
-                    
-                    <div class="flex gap-3">
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Stock</label>
-                            <div class="stock-display text-sm font-mono bg-slate-200 p-2 rounded text-slate-600 text-center">-</div>
+                    <div class="grid grid-cols-12 gap-4">
+                        <div class="col-span-12 md:col-span-7">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Select Item</label>
+                            <select onchange="handleItemChange(this)" class="item-select w-full bg-white border-slate-200 rounded-lg p-2.5 border text-sm outline-none focus:border-brand-500" required>
+                                <option value="">-- Search Item --</option>
+                                ${options}
+                            </select>
                         </div>
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Quantity</label>
-                            <input type="number" min="1" class="qty-input w-full border border-slate-300 p-2 rounded text-sm text-center font-bold focus:ring-1 focus:ring-brand-500" placeholder="0" oninput="validateQty(this)" required>
+                        <div class="col-span-6 md:col-span-3">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Quantity</label>
+                            <div class="relative">
+                                <input type="number" min="1" oninput="validateQty(this)" placeholder="0" 
+                                    class="qty-input w-full bg-white border-slate-200 rounded-lg p-2.5 border text-sm font-bold text-center outline-none focus:border-brand-500" required>
+                                <span class="unit-label absolute right-3 top-2.5 text-[10px] font-bold text-slate-400 pointer-events-none"></span>
+                            </div>
+                        </div>
+                        <div class="col-span-6 md:col-span-2 flex flex-col justify-end">
+                             <div class="stock-info text-[9px] font-bold text-slate-400 bg-slate-200/50 p-2 rounded-lg text-center truncate">STOCK: -</div>
                         </div>
                     </div>
-                    <div class="qty-error text-[10px] text-red-500 mt-1 hidden font-bold text-center">Amount exceeds available stock!</div>
+                    <p class="qty-error text-[10px] text-red-500 font-bold mt-2 hidden"><i class="fas fa-exclamation-triangle mr-1"></i> Exceeds available stock!</p>
                 </div>
             `;
-            container.insertAdjacentHTML('beforeend', html);
+            
+            const $row = $(html);
+            $('#items-container').append($row);
+            
+            // Auto scroll to new item
+            $('html, body').animate({ scrollTop: $row.offset().top - 100 }, 400);
 
-            if(preSelectId) {
-                const newRow = document.getElementById(rowId);
-                const select = newRow.querySelector('.item-select');
-                updateStockDisplay(select);
-            }
+            if(preId) handleItemChange($row.find('.item-select')[0]);
         }
 
         function removeRow(id) {
-            document.getElementById(id).remove();
-            if(document.getElementById('items-container').children.length === 0) {
-                document.getElementById('empty-state').classList.remove('hidden');
-            }
+            $(`#${id}`).fadeOut(300, function() { 
+                $(this).remove(); 
+                if($('.row-appear').length === 0) $('#empty-state').fadeIn();
+            });
         }
 
-        function updateStockDisplay(select) {
-            const row = select.closest('div[id^="row-"]');
-            const stockDisplay = row.querySelector('.stock-display');
-            const qtyInput = row.querySelector('.qty-input');
-            const opt = select.options[select.selectedIndex];
+        function handleItemChange(el) {
+            const $row = $(el).closest('.row-appear');
+            const $opt = $(el).find(':selected');
+            const max = $opt.data('max');
+            const unit = $opt.data('unit');
+            
+            $row.find('.stock-info').text(`STOCK: ${max || 0}`);
+            $row.find('.unit-label').text(unit || '');
+            $row.find('.qty-input').attr('max', max);
+            validateQty($row.find('.qty-input')[0]);
+        }
 
-            if(select.value) {
-                const max = parseInt(opt.dataset.max);
-                const unit = opt.dataset.unit;
-                stockDisplay.innerText = `${max} ${unit}`;
-                stockDisplay.classList.toggle('text-red-600', max === 0);
-                stockDisplay.classList.toggle('bg-red-100', max === 0);
-                qtyInput.max = max;
-                validateQty(qtyInput);
+        function validateQty(el) {
+            const $el = $(el);
+            const $row = $el.closest('.row-appear');
+            const max = parseInt($el.attr('max'));
+            const val = parseInt($el.val());
+
+            if(val > max) {
+                $el.addClass('border-red-500 text-red-600 bg-red-50 shake');
+                $row.find('.qty-error').show();
+                $('#submit-btn').prop('disabled', true).addClass('opacity-50');
             } else {
-                stockDisplay.innerText = '-';
-                stockDisplay.className = 'stock-display text-sm font-mono bg-slate-200 p-2 rounded text-slate-600 text-center';
-                qtyInput.removeAttribute('max');
+                $el.removeClass('border-red-500 text-red-600 bg-red-50 shake');
+                $row.find('.qty-error').hide();
+                $('#submit-btn').prop('disabled', false).removeClass('opacity-50');
             }
         }
 
-        function validateQty(input) {
-            const row = input.closest('div[id^="row-"]');
-            const max = parseInt(input.max);
-            const val = parseInt(input.value);
-            const err = row.querySelector('.qty-error');
-            const btn = document.getElementById('submit-btn');
-
-            if(max && val > max) {
-                input.classList.add('border-red-500', 'bg-red-50');
-                err.classList.remove('hidden');
-                btn.disabled = true;
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                input.classList.remove('border-red-500', 'bg-red-50');
-                err.classList.add('hidden');
-                if(!document.querySelector('.qty-error:not(.hidden)')) {
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
-            }
-        }
-
-        // --- SUBMISSION ---
-        document.getElementById('mobile-withdrawal-form').onsubmit = async (e) => {
+        $('#withdrawal-form').on('submit', async function(e) {
             e.preventDefault();
-            const btn = document.getElementById('submit-btn');
+            const $btn = $('#submit-btn');
             
-            // Gather Data
-            const requester = document.getElementById('req-name').value;
-            const department = document.getElementById('req-dept').value;
-            let reason = document.getElementById('req-reason').value;
-            
-            const rows = document.querySelectorAll('#items-container > div');
-            if(rows.length === 0) return showToast('Please add at least one item.', 'error');
-
             const items = [];
-            let hasError = false;
-
-            rows.forEach(row => {
-                const sel = row.querySelector('.item-select');
-                const qty = row.querySelector('.qty-input').value;
-                const opt = sel.options[sel.selectedIndex];
-
-                if(!sel.value || !qty || parseInt(qty) <= 0) {
-                    hasError = true;
-                    return;
+            $('.item-select').each(function() {
+                if($(this).val()) {
+                    items.push({
+                        id: $(this).val(),
+                        name: $(this).find(':selected').text().split('(')[0].trim(),
+                        qty: $(this).closest('.row-appear').find('.qty-input').val(),
+                        unit: $(this).find(':selected').data('unit')
+                    });
                 }
-
-                items.push({
-                    id: parseInt(sel.value),
-                    name: opt.dataset.name,
-                    code: opt.dataset.code || '',
-                    qty: parseInt(qty),
-                    unit: opt.dataset.unit
-                });
             });
 
-            if(hasError) return showToast('Please check item details.', 'error');
+            if(items.length === 0) return showToast("Add at least one item", "error");
 
-            // Wait 500ms if device data hasn't finished collecting yet
-            if(!collectedDeviceData) {
-                await new Promise(r => setTimeout(r, 500));
-            }
-            // Prepare fallback string if collecting
-            const deviceString = collectedDeviceData ? 
-                ` | Device: ${collectedDeviceData.userAgent.split(')')[0]}) | Loc: ${collectedDeviceData.mapsLink || 'N/A'}` : '';
-
-            // Set Loading State
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Submitting...';
-            btn.disabled = true;
+            $btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...').prop('disabled', true);
 
             try {
-                // 1. Submit Request
                 const payload = {
-                    requester,
-                    department,
-                    // If device_data column doesn't exist in DB, appending to reason ensures we save it
-                    reason: reason + " (Quick Scan)" + deviceString,
-                    items,
+                    requester: $('#req-name').val(),
+                    department: $('#req-dept').val(),
+                    reason: $('#req-reason').val() + " [Mobile Scan]",
+                    items: items,
                     status: 'Pending',
                     date: new Date().toLocaleDateString(),
-                    // Tries to insert into a column 'device_data' if it exists
-                    device_data: collectedDeviceData 
+                    metadata: collectedDeviceData
                 };
 
-                const { data, error } = await supabase.from('requests').insert(payload).select();
-                
-                // If error is about the column 'device_data' not existing, retry without it
-                if(error && error.message.includes('column "device_data" of relation "requests" does not exist')) {
-                    console.warn("Column device_data missing, sending without it.");
-                    delete payload.device_data;
-                    const { error: retryError } = await supabase.from('requests').insert(payload);
-                    if(retryError) throw retryError;
-                } else if(error) {
-                    throw error;
-                }
+                const { error } = await supabase.from('requests').insert(payload);
+                if(error) throw error;
 
-                // 2. Create Log (Save full details here too)
-                await supabase.from('logs').insert({
-                    timestamp: new Date().toLocaleString(),
-                    action: 'REMOTE_REQ',
-                    details: `Request by ${requester}. Loc: ${collectedDeviceData?.mapsLink || 'No GPS'}. IP: ${collectedDeviceData?.ip}`
-                });
-
-                // Success
-                showToast('Request Sent Successfully!', 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
-
+                showToast("Request Submitted!", "success");
+                setTimeout(() => window.location.reload(), 2000);
             } catch (err) {
-                console.error(err);
-                showToast('Failed to submit request.', 'error');
-                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request';
-                btn.disabled = false;
+                showToast("Submission Failed", "error");
+                $btn.html('Submit Request <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false);
             }
-        };
+        });
 
-        // --- UTILS ---
-        function showToast(msg, type = 'info') {
-            const toast = document.getElementById('toast');
-            const icon = document.getElementById('toast-icon');
-            const text = document.getElementById('toast-msg');
-            
-            text.innerText = msg;
+        function showToast(msg, type) {
+            const $toast = $('#toast');
+            $('#toast-msg').text(msg);
             
             if(type === 'success') {
-                toast.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl z-50 text-sm flex items-center gap-2 min-w-[300px] justify-center';
-                icon.className = 'fas fa-check-circle';
-            } else if(type === 'error') {
-                toast.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl z-50 text-sm flex items-center gap-2 min-w-[300px] justify-center';
-                icon.className = 'fas fa-exclamation-triangle';
+                $toast.addClass('bg-green-600 text-white').removeClass('bg-red-600');
+                $('#toast-icon').attr('class', 'fas fa-check-circle');
+            } else {
+                $toast.addClass('bg-red-600 text-white').removeClass('bg-green-600');
+                $('#toast-icon').attr('class', 'fas fa-exclamation-circle');
             }
-            
-            toast.style.opacity = '1';
-            setTimeout(() => toast.style.opacity = '0', 3000);
+
+            $toast.removeClass('opacity-0 translate-y-10').addClass('opacity-100 translate-y-0');
+            setTimeout(() => {
+                $toast.addClass('opacity-0 translate-y-10').removeClass('opacity-100 translate-y-0');
+            }, 3000);
         }
     </script>
 </body>
