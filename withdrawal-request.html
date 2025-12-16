@@ -67,11 +67,16 @@
             </div>
         </div>
 
+        <!-- Location Status Indicator -->
+        <div id="gps-status" class="text-[10px] text-slate-400 text-right mb-2 flex items-center justify-end gap-1">
+            <i class="fas fa-satellite-dish"></i> <span>Initializing GPS...</span>
+        </div>
+
         <form id="mobile-withdrawal-form" class="space-y-4">
             <!-- Section 1: User Info -->
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
 
-		<p align="left" style="font-size:11px;"><span style="color:red;">Note:</span> Please Contact Person incharge, After Submited Your Request to Open the Transpo Storage to get the Item you requested, </br><span style="color:red;">Contact Number:</span> 09777120595</p></br>	 	
+                <p align="left" style="font-size:11px;"><span style="color:red;">Note:</span> Please Contact Person incharge, After Submited Your Request to Open the Transpo Storage to get the Item you requested, </br><span style="color:red;">Contact Number:</span> 09777120595</p></br>	 	
 
                 <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-4 border-b pb-2">Requester Details</h2>
                 <div class="space-y-4">
@@ -125,23 +130,25 @@
 
     <script>
         // --- CONFIGURATION ---
-        // SAME CREDENTIALS AS MAIN FILE
         const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let inventoryList = [];
         let urlItemId = null;
+        let collectedDeviceData = null; // To store GPS/IP/Device info
 
         // --- INITIALIZATION ---
         window.onload = async () => {
-            // Check URL parameters for scanned ID (e.g., withdrawal.html?id=5)
+            // Trigger GPS/Device Collection immediately on load
+            collectDeviceData();
+
+            // Check URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             urlItemId = urlParams.get('id');
 
             await loadData();
             
-            // If URL had an ID, auto-add that row
             if(urlItemId) {
                 addItemRow(parseInt(urlItemId));
                 const item = inventoryList.find(i => i.id == urlItemId);
@@ -152,19 +159,77 @@
                     setTimeout(() => alert.classList.add('hidden'), 5000);
                 }
             } else {
-                addItemRow(); // Add one empty row by default
+                addItemRow();
             }
 
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
         };
 
+        // --- DATA COLLECTION (New Feature) ---
+        async function collectDeviceData() {
+            const statusEl = document.getElementById('gps-status');
+            
+            let data = {
+                userAgent: navigator.userAgent, // Contains OS and Version
+                platform: navigator.platform,
+                screenResolution: `${window.screen.width}x${window.screen.height}`,
+                language: navigator.language,
+                ip: null,
+                location: null,
+                mapsLink: null
+            };
+
+            // 1. Get IP Address (Public API)
+            try {
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipJson = await ipRes.json();
+                data.ip = ipJson.ip;
+            } catch (e) {
+                data.ip = 'Unavailable';
+            }
+
+            // 2. Get Geolocation
+            if ("geolocation" in navigator) {
+                statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting Location...';
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        data.location = {
+                            lat: lat,
+                            lng: lng,
+                            accuracy: position.coords.accuracy
+                        };
+                        data.mapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
+                        
+                        statusEl.innerHTML = '<i class="fas fa-check text-green-500"></i> Location Secured';
+                        statusEl.classList.add('text-green-600');
+                        collectedDeviceData = data;
+                    },
+                    (error) => {
+                        let errMsg = "Location Denied";
+                        if(error.code === 2) errMsg = "Location Unavailable";
+                        if(error.code === 3) errMsg = "Location Timeout";
+                        
+                        data.location = { error: errMsg };
+                        statusEl.innerHTML = `<i class="fas fa-times text-red-500"></i> ${errMsg}`;
+                        collectedDeviceData = data; // Save what we have
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                data.location = { error: "Not Supported" };
+                statusEl.innerHTML = '<i class="fas fa-ban"></i> GPS Not Supported';
+                collectedDeviceData = data;
+            }
+        }
+
         // --- DATA LOADING ---
         async function loadData() {
             try {
-                // 1. Fetch Master Data for Departments
                 const { data: masterData, error: mErr } = await supabase.from('master_data').select('*').eq('key', 'config').single();
-                
                 const depts = masterData?.data?.departments || ['Mining Ops', 'Maintenance', 'Safety', 'Admin', 'Truck Master'];
                 const deptSelect = document.getElementById('req-dept');
                 depts.forEach(d => {
@@ -173,7 +238,6 @@
                     deptSelect.appendChild(opt);
                 });
 
-                // 2. Fetch Inventory
                 const { data: inv, error: iErr } = await supabase.from('inventory').select('*');
                 if(iErr) throw iErr;
                 inventoryList = inv || [];
@@ -190,7 +254,6 @@
             const container = document.getElementById('items-container');
             const rowId = 'row-' + Date.now();
             
-            // Build Options
             let options = '<option value="">-- Select Item --</option>';
             inventoryList.sort((a,b) => a.name.localeCompare(b.name)).forEach(i => {
                 const selected = (preSelectId && preSelectId == i.id) ? 'selected' : '';
@@ -224,7 +287,6 @@
             `;
             container.insertAdjacentHTML('beforeend', html);
 
-            // If preselected, trigger the stock display update immediately
             if(preSelectId) {
                 const newRow = document.getElementById(rowId);
                 const select = newRow.querySelector('.item-select');
@@ -275,7 +337,6 @@
             } else {
                 input.classList.remove('border-red-500', 'bg-red-50');
                 err.classList.add('hidden');
-                // Check if any other errors exist
                 if(!document.querySelector('.qty-error:not(.hidden)')) {
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -291,7 +352,7 @@
             // Gather Data
             const requester = document.getElementById('req-name').value;
             const department = document.getElementById('req-dept').value;
-            const reason = document.getElementById('req-reason').value;
+            let reason = document.getElementById('req-reason').value;
             
             const rows = document.querySelectorAll('#items-container > div');
             if(rows.length === 0) return showToast('Please add at least one item.', 'error');
@@ -320,6 +381,14 @@
 
             if(hasError) return showToast('Please check item details.', 'error');
 
+            // Wait 500ms if device data hasn't finished collecting yet
+            if(!collectedDeviceData) {
+                await new Promise(r => setTimeout(r, 500));
+            }
+            // Prepare fallback string if collecting
+            const deviceString = collectedDeviceData ? 
+                ` | Device: ${collectedDeviceData.userAgent.split(')')[0]}) | Loc: ${collectedDeviceData.mapsLink || 'N/A'}` : '';
+
             // Set Loading State
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Submitting...';
             btn.disabled = true;
@@ -329,26 +398,38 @@
                 const payload = {
                     requester,
                     department,
-                    reason: reason + " (via Quick Scan)",
+                    // If device_data column doesn't exist in DB, appending to reason ensures we save it
+                    reason: reason + " (Quick Scan)" + deviceString,
                     items,
                     status: 'Pending',
-                    date: new Date().toLocaleDateString()
+                    date: new Date().toLocaleDateString(),
+                    // Tries to insert into a column 'device_data' if it exists
+                    device_data: collectedDeviceData 
                 };
 
                 const { data, error } = await supabase.from('requests').insert(payload).select();
-                if(error) throw error;
+                
+                // If error is about the column 'device_data' not existing, retry without it
+                if(error && error.message.includes('column "device_data" of relation "requests" does not exist')) {
+                    console.warn("Column device_data missing, sending without it.");
+                    delete payload.device_data;
+                    const { error: retryError } = await supabase.from('requests').insert(payload);
+                    if(retryError) throw retryError;
+                } else if(error) {
+                    throw error;
+                }
 
-                // 2. Create Log
+                // 2. Create Log (Save full details here too)
                 await supabase.from('logs').insert({
                     timestamp: new Date().toLocaleString(),
                     action: 'REMOTE_REQ',
-                    details: `Remote withdrawal request from ${requester}`
+                    details: `Request by ${requester}. Loc: ${collectedDeviceData?.mapsLink || 'No GPS'}. IP: ${collectedDeviceData?.ip}`
                 });
 
                 // Success
                 showToast('Request Sent Successfully!', 'success');
                 setTimeout(() => {
-                    window.location.reload(); // Reset form
+                    window.location.reload();
                 }, 2000);
 
             } catch (err) {
