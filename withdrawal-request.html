@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Quick Withdrawal | TRANS-SYSTEM</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        /* Smooth fade in */
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Loading Overlay */
+        #loader { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 50; display: flex; justify-content: center; align-items: center; transition: opacity 0.3s; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
+
+    <!-- Loading Screen -->
+    <div id="loader"><div class="spinner"></div></div>
+
+    <!-- Header -->
+    <header class="bg-brand-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-white/10 rounded flex items-center justify-center"><i class="fas fa-qrcode text-yellow-400"></i></div>
+                <div>
+                    <h1 class="text-lg font-bold leading-none">TRANS-SYSTEM</h1>
+                    <p class="text-[10px] text-brand-200 uppercase">Withdraw Item Inside the Transpo Storage</p>
+                </div>
+            </div>
+            
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-3xl mx-auto p-4 pb-20 fade-in">
+        
+        <!-- Context Alert (If scanned specific item) -->
+        <div id="scan-alert" class="hidden bg-green-100 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center gap-3 shadow-sm">
+            <i class="fas fa-check-circle text-xl"></i>
+            <div>
+                <p class="font-bold text-sm">Item Scanned Successfully</p>
+                <p class="text-xs" id="scan-msg">Item added to your list.</p>
+            </div>
+        </div>
+
+        <form id="mobile-withdrawal-form" class="space-y-4">
+            <!-- Section 1: User Info -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+
+		<p align="left" style="font-size:11px;"><span style="color:red;">Note:</span> Please Contact Person incharge, After Submited Your Request to Open the Transpo Storage to get the Item you requested, </br><span style="color:red;">Contact Number:</span> 09777120595</p></br>	 	
+
+                <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-4 border-b pb-2">Requester Details</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Your Name *</label>
+                        <input type="text" id="req-name" required placeholder="Enter full name" class="w-full border-slate-300 rounded-lg p-3 border focus:ring-2 focus:ring-brand-500 outline-none text-sm shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Department *</label>
+                        <select id="req-dept" required class="w-full border-slate-300 rounded-lg p-3 border bg-white focus:ring-2 focus:ring-brand-500 outline-none text-sm shadow-sm">
+                            <option value="">Select Department...</option>
+                            <!-- Populated via JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Purpose / Reason</label>
+                        <textarea id="req-reason" rows="2" placeholder="e.g., Repair for Truck #4" class="w-full border-slate-300 rounded-lg p-3 border focus:ring-2 focus:ring-brand-500 outline-none text-sm shadow-sm"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Items -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide">Items Needed</h2>
+                    <button type="button" onclick="addItemRow()" class="text-brand-600 text-xs font-bold hover:bg-brand-50 px-3 py-1 rounded transition border border-brand-200">+ Add Item</button>
+                </div>
+                
+                <div id="items-container" class="space-y-3">
+                    <!-- Rows will be injected here -->
+                </div>
+                
+                <div id="empty-state" class="text-center py-6 text-slate-400">
+                    <i class="fas fa-box-open text-3xl mb-2 opacity-50"></i>
+                    <p class="text-sm">No items added yet.</p>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" id="submit-btn" class="w-full bg-brand-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-brand-700 active:scale-[0.98] transition flex items-center justify-center gap-2 text-lg">
+                <i class="fas fa-paper-plane"></i> Submit Request
+            </button>
+        </form>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-50 text-sm flex items-center gap-2 min-w-[300px] justify-center">
+        <i id="toast-icon" class="fas fa-info-circle"></i> <span id="toast-msg">Message</span>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // SAME CREDENTIALS AS MAIN FILE
+        const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let inventoryList = [];
+        let urlItemId = null;
+
+        // --- INITIALIZATION ---
+        window.onload = async () => {
+            // Check URL parameters for scanned ID (e.g., withdrawal.html?id=5)
+            const urlParams = new URLSearchParams(window.location.search);
+            urlItemId = urlParams.get('id');
+
+            await loadData();
+            
+            // If URL had an ID, auto-add that row
+            if(urlItemId) {
+                addItemRow(parseInt(urlItemId));
+                const item = inventoryList.find(i => i.id == urlItemId);
+                if(item) {
+                    const alert = document.getElementById('scan-alert');
+                    document.getElementById('scan-msg').innerText = `Added: ${item.name}`;
+                    alert.classList.remove('hidden');
+                    setTimeout(() => alert.classList.add('hidden'), 5000);
+                }
+            } else {
+                addItemRow(); // Add one empty row by default
+            }
+
+            document.getElementById('loader').style.opacity = '0';
+            setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+        };
+
+        // --- DATA LOADING ---
+        async function loadData() {
+            try {
+                // 1. Fetch Master Data for Departments
+                const { data: masterData, error: mErr } = await supabase.from('master_data').select('*').eq('key', 'config').single();
+                
+                const depts = masterData?.data?.departments || ['Mining Ops', 'Maintenance', 'Safety', 'Admin', 'Truck Master'];
+                const deptSelect = document.getElementById('req-dept');
+                depts.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d; opt.innerText = d;
+                    deptSelect.appendChild(opt);
+                });
+
+                // 2. Fetch Inventory
+                const { data: inv, error: iErr } = await supabase.from('inventory').select('*');
+                if(iErr) throw iErr;
+                inventoryList = inv || [];
+
+            } catch (error) {
+                console.error("Load Error:", error);
+                showToast("Connection Error. Please refresh.", "error");
+            }
+        }
+
+        // --- FORM LOGIC ---
+        function addItemRow(preSelectId = null) {
+            document.getElementById('empty-state').classList.add('hidden');
+            const container = document.getElementById('items-container');
+            const rowId = 'row-' + Date.now();
+            
+            // Build Options
+            let options = '<option value="">-- Select Item --</option>';
+            inventoryList.sort((a,b) => a.name.localeCompare(b.name)).forEach(i => {
+                const selected = (preSelectId && preSelectId == i.id) ? 'selected' : '';
+                const display = `${i.code ? i.code : 'ID:'+i.id} - ${i.name}`;
+                options += `<option value="${i.id}" data-max="${i.stock}" data-unit="${i.unit}" data-name="${i.name}" data-code="${i.code}" ${selected}>${display}</option>`;
+            });
+
+            const html = `
+                <div id="${rowId}" class="fade-in bg-slate-50 border border-slate-200 p-3 rounded-lg relative group">
+                    <button type="button" onclick="removeRow('${rowId}')" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 p-1"><i class="fas fa-times"></i></button>
+                    
+                    <div class="mb-2 pr-6">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Item Description</label>
+                        <select class="item-select w-full border border-slate-300 p-2 rounded bg-white text-sm focus:ring-1 focus:ring-brand-500" onchange="updateStockDisplay(this)" required>
+                            ${options}
+                        </select>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Stock</label>
+                            <div class="stock-display text-sm font-mono bg-slate-200 p-2 rounded text-slate-600 text-center">-</div>
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Quantity</label>
+                            <input type="number" min="1" class="qty-input w-full border border-slate-300 p-2 rounded text-sm text-center font-bold focus:ring-1 focus:ring-brand-500" placeholder="0" oninput="validateQty(this)" required>
+                        </div>
+                    </div>
+                    <div class="qty-error text-[10px] text-red-500 mt-1 hidden font-bold text-center">Amount exceeds available stock!</div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+
+            // If preselected, trigger the stock display update immediately
+            if(preSelectId) {
+                const newRow = document.getElementById(rowId);
+                const select = newRow.querySelector('.item-select');
+                updateStockDisplay(select);
+            }
+        }
+
+        function removeRow(id) {
+            document.getElementById(id).remove();
+            if(document.getElementById('items-container').children.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+            }
+        }
+
+        function updateStockDisplay(select) {
+            const row = select.closest('div[id^="row-"]');
+            const stockDisplay = row.querySelector('.stock-display');
+            const qtyInput = row.querySelector('.qty-input');
+            const opt = select.options[select.selectedIndex];
+
+            if(select.value) {
+                const max = parseInt(opt.dataset.max);
+                const unit = opt.dataset.unit;
+                stockDisplay.innerText = `${max} ${unit}`;
+                stockDisplay.classList.toggle('text-red-600', max === 0);
+                stockDisplay.classList.toggle('bg-red-100', max === 0);
+                qtyInput.max = max;
+                validateQty(qtyInput);
+            } else {
+                stockDisplay.innerText = '-';
+                stockDisplay.className = 'stock-display text-sm font-mono bg-slate-200 p-2 rounded text-slate-600 text-center';
+                qtyInput.removeAttribute('max');
+            }
+        }
+
+        function validateQty(input) {
+            const row = input.closest('div[id^="row-"]');
+            const max = parseInt(input.max);
+            const val = parseInt(input.value);
+            const err = row.querySelector('.qty-error');
+            const btn = document.getElementById('submit-btn');
+
+            if(max && val > max) {
+                input.classList.add('border-red-500', 'bg-red-50');
+                err.classList.remove('hidden');
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                input.classList.remove('border-red-500', 'bg-red-50');
+                err.classList.add('hidden');
+                // Check if any other errors exist
+                if(!document.querySelector('.qty-error:not(.hidden)')) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+
+        // --- SUBMISSION ---
+        document.getElementById('mobile-withdrawal-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            
+            // Gather Data
+            const requester = document.getElementById('req-name').value;
+            const department = document.getElementById('req-dept').value;
+            const reason = document.getElementById('req-reason').value;
+            
+            const rows = document.querySelectorAll('#items-container > div');
+            if(rows.length === 0) return showToast('Please add at least one item.', 'error');
+
+            const items = [];
+            let hasError = false;
+
+            rows.forEach(row => {
+                const sel = row.querySelector('.item-select');
+                const qty = row.querySelector('.qty-input').value;
+                const opt = sel.options[sel.selectedIndex];
+
+                if(!sel.value || !qty || parseInt(qty) <= 0) {
+                    hasError = true;
+                    return;
+                }
+
+                items.push({
+                    id: parseInt(sel.value),
+                    name: opt.dataset.name,
+                    code: opt.dataset.code || '',
+                    qty: parseInt(qty),
+                    unit: opt.dataset.unit
+                });
+            });
+
+            if(hasError) return showToast('Please check item details.', 'error');
+
+            // Set Loading State
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Submitting...';
+            btn.disabled = true;
+
+            try {
+                // 1. Submit Request
+                const payload = {
+                    requester,
+                    department,
+                    reason: reason + " (via Quick Scan)",
+                    items,
+                    status: 'Pending',
+                    date: new Date().toLocaleDateString()
+                };
+
+                const { data, error } = await supabase.from('requests').insert(payload).select();
+                if(error) throw error;
+
+                // 2. Create Log
+                await supabase.from('logs').insert({
+                    timestamp: new Date().toLocaleString(),
+                    action: 'REMOTE_REQ',
+                    details: `Remote withdrawal request from ${requester}`
+                });
+
+                // Success
+                showToast('Request Sent Successfully!', 'success');
+                setTimeout(() => {
+                    window.location.reload(); // Reset form
+                }, 2000);
+
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to submit request.', 'error');
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request';
+                btn.disabled = false;
+            }
+        };
+
+        // --- UTILS ---
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-msg');
+            
+            text.innerText = msg;
+            
+            if(type === 'success') {
+                toast.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl z-50 text-sm flex items-center gap-2 min-w-[300px] justify-center';
+                icon.className = 'fas fa-check-circle';
+            } else if(type === 'error') {
+                toast.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl z-50 text-sm flex items-center gap-2 min-w-[300px] justify-center';
+                icon.className = 'fas fa-exclamation-triangle';
+            }
+            
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 3000);
+        }
+    </script>
+</body>
+</html>
