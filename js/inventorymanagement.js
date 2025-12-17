@@ -335,11 +335,12 @@ async function viewInventory(id) {
 
     const contentDiv = document.getElementById('inv-view-content');
 
+    // MODIFIED: Image container is fixed size (w-40 h-40), right column takes remaining space.
     contentDiv.innerHTML = `
         <div class="flex flex-col md:flex-row gap-6">
-            <!-- Left: Image -->
-            <div class="w-full md:w-1/3 flex flex-col items-center">
-                <div class="w-full aspect-square bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-sm relative group">
+            <!-- Left: Image (RESIZED SMALLER) -->
+            <div class="w-full md:w-auto flex flex-col items-center justify-start">
+                <div class="w-40 h-40 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-sm relative group">
                     <img src="${imgSrc}" alt="${item.name}" 
                          class="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105"
                          onerror="this.src='https://placehold.co/400?text=Image+Error';">
@@ -349,8 +350,8 @@ async function viewInventory(id) {
                 </div>
             </div>
 
-            <!-- Right: Details -->
-            <div class="w-full md:w-2/3">
+            <!-- Right: Details (EXPANDED TO FILL SPACE) -->
+            <div class="w-full md:flex-1">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     
                     <div class="col-span-1 sm:col-span-2 border-b border-slate-100 dark:border-slate-700 pb-3 mb-1">
