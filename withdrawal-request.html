@@ -1,3 +1,5 @@
+<!-- START OF FILE withdrawal-request.html -->
+
 <!DOCTYPE html>
 <html lang="en" class="light">
 <head>
@@ -41,9 +43,14 @@
         #loader { position: fixed; inset: 0; background: #ffffff; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .spinner-custom { width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Custom Scrollbar for Dropdown */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
 </head>
-<body class="text-slate-900 pb-10">
+<body class="text-slate-900 pb-10" onclick="closeAllDropdowns(event)">
 
     <!-- Loading Screen -->
     <div id="loader">
@@ -180,11 +187,15 @@
             const urlParams = new URLSearchParams(window.location.search);
             const id = urlParams.get('id');
             if(id) {
-                addItemRow(parseInt(id));
+                // If scanned ID provided, try to find item and add row
+                await loadInitialData(); // Ensure data is loaded
                 const item = inventoryList.find(i => i.id == id);
                 if(item) {
+                    addItemRow(item.id);
                     $('#scan-msg').text(item.name);
                     $('#scan-alert').removeClass('hidden');
+                } else {
+                    addItemRow(); // Default empty
                 }
             } else {
                 addItemRow();
@@ -218,14 +229,14 @@
             try {
                 // Load Depts
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
-                const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin'];
+                const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety'];
                 depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
 
-                // Load Inventory
+                // Load Inventory (include image column)
                 const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0);
                 inventoryList = inv || [];
             } catch (err) {
-                showToast("Connection Error", "error");
+                console.error("Initial load error:", err);
             }
         }
 
@@ -233,24 +244,75 @@
             $('#empty-state').hide();
             const rowId = 'row-' + Date.now();
             
-            let options = inventoryList.map(i => 
-                `<option value="${i.id}" data-max="${i.stock}" data-unit="${i.unit}" ${preId == i.id ? 'selected' : ''}>${i.name} (${i.stock} ${i.unit} avail)</option>`
-            ).join('');
+            // Build the Custom Dropdown List
+            let listItemsHtml = '';
+            inventoryList.forEach(i => {
+                const imgSrc = i.image && i.image.trim() !== '' ? i.image : 'https://placehold.co/100x100?text=No+Img';
+                listItemsHtml += `
+                    <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 flex items-center gap-3 transition-colors" 
+                         onclick="selectItem('${rowId}', ${i.id})"
+                         data-name="${i.name.toLowerCase()}">
+                        <img src="${imgSrc}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white">
+                        <div class="flex-1">
+                            <p class="text-xs font-bold text-slate-700">${i.name}</p>
+                            <p class="text-[10px] text-slate-400">Stock: ${i.stock} ${i.unit}</p>
+                        </div>
+                        <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
+                    </div>
+                `;
+            });
+
+            // Pre-selection Logic
+            let initialDisplay = `
+                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-2">
+                    <i class="fas fa-search"></i>
+                </div>
+                <span class="text-slate-400 text-xs">Tap to search item...</span>
+            `;
+            let inputValue = "";
+            
+            if (preId) {
+                const item = inventoryList.find(i => i.id == preId);
+                if (item) {
+                    const imgSrc = item.image && item.image.trim() !== '' ? item.image : 'https://placehold.co/100x100?text=No+Img';
+                    inputValue = item.id;
+                    initialDisplay = `
+                        <img src="${imgSrc}" class="w-8 h-8 rounded-lg object-cover border border-slate-200 mr-2">
+                        <span class="text-slate-700 text-xs font-bold truncate flex-1">${item.name}</span>
+                    `;
+                }
+            }
 
             const html = `
                 <div id="${rowId}" class="row-appear bg-slate-50/50 border border-slate-200 p-4 rounded-2xl relative group hover:border-brand-300 transition-all shadow-sm hover:shadow-md">
-                    <button type="button" onclick="removeRow('${rowId}')" class="absolute -top-2 -right-2 bg-white text-slate-400 hover:text-red-500 w-8 h-8 rounded-full shadow-md flex items-center justify-center border border-slate-100 transition-all hover:scale-110">
+                    <button type="button" onclick="removeRow('${rowId}')" class="absolute -top-2 -right-2 bg-white text-slate-400 hover:text-red-500 w-8 h-8 rounded-full shadow-md flex items-center justify-center border border-slate-100 transition-all hover:scale-110 z-10">
                         <i class="fas fa-times"></i>
                     </button>
                     
                     <div class="grid grid-cols-12 gap-4">
-                        <div class="col-span-12 md:col-span-7">
+                        <!-- Custom Select Container -->
+                        <div class="col-span-12 md:col-span-7 relative">
                             <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Select Item</label>
-                            <select onchange="handleItemChange(this)" class="item-select w-full bg-white border-slate-200 rounded-lg p-2.5 border text-sm outline-none focus:border-brand-500" required>
-                                <option value="">-- Search Item --</option>
-                                ${options}
-                            </select>
+                            
+                            <!-- Hidden Input Stores Real Value -->
+                            <input type="hidden" class="item-select-value" value="${inputValue}">
+
+                            <!-- Visible Trigger -->
+                            <div class="dropdown-trigger bg-white border border-slate-200 rounded-xl p-2 flex items-center cursor-pointer hover:border-brand-400 transition-colors" onclick="toggleDropdown('${rowId}', event)">
+                                ${initialDisplay}
+                            </div>
+
+                            <!-- Dropdown Menu (Hidden) -->
+                            <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-slate-200 shadow-xl rounded-xl z-50 mt-2 overflow-hidden max-h-60 flex flex-col">
+                                <div class="p-2 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
+                                    <input type="text" class="w-full text-xs p-2 rounded-lg border border-slate-200 focus:outline-none focus:border-brand-500" placeholder="Type to filter..." onkeyup="filterDropdown(this)">
+                                </div>
+                                <div class="overflow-y-auto custom-scrollbar flex-1 bg-white">
+                                    ${listItemsHtml}
+                                </div>
+                            </div>
                         </div>
+
                         <div class="col-span-6 md:col-span-3">
                             <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Quantity</label>
                             <div class="relative">
@@ -273,7 +335,69 @@
             // Auto scroll to new item
             $('html, body').animate({ scrollTop: $row.offset().top - 100 }, 400);
 
-            if(preId) handleItemChange($row.find('.item-select')[0]);
+            // Initial validation if pre-selected
+            if(preId) {
+                const item = inventoryList.find(i => i.id == preId);
+                updateRowStockInfo($row, item);
+            }
+        }
+
+        // --- Custom Dropdown Logic ---
+
+        function toggleDropdown(rowId, event) {
+            event.stopPropagation(); // Prevent closing immediately
+            // Close all others
+            $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
+            $(`#dropdown-${rowId}`).toggleClass('hidden');
+            // Focus search
+            setTimeout(() => $(`#dropdown-${rowId} input`).focus(), 100);
+        }
+
+        function closeAllDropdowns(event) {
+            if (!$(event.target).closest('.custom-dropdown, .dropdown-trigger').length) {
+                $('.custom-dropdown').addClass('hidden');
+            }
+        }
+
+        function filterDropdown(input) {
+            const term = $(input).val().toLowerCase();
+            $(input).closest('.custom-dropdown').find('.dropdown-item').each(function() {
+                const name = $(this).data('name');
+                if(name.includes(term)) $(this).show();
+                else $(this).hide();
+            });
+        }
+
+        function selectItem(rowId, itemId) {
+            const item = inventoryList.find(i => i.id === itemId);
+            if (!item) return;
+
+            const $row = $(`#${rowId}`);
+            
+            // Update Hidden Value
+            $row.find('.item-select-value').val(item.id);
+
+            // Update Trigger UI
+            const imgSrc = item.image && item.image.trim() !== '' ? item.image : 'https://placehold.co/100x100?text=No+Img';
+            const triggerHtml = `
+                <img src="${imgSrc}" class="w-8 h-8 rounded-lg object-cover border border-slate-200 mr-2">
+                <span class="text-slate-700 text-xs font-bold truncate flex-1">${item.name}</span>
+            `;
+            $row.find('.dropdown-trigger').html(triggerHtml);
+
+            // Hide Dropdown
+            $row.find('.custom-dropdown').addClass('hidden');
+
+            // Update Stock Info
+            updateRowStockInfo($row, item);
+        }
+
+        function updateRowStockInfo($row, item) {
+            if (!item) return;
+            $row.find('.stock-info').text(`STOCK: ${item.stock}`);
+            $row.find('.unit-label').text(item.unit || '');
+            $row.find('.qty-input').attr('max', item.stock);
+            validateQty($row.find('.qty-input')[0]);
         }
 
         function removeRow(id) {
@@ -283,23 +407,11 @@
             });
         }
 
-        function handleItemChange(el) {
-            const $row = $(el).closest('.row-appear');
-            const $opt = $(el).find(':selected');
-            const max = $opt.data('max');
-            const unit = $opt.data('unit');
-            
-            $row.find('.stock-info').text(`STOCK: ${max || 0}`);
-            $row.find('.unit-label').text(unit || '');
-            $row.find('.qty-input').attr('max', max);
-            validateQty($row.find('.qty-input')[0]);
-        }
-
         function validateQty(el) {
             const $el = $(el);
             const $row = $el.closest('.row-appear');
-            const max = parseInt($el.attr('max'));
-            const val = parseInt($el.val());
+            const max = parseInt($el.attr('max')) || 0;
+            const val = parseInt($el.val()) || 0;
 
             if(val > max) {
                 $el.addClass('border-red-500 text-red-600 bg-red-50 shake');
@@ -317,14 +429,21 @@
             const $btn = $('#submit-btn');
             
             const items = [];
-            $('.item-select').each(function() {
-                if($(this).val()) {
-                    items.push({
-                        id: $(this).val(),
-                        name: $(this).find(':selected').text().split('(')[0].trim(),
-                        qty: $(this).closest('.row-appear').find('.qty-input').val(),
-                        unit: $(this).find(':selected').data('unit')
-                    });
+            // Loop through rows using the custom value class
+            $('.row-appear').each(function() {
+                const id = $(this).find('.item-select-value').val();
+                const qty = parseInt($(this).find('.qty-input').val());
+                
+                if(id && qty > 0) {
+                    const itemObj = inventoryList.find(i => i.id == id);
+                    if(itemObj) {
+                        items.push({
+                            id: id,
+                            name: itemObj.name,
+                            qty: qty,
+                            unit: itemObj.unit
+                        });
+                    }
                 }
             });
 
@@ -349,7 +468,8 @@
                 showToast("Request Submitted!", "success");
                 setTimeout(() => window.location.reload(), 2000);
             } catch (err) {
-                showToast("Submission Failed", "error");
+                console.error(err);
+                showToast("Failed: " + (err.message || "Unknown error"), "error");
                 $btn.html('Submit Request <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false);
             }
         });
