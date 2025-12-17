@@ -108,13 +108,12 @@
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <button id="logoutBtn" style="background-color:red; color:#fff; border:none; padding:10px 20px; border-radius: 5px; font-weight:600; cursor:pointer; margin-right:10px;">
-                    Logout
+                <button onclick="window.location.reload()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition shadow-sm border border-red-500">
+                    <i class="fas fa-sign-out-alt mr-1"></i> Logout
                 </button> 
                 <div class="hidden md:flex flex-col items-end mr-4"><span id="header-time" class="text-lg font-mono font-bold leading-none">00:00:00</span><span id="header-date" class="text-xs text-brand-300">Loading...</span></div>
                 <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition tooltip" title="Toggle Theme"><i id="theme-icon" class="fas fa-moon"></i></button>
                 <button onclick="toggleCalculator()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"><i class="fas fa-calculator"></i></button>
-                <a href="../../Trans-System.html"><div id="home-button" onclick="window.location.reload()" class="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-brand-900 border-2 border-white shadow-lg cursor-pointer" title="Home"><i class="fas fa-home text-lg"></i></div></a>
             </div>
         </div>
     </header>
@@ -156,6 +155,7 @@
                             <div class="w-12 h-12 bg-brand-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-brand-600 dark:text-brand-400 text-xl"><i class="fas fa-cubes"></i></div>
                         </div>
                     </div>
+                    <!-- Low Stock Widget -->
                     <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-red-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="filterInventoryByLowStock()">
                         <div class="flex justify-between items-center">
                             <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Low Stock Inventory</p><h3 class="text-3xl font-bold text-red-600 dark:text-red-400 mt-1" id="dash-low-stock">0</h3></div>
@@ -223,6 +223,11 @@
                         <button onclick="exportToExcel('inventory')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2"><i class="fas fa-file-excel"></i> Export</button>
                     </div>
                 </div>
+                <!-- Filter Badge Indicator -->
+                <div id="active-filter-badge" class="hidden mb-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 flex justify-between items-center">
+                    <span class="text-red-700 dark:text-red-300 font-bold text-sm"><i class="fas fa-filter mr-2"></i> Filtering by: Low Stock</span>
+                    <button onclick="clearInventoryFilter()" class="text-xs bg-white dark:bg-slate-800 border px-2 py-1 rounded hover:bg-slate-50">Clear Filter</button>
+                </div>
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col md:flex-row gap-4 justify-between items-center">
                         <div class="flex overflow-x-auto gap-2 pb-2 md:pb-0 w-full md:w-auto no-scrollbar" id="inventory-categories"></div>
@@ -274,7 +279,6 @@
                                     <th class="px-6 py-3">Date</th>
                                     <th class="px-6 py-3">Requester</th>
                                     <th class="px-6 py-3">Dept</th>
-                                    <!-- ADDED LOCATION COLUMN -->
                                     <th class="px-6 py-3">Location</th>
                                     <th class="px-6 py-3 text-center">Items</th>
                                     <th class="px-6 py-3">Status</th>
@@ -664,6 +668,7 @@
 
    <script>
     // --- SUPABASE CONFIGURATION ---
+    // NOTE: In a real production environment, Supabase keys should be secured via backend or restrictive RLS policies.
     const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -671,7 +676,8 @@
     let chartInstance = null;
     let activeReqId = null;
     let activeCategory = 'All'; 
-    let activeReqFilter = 'All'; 
+    let activeReqFilter = 'All';
+    let activeInventoryFilter = 'All'; // 'All' or 'LowStock'
     let tempReqItems = []; // For disposal logic
 
     const DEFAULT_MASTER = {
@@ -705,7 +711,7 @@
         const storeMock = {
             getAll: async () => {
                 const { data, error } = await supabase.from(storeName).select('*');
-                if(error) { console.error('Supabase Error:', error); return []; }
+                if(error) { console.error('Supabase Error (getAll):', error); return []; }
                 return data || [];
             },
             get: async (key) => {
@@ -714,13 +720,15 @@
                     return data; 
                 }
                 const { data, error } = await supabase.from(storeName).select('*').eq('id', key).single();
-                if(error) { console.error('Supabase Error:', error); return null; }
+                if(error) { console.error('Supabase Error (get):', error); return null; }
                 return data;
             },
             add: async (val) => {
-                if(!val.id) delete val.id;
-                const { data, error } = await supabase.from(storeName).insert(val).select();
-                if(error) { console.error('Supabase Error:', error); throw error; }
+                const payload = {...val};
+                if(payload.id === undefined || payload.id === null) delete payload.id;
+                
+                const { data, error } = await supabase.from(storeName).insert(payload).select();
+                if(error) { console.error('Supabase Error (add):', error); throw error; }
                 return data;
             },
             put: async (val) => {
@@ -730,11 +738,11 @@
                      return;
                 }
                 const { error } = await supabase.from(storeName).update(val).eq('id', val.id);
-                if(error) { console.error('Supabase Error:', error); throw error; }
+                if(error) { console.error('Supabase Error (put):', error); throw error; }
             },
             delete: async (key) => {
                 const { error } = await supabase.from(storeName).delete().eq('id', key);
-                if(error) { console.error('Supabase Error:', error); throw error; }
+                if(error) { console.error('Supabase Error (delete):', error); throw error; }
             },
             count: async () => {
                 const { count } = await supabase.from(storeName).select('*', { count: 'exact', head: true });
@@ -742,7 +750,7 @@
             },
             clear: async () => {
                 const { error } = await supabase.from(storeName).delete().neq('id', 0);
-                if(error) console.error('Supabase Error:', error);
+                if(error) console.error('Supabase Error (clear):', error);
             }
         };
         return await callback(storeMock);
@@ -754,6 +762,10 @@
         document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
         document.getElementById(viewId).classList.remove('hidden');
         if(btn) { document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav', 'bg-brand-700', 'text-white')); btn.classList.add('active-nav', 'bg-brand-700', 'text-white'); }
+        
+        // Reset inventory filter unless triggered specifically
+        if(viewId !== 'view-inventory') activeInventoryFilter = 'All';
+        
         if (viewId === 'view-inventory') renderInventory();
         if (viewId === 'view-requests') renderRequests();
         if (viewId === 'view-pr-requests') renderPRRequests();
@@ -841,10 +853,20 @@
     
     // --- INVENTORY ---
     function filterCat(cat) { activeCategory = cat; renderInventory(); }
+    
     async function renderInventory() {
         const items = await dbAction('inventory', 'readonly', store => store.getAll());
         const tbody = document.getElementById('inventory-body');
         const filter = document.getElementById('inv-search').value.toLowerCase();
+        
+        // Handle Visual Filter Badge
+        const filterBadge = document.getElementById('active-filter-badge');
+        if(activeInventoryFilter === 'LowStock') {
+            filterBadge.classList.remove('hidden');
+        } else {
+            filterBadge.classList.add('hidden');
+        }
+
         let catHTML = `<button onclick="filterCat('All')" class="px-3 py-1 rounded-full text-xs font-bold border transition ${activeCategory === 'All' ? 'bg-brand-600 text-white border-brand-600' : 'bg-white dark:bg-slate-700 dark:text-white dark:border-slate-500 text-slate-600 border-slate-300 hover:bg-slate-50'}">All</button>`;
         masterData.categories.forEach(c => {
             const isActive = activeCategory === c;
@@ -852,12 +874,18 @@
         });
         document.getElementById('inventory-categories').innerHTML = catHTML;
         tbody.innerHTML = ''; let count = 0;
+        
         items.sort((a,b) => b.id - a.id).forEach(item => {
             const code = item.code || `ID-${item.id}`;
             const matchesSearch = code.toLowerCase().includes(filter) || item.name.toLowerCase().includes(filter);
             const matchesCat = activeCategory === 'All' || item.category === activeCategory;
-            if (matchesSearch && matchesCat) {
-                const isLow = item.stock <= (item.threshold || 5);
+            
+            // Check Low Stock Logic
+            const isLow = item.stock <= (item.threshold || 5);
+            let passesFilter = true;
+            if (activeInventoryFilter === 'LowStock' && !isLow) passesFilter = false;
+
+            if (matchesSearch && matchesCat && passesFilter) {
                 const row = `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-700 ${isLow ? 'bg-red-50 dark:bg-red-900/20' : ''}">
                         <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700 dark:text-slate-200">${code}</td>
@@ -1491,24 +1519,30 @@
     async function clearLogs() { if(!confirm('Are you sure you want to clear all audit logs? This cannot be undone.')) return; await dbAction('logs', 'readwrite', store => store.clear()); showToast('Logs Cleared', 'success'); renderLogs(); renderDashboard(); }
 
     function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-    function filterInventoryByLowStock() { document.getElementById('inv-search').value = ""; navTo('view-inventory'); }
+    
+    function filterInventoryByLowStock() { 
+        document.getElementById('inv-search').value = ""; 
+        activeInventoryFilter = 'LowStock'; // Set Global Filter
+        navTo('view-inventory'); 
+    }
+    
+    function clearInventoryFilter() {
+        activeInventoryFilter = 'All';
+        renderInventory();
+    }
+
     function exportToExcel(t) { dbAction(t, 'readonly', s=>s.getAll()).then(d => { const ws = XLSX.utils.json_to_sheet(d); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sheet1"); XLSX.writeFile(wb, `${t}_export.xlsx`); }); }
     function toggleCalculator(){document.getElementById('floating-calculator').classList.toggle('hidden');}
     function setupCalculatorDrag(){ const calc = document.getElementById('floating-calculator'); let isDragging = false, offset = { x: 0, y: 0 }; document.getElementById('calc-header').addEventListener('mousedown', (e) => { isDragging = true; offset.x = e.clientX - calc.offsetLeft; offset.y = e.clientY - calc.offsetTop; }); document.addEventListener('mousemove', (e) => { if (isDragging) { calc.style.left = (e.clientX - offset.x) + 'px'; calc.style.top = (e.clientY - offset.y) + 'px'; } }); document.addEventListener('mouseup', () => isDragging = false); }
     function calcInput(v){const d=document.getElementById('calc-display'); if(v=='C')d.value='0'; else if(v=='DEL')d.value=d.value.slice(0,-1); else if(v=='=')try{d.value=eval(d.value)}catch{d.value='Err'} else d.value=d.value=='0'?v:d.value+v;}
    </script>
-<script src="js/withdrawal-extension.js"></script>
-<script src="js/prlist.js"></script>
-<script src="js/inventorymanagement.js"></script>
-<script src="js/categ.js"></script>
-<script src="js/chat.js"></script>
-<script src="js/auth.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // ... your existing loader code ...
-    });
-</script>
-
+<!-- External scripts commented out for standalone usage -->
+ <script src="js/withdrawal-extension.js"></script>
+ <script src="js/prlist.js"></script> 
+ <script src="js/inventorymanagement.js"></script> 
+<script src="js/categ.js"></script> 
+ <script src="js/chat.js"></script> 
+ <script src="js/auth.js"></script> 
 
 </body>
 </html>
