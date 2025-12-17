@@ -1,3 +1,5 @@
+// --- START OF FILE inventorymanagement.js ---
+
 // inventorymanagement.js
 
 // Ensure necessary globals are accessible
@@ -18,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const adjustForm = document.getElementById('form-stock-adjust');
     if (adjustForm) adjustForm.onsubmit = submitStockAdjustment;
 
-    // Attach Export Button Listener (if element exists)
+    // Attach Export Button Listener
     const exportBtn = document.getElementById('btn-export-csv');
     if (exportBtn) exportBtn.onclick = downloadInventoryCSV;
 });
@@ -34,22 +36,28 @@ function filterCat(cat) {
 }
 
 /**
- * Filters inventory to show all items and navigates to the view.
+ * Filters inventory to show items and navigates to the view.
  */
 function filterInventoryByLowStock() { 
+    // Reset search
     const searchInput = document.getElementById('inv-search');
     if(searchInput) searchInput.value = ""; 
     
-    // Note: The actual filtering logic for "Low Stock" logic usually implies
-    // showing only low items, but the original code just reset to 'All'.
-    // Preserving original behavior but ensuring view update.
-    filterCat('All'); 
+    // Set Category to All to ensure we scan everything
+    window.activeCategory = 'All';
+    
+    // Navigate to view
     navTo('view-inventory'); 
+    
+    // Trigger render (Optional: You could implement a specific 'showLowOnly' flag here)
+    renderInventory();
+    
+    showToast("Showing Inventory view. Use search/filter to isolate items.", "info");
 }
 
 /**
  * Fetches, filters, and renders the inventory table and category filters.
- * optimized with DocumentFragments for performance.
+ * Optimized with DocumentFragments and Scroll Reset for Fit-to-Screen layouts.
  */
 async function renderInventory() {
     const items = await dbAction('inventory', 'readonly', store => store.getAll());
@@ -83,6 +91,12 @@ async function renderInventory() {
     });
     
     tbody.appendChild(fragment);
+
+    // CRITICAL: Reset Scroll Position
+    // Because the table height is now dynamic/fixed to screen, 
+    // we must scroll to top when data changes.
+    const scrollContainer = tbody.closest('.table-scroll-container');
+    if (scrollContainer) scrollContainer.scrollTo(0, 0);
     
     const emptyMsg = document.getElementById('inventory-empty');
     if(emptyMsg) emptyMsg.classList.toggle('hidden', count > 0);
@@ -121,7 +135,7 @@ function createInventoryRow(item) {
     // Image logic with fallback
     const imgHtml = item.image 
         ? `<img src="${item.image}" alt="Img" 
-                class="w-8 h-8 rounded object-cover border border-slate-200 dark:border-slate-600 mr-2 inline-block bg-white"
+                class="w-8 h-8 rounded object-cover border border-slate-200 dark:border-slate-600 mr-2 inline-block bg-white shrink-0"
                 onerror="this.onerror=null;this.src='https://placehold.co/100?text=X';">` 
         : ``;
 
@@ -129,8 +143,8 @@ function createInventoryRow(item) {
         <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">${code}</td>
         <td class="px-6 py-3 text-slate-800 dark:text-white flex items-center min-w-[200px]">
             ${imgHtml}
-            <div class="flex flex-col">
-                <span class="font-medium leading-tight">${item.name}</span>
+            <div class="flex flex-col overflow-hidden">
+                <span class="font-medium leading-tight truncate" title="${item.name}">${item.name}</span>
                 ${isLow ? '<span class="text-[10px] text-red-600 dark:text-red-400 font-bold mt-0.5">⚠️ LOW STOCK</span>' : ''}
             </div>
         </td>
@@ -164,12 +178,10 @@ async function uploadImageToSupabase(file) {
     if (!file) return null;
 
     try {
-        // Create a unique file name (timestamp + random string + ext)
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        // 1. Upload to 'inventory-images' bucket
         const { data, error } = await supabase
             .storage
             .from('inventory-images')
@@ -180,7 +192,6 @@ async function uploadImageToSupabase(file) {
             throw new Error('Failed to upload image to storage.');
         }
 
-        // 2. Get Public URL
         const { data: urlData } = supabase
             .storage
             .from('inventory-images')
@@ -199,7 +210,6 @@ async function uploadImageToSupabase(file) {
 async function submitAddItemForm(e) {
     e.preventDefault();
     
-    // UI Feedback: Disable button
     const btn = e.target.querySelector('button[type="submit"]');
     if(btn) btn.disabled = true;
 
@@ -208,9 +218,8 @@ async function submitAddItemForm(e) {
         const fileInput = document.getElementById('add-image-file');
         const urlInput = document.getElementById('add-image');
 
-        // Logic: Check File Input first, then fallback to URL text input
         if (fileInput && fileInput.files && fileInput.files[0]) {
-            showToast('Uploading image...', 'info'); // Give user feedback
+            showToast('Uploading image...', 'info');
             imageUrl = await uploadImageToSupabase(fileInput.files[0]);
         } else if (urlInput && urlInput.value.trim()) {
             imageUrl = urlInput.value.trim();
@@ -232,7 +241,6 @@ async function submitAddItemForm(e) {
             throw new Error('Material Code and Description are required.');
         }
 
-        // Check for duplicate material code (Optimized)
         const allItems = await dbAction('inventory', 'readonly', store => store.getAll());
         const isDuplicate = allItems.some(i => i.code.toLowerCase() === newItem.code.toLowerCase());
 
@@ -245,7 +253,10 @@ async function submitAddItemForm(e) {
         
         showToast('Item Added Successfully', 'success'); 
         e.target.reset(); 
-        renderDashboard();
+        
+        // Refresh views
+        renderInventory();
+        if(typeof renderDashboard === 'function') renderDashboard();
     } catch (error) {
         console.error("Error adding item:", error);
         showToast(error.message || 'Error adding item.', 'error');
@@ -265,11 +276,8 @@ async function editInventory(id) {
     setVal('inv-edit-code', item.code || `ID-${item.id}`);
     setVal('inv-edit-name', item.name);
     setVal('inv-edit-loc', item.location || '');
-    
-    // Set existing image URL in the edit field
     setVal('inv-edit-image', item.image || '');
 
-    // Stock is Read-Only here
     const stockInput = document.getElementById('inv-edit-stock');
     if(stockInput) {
         stockInput.value = item.stock; 
@@ -286,7 +294,7 @@ function setVal(id, val) {
 }
 
 /**
- * Handles submission of Inventory Metadata (non-stock related fields).
+ * Handles submission of Inventory Metadata.
  */
 async function submitInvEdit(e) {
     e.preventDefault(); 
@@ -298,11 +306,9 @@ async function submitInvEdit(e) {
 
         const oldName = item.name;
 
-        // Update fields
         item.name = document.getElementById('inv-edit-name').value.trim(); 
         item.location = document.getElementById('inv-edit-loc').value.trim();
         
-        // Save Image URL (User might have pasted a new URL)
         const imgInput = document.getElementById('inv-edit-image');
         if (imgInput) item.image = imgInput.value.trim();
 
@@ -328,35 +334,36 @@ async function viewInventory(id) {
     const isLow = item.stock <= (item.threshold || 5);
     const stockColor = (item.stock === 0) ? 'text-red-800' : (isLow ? 'text-red-600' : 'text-green-600');
     
-    // Robust Image Handling
     const imgSrc = item.image && item.image.length > 5 
         ? item.image 
         : 'https://placehold.co/400x400/e2e8f0/475569?text=No+Image';
 
     const contentDiv = document.getElementById('inv-view-content');
 
-    // MODIFIED: Image container is fixed size (w-40 h-40), right column takes remaining space.
+    // Layout optimized for auto-fit screens (flexible height)
     contentDiv.innerHTML = `
         <div class="flex flex-col md:flex-row gap-6">
-            <!-- Left: Image (RESIZED SMALLER) -->
-            <div class="w-full md:w-auto flex flex-col items-center justify-start">
+            <!-- Left: Image (Fixed Size to prevent layout shifts) -->
+            <div class="w-full md:w-auto flex flex-col items-center justify-start shrink-0">
                 <div class="w-40 h-40 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-sm relative group">
                     <img src="${imgSrc}" alt="${item.name}" 
                          class="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105"
                          onerror="this.src='https://placehold.co/400?text=Image+Error';">
                 </div>
-                <div class="mt-2 text-center">
-                    <span class="text-xs font-mono text-slate-400 copy-btn cursor-pointer" title="Click to copy" onclick="navigator.clipboard.writeText('${item.code}')">${item.code || 'ID-'+item.id} <i class="fas fa-copy ml-1"></i></span>
+                <div class="mt-2 text-center w-40">
+                    <span class="text-xs font-mono text-slate-400 copy-btn cursor-pointer break-all" title="Click to copy" onclick="navigator.clipboard.writeText('${item.code}')">
+                        ${item.code || 'ID-'+item.id} <i class="fas fa-copy ml-1"></i>
+                    </span>
                 </div>
             </div>
 
-            <!-- Right: Details (EXPANDED TO FILL SPACE) -->
-            <div class="w-full md:flex-1">
+            <!-- Right: Details (Fill Remaining Space) -->
+            <div class="w-full md:flex-1 min-w-0">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     
                     <div class="col-span-1 sm:col-span-2 border-b border-slate-100 dark:border-slate-700 pb-3 mb-1">
                         <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Item Description</label>
-                        <div class="text-xl font-bold text-slate-800 dark:text-white leading-tight">${item.name}</div>
+                        <div class="text-xl font-bold text-slate-800 dark:text-white leading-tight break-words">${item.name}</div>
                     </div>
 
                     <div class="info-block">
@@ -412,8 +419,8 @@ async function deleteItem(id) {
             await logAction('DELETE_ITEM', `Permanently deleted: ${item.code} (${item.name})`);
             
             renderInventory(); 
-            showToast('Item Deleted', 'success'); // Changed to success (green) vs error (red) for feedback
-            renderDashboard(); 
+            showToast('Item Deleted', 'success');
+            if(typeof renderDashboard === 'function') renderDashboard();
         }
     } catch(err) {
         console.error(err);
@@ -458,7 +465,7 @@ async function openStockAdjustment(id, type) {
     }
 
     document.getElementById('stock-adjust-modal').classList.add('open');
-    setTimeout(() => qtyInput.focus(), 100); // User convenience
+    setTimeout(() => qtyInput.focus(), 100);
 }
 
 async function submitStockAdjustment(e) {
@@ -492,14 +499,14 @@ async function submitStockAdjustment(e) {
         showToast('Stock Adjusted.', 'success');
         closeModal('stock-adjust-modal');
         renderInventory();
-        renderDashboard(); 
+        if(typeof renderDashboard === 'function') renderDashboard();
     } catch (error) {
         console.error("Stock adjust error:", error);
         showToast('System Error during adjustment.', 'error');
     }
 }
 
-// --- NEW FEATURE: Export to CSV ---
+// --- Export to CSV ---
 
 async function downloadInventoryCSV() {
     try {
@@ -515,13 +522,12 @@ async function downloadInventoryCSV() {
         items.forEach(item => {
             const row = [
                 item.id,
-                `"${(item.code || '').replace(/"/g, '""')}"`, // Escape quotes
+                `"${(item.code || '').replace(/"/g, '""')}"`,
                 `"${(item.name || '').replace(/"/g, '""')}"`,
                 `"${(item.category || '')}"`,
                 item.stock,
                 item.unit,
                 `"${(item.location || '')}"`,
-                // Assuming no price field exists yet, leaving blank or calculating if added later
                 "" 
             ];
             csvRows.push(row.join(','));
