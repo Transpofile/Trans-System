@@ -158,20 +158,39 @@ function createInventoryRow(item) {
 // --- CRUD & Metadata Editing ---
 
 /**
- * Handles image input (File -> Base64 or URL).
+ * Uploads a file to Supabase Storage and returns the Public URL.
  */
-async function processImageInput(fileInputId, urlInputId) {
-    const fileInput = document.getElementById(fileInputId);
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
-            reader.readAsDataURL(fileInput.files[0]);
-        });
+async function uploadImageToSupabase(file) {
+    if (!file) return null;
+
+    try {
+        // Create a unique file name (timestamp + random string + ext)
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        // 1. Upload to 'inventory-images' bucket
+        const { data, error } = await supabase
+            .storage
+            .from('inventory-images')
+            .upload(filePath, file);
+
+        if (error) {
+            console.error('Supabase Upload Error:', error);
+            throw new Error('Failed to upload image to storage.');
+        }
+
+        // 2. Get Public URL
+        const { data: urlData } = supabase
+            .storage
+            .from('inventory-images')
+            .getPublicUrl(filePath);
+
+        return urlData.publicUrl;
+    } catch (err) {
+        console.error("Upload process failed:", err);
+        throw err;
     }
-    const urlInput = document.getElementById(urlInputId);
-    return (urlInput && urlInput.value.trim() !== "") ? urlInput.value.trim() : null;
 }
 
 /**
@@ -185,10 +204,17 @@ async function submitAddItemForm(e) {
     if(btn) btn.disabled = true;
 
     try {
-        const imageSource = await processImageInput('add-image-file', 'add-image').catch(err => {
-            console.warn("Image upload failed", err);
-            return null;
-        });
+        let imageUrl = '';
+        const fileInput = document.getElementById('add-image-file');
+        const urlInput = document.getElementById('add-image');
+
+        // Logic: Check File Input first, then fallback to URL text input
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            showToast('Uploading image...', 'info'); // Give user feedback
+            imageUrl = await uploadImageToSupabase(fileInput.files[0]);
+        } else if (urlInput && urlInput.value.trim()) {
+            imageUrl = urlInput.value.trim();
+        }
 
         const newItem = {
             code: document.getElementById('add-code').value.trim(), 
@@ -199,7 +225,7 @@ async function submitAddItemForm(e) {
             threshold: parseInt(document.getElementById('add-threshold').value) || 5,
             location: document.getElementById('add-location').value.trim(), 
             sds: document.getElementById('add-sds').value.trim(),
-            image: imageSource || '' 
+            image: imageUrl || '' 
         };
         
         if (!newItem.code || !newItem.name) {
@@ -239,6 +265,8 @@ async function editInventory(id) {
     setVal('inv-edit-code', item.code || `ID-${item.id}`);
     setVal('inv-edit-name', item.name);
     setVal('inv-edit-loc', item.location || '');
+    
+    // Set existing image URL in the edit field
     setVal('inv-edit-image', item.image || '');
 
     // Stock is Read-Only here
@@ -274,6 +302,7 @@ async function submitInvEdit(e) {
         item.name = document.getElementById('inv-edit-name').value.trim(); 
         item.location = document.getElementById('inv-edit-loc').value.trim();
         
+        // Save Image URL (User might have pasted a new URL)
         const imgInput = document.getElementById('inv-edit-image');
         if (imgInput) item.image = imgInput.value.trim();
 
