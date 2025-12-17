@@ -1,3 +1,5 @@
+<!-- --- START OF FILE Trans-System.html --- -->
+
 <!DOCTYPE html>
 <html lang="en" class="light">
 <head>
@@ -17,7 +19,7 @@
     <!-- External CSS -->
     <link rel="stylesheet" href="css/style.css">
 
-    <!-- Tailwind Config (Must remain in HTML to configure CDN) -->
+    <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -46,9 +48,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <button id="logoutBtn" style="background-color:red; color:#fff; border:none; padding:10px 20px; border-radius: 5px; font-weight:600; cursor:pointer; margin-right:10px;">
-                    Logout
-                </button> 
+                <button id="logoutBtn" class="bg-red-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-700 transition">Logout</button> 
                 <div class="hidden md:flex flex-col items-end mr-4"><span id="header-time" class="text-lg font-mono font-bold leading-none">00:00:00</span><span id="header-date" class="text-xs text-brand-300">Loading...</span></div>
                 <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition tooltip" title="Toggle Theme"><i id="theme-icon" class="fas fa-moon"></i></button>
                 <button onclick="toggleCalculator()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"><i class="fas fa-calculator"></i></button>
@@ -81,10 +81,12 @@
         <main class="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900 p-4 md:p-8 relative transition-colors duration-300" id="main-container">
             <!-- VIEW: DASHBOARD -->
             <section id="view-dashboard" class="view-section fade-in">
+                <!-- (Dashboard content same as before) -->
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Operational Dashboard</h2>
                     <button onclick="renderDashboard()" class="text-sm bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 border border-slate-300 px-3 py-1 rounded shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition"><i class="fas fa-sync-alt mr-1"></i> Refresh Data</button>
                 </div>
+                <!-- Dashboard Stats Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-brand-600 dark:border-brand-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="document.getElementById('nav-inventory').click()">
                         <div class="flex justify-between items-center">
@@ -111,7 +113,8 @@
                         </div>
                     </div>
                 </div>
-                <!-- Additional Stats -->
+                
+                <!-- Secondary Stats -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                      <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-teal-500">
                         <div class="flex justify-between items-center">
@@ -133,6 +136,7 @@
                     </div>
                 </div>
 
+                <!-- Charts & Logs -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                         <div class="flex justify-between items-center mb-4">
@@ -150,6 +154,7 @@
 
             <!-- VIEW: INVENTORY -->
             <section id="view-inventory" class="view-section hidden fade-in">
+                <!-- (Inventory Content kept same) -->
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Inventory Management</h2>
                     <div class="flex gap-2">
@@ -166,9 +171,9 @@
                         </div>
                     </div>
                     
-                    <div class="overflow-x-auto overflow-y-auto" style="max-height: 70vh;">
+                    <div class="table-scroll-container h-[70vh]">
                         <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0 z-10 shadow-sm">
+                            <thead class="sticky-th text-slate-700 dark:text-slate-200 uppercase font-bold text-xs">
                                 <tr><th class="px-6 py-3">Material Code</th><th class="px-6 py-3">Material Description</th><th class="px-6 py-3">Category</th><th class="px-6 py-3 text-center">Stock</th><th class="px-6 py-3">Location</th><th class="px-6 py-3 text-right">Actions</th></tr>
                             </thead>
                             <tbody id="inventory-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
@@ -180,6 +185,7 @@
 
             <!-- VIEW: WITHDRAWAL REQUESTS -->
             <section id="view-requests" class="view-section hidden fade-in">
+                <!-- (Requests Content kept same) -->
                 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Withdrawal Requests</h2>
                     <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
@@ -191,18 +197,16 @@
                         <button onclick="exportToExcel('requests')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition"><i class="fas fa-file-excel"></i></button>
                     </div>
                 </div>
-
                 <div class="flex border-b border-slate-200 dark:border-slate-700 mb-4 space-x-6 overflow-x-auto">
-                    <button onclick="setReqFilter('All', this)" class="tab-btn active px-2 py-3 text-sm font-medium text-brand-600 dark:text-brand-400 focus:outline-none">All Requests</button>
-                    <button onclick="setReqFilter('Pending', this)" class="tab-btn px-2 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none">Pending</button>
-                    <button onclick="setReqFilter('Approved', this)" class="tab-btn px-2 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none">Approved</button>
-                    <button onclick="setReqFilter('Rejected', this)" class="tab-btn px-2 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none">Rejected</button>
+                    <button onclick="setReqFilter('All', this)" class="tab-btn active px-2 py-3 text-sm font-medium focus:outline-none">All Requests</button>
+                    <button onclick="setReqFilter('Pending', this)" class="tab-btn px-2 py-3 text-sm font-medium focus:outline-none">Pending</button>
+                    <button onclick="setReqFilter('Approved', this)" class="tab-btn px-2 py-3 text-sm font-medium focus:outline-none">Approved</button>
+                    <button onclick="setReqFilter('Rejected', this)" class="tab-btn px-2 py-3 text-sm font-medium focus:outline-none">Rejected</button>
                 </div>
-
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div class="overflow-x-auto">
+                     <div class="table-scroll-container h-[65vh]">
                         <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0">
+                            <thead class="sticky-th text-slate-700 dark:text-slate-200 uppercase font-bold text-xs">
                                 <tr>
                                     <th class="px-6 py-3">Req ID</th>
                                     <th class="px-6 py-3">Date</th>
@@ -217,7 +221,6 @@
                             <tbody id="requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
                         </table>
                     </div>
-                    <div id="requests-empty" class="p-8 text-center text-slate-400 hidden"><i class="fas fa-inbox text-4xl mb-2"></i><p>No requests found matching criteria.</p></div>
                 </div>
             </section>
 
@@ -235,7 +238,7 @@
                         <div class="pr-list-grid bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs border-b border-slate-200 dark:border-slate-600 sticky top-0">
                             <div>PR ID</div><div>Material Code & Description</div><div class="text-center">Qty / Unit</div><div>Unit Price</div><div>Category</div><div>Date Process / Expected</div><div>PR/PO/ARF</div><div class="text-right">Status & Actions</div>
                         </div>
-                        <div class="overflow-y-auto" style="max-height: 60vh;">
+                        <div class="overflow-y-auto" style="max-height: 70vh;">
                             <div id="pr-requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
                         </div>
                     </div>
@@ -258,9 +261,9 @@
                             <input type="text" id="disposal-search" onkeyup="renderDisposal()" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500">
                         </div>
                     </div>
-                    <div class="overflow-x-auto">
+                    <div class="table-scroll-container h-[65vh]">
                         <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0">
+                            <thead class="sticky-th text-slate-700 dark:text-slate-200 uppercase font-bold text-xs">
                                 <tr>
                                     <th class="px-6 py-3">ID</th>
                                     <th class="px-6 py-3">Source Req ID</th>
@@ -275,7 +278,6 @@
                             <tbody id="disposal-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
                         </table>
                     </div>
-                    <div id="disposal-empty" class="p-8 text-center text-slate-400 hidden"><i class="fas fa-trash-alt text-4xl mb-2"></i><p>No disposal records found.</p></div>
                 </div>
             </section>
 
@@ -291,22 +293,14 @@
                         <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unit of Measure *</label><select id="add-unit" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border bg-white focus:ring-brand-500"></select></div>
                         <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Low Stock Threshold</label><input type="number" id="add-threshold" value="5" min="1" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
                         <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Storage Location</label><input type="text" id="add-location" placeholder="e.g. Shelf A-01" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
-                        
-                        <!-- Added Image Upload Section -->
                         <div class="md:col-span-2 border-t dark:border-slate-700 pt-4 mt-2">
                             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Item Image</label>
                             <div class="flex flex-col md:flex-row gap-4 items-center">
-                                <div class="flex-1 w-full">
-                                    <input type="file" id="add-image-file" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-slate-700 dark:file:text-slate-200"/>
-                                    <p class="text-[10px] text-slate-500 mt-1">Upload directly to database</p>
-                                </div>
+                                <div class="flex-1 w-full"><input type="file" id="add-image-file" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-slate-700 dark:file:text-slate-200"/><p class="text-[10px] text-slate-500 mt-1">Upload directly to database</p></div>
                                 <div class="font-bold text-xs text-slate-400">OR</div>
-                                <div class="flex-1 w-full">
-                                    <input type="text" id="add-image" placeholder="Paste external Image URL" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500">
-                                </div>
+                                <div class="flex-1 w-full"><input type="text" id="add-image" placeholder="Paste external Image URL" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
                             </div>
                         </div>
-
                         <div class="md:col-span-2"><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">SDS / Datasheet Link (URL)</label><input type="url" id="add-sds" placeholder="https://..." class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
                     </div>
                     <div class="flex justify-end gap-3">
@@ -318,6 +312,7 @@
 
             <!-- VIEW: WITHDRAWAL FORM -->
             <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-5xl mx-auto">
+                <!-- (Withdrawal Form kept same) -->
                 <div class="flex items-center gap-3 mb-6">
                     <button onclick="navTo('view-requests')" class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"><i class="fas fa-arrow-left"></i> Back</button>
                     <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Create Withdrawal Request</h2>
@@ -338,32 +333,19 @@
                             <input type="text" id="req-reason" placeholder="e.g. For maintenance of Truck #4" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border focus:ring-2 focus:ring-brand-500 outline-none">
                         </div>
                     </div>
-
                     <div class="mb-6">
                         <div class="flex justify-between items-end mb-3">
-                            <div>
-                                <h3 class="font-bold text-slate-800 dark:text-white">Items to Withdraw</h3>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Select items from inventory. Ensure sufficient stock exists.</p>
-                            </div>
-                            <button type="button" onclick="addWithdrawalRow()" class="px-3 py-1.5 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 rounded-lg text-sm font-bold hover:bg-brand-100 dark:hover:bg-brand-900/50 transition border border-brand-200 dark:border-brand-800">+ Add Item Row</button>
+                            <div><h3 class="font-bold text-slate-800 dark:text-white">Items to Withdraw</h3></div>
+                            <button type="button" onclick="addWithdrawalRow()" class="px-3 py-1.5 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 rounded-lg text-sm font-bold hover:bg-brand-100 transition border border-brand-200 dark:border-brand-800">+ Add Item Row</button>
                         </div>
-                        
                         <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                             <div class="grid grid-cols-12 gap-4 p-3 bg-slate-100 dark:bg-slate-700 text-xs font-bold uppercase text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-600">
-                                <div class="col-span-7">Item Description</div>
-                                <div class="col-span-2 text-center">Available</div>
-                                <div class="col-span-2">Quantity</div>
-                                <div class="col-span-1 text-center"></div>
+                                <div class="col-span-7">Item Description</div><div class="col-span-2 text-center">Available</div><div class="col-span-2">Quantity</div><div class="col-span-1 text-center"></div>
                             </div>
                             <div id="withdrawal-rows" class="p-3 space-y-2"></div>
                         </div>
                     </div>
-
-                    <div class="flex justify-end pt-4">
-                        <button type="submit" id="btn-submit-req" class="px-8 py-3 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-700 shadow-md transition flex items-center gap-2">
-                            <i class="fas fa-paper-plane"></i> Submit Request
-                        </button>
-                    </div>
+                    <div class="flex justify-end pt-4"><button type="submit" id="btn-submit-req" class="px-8 py-3 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-700 shadow-md transition flex items-center gap-2"><i class="fas fa-paper-plane"></i> Submit Request</button></div>
                 </form>
             </section>
 
@@ -389,24 +371,21 @@
                 </div>
             </section>
 
-            <!-- VIEW: LOGS (ADDED SCROLLABLE TABLE) -->
+            <!-- VIEW: LOGS (Enhanced with Table Scroll Container) -->
             <section id="view-logs" class="view-section hidden fade-in">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Audit Logs</h2>
-                    <button onclick="clearLogs()" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition flex items-center gap-2">
-                        <i class="fas fa-trash-alt"></i> Clear Logs
-                    </button>
+                    <button onclick="clearLogs()" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition flex items-center gap-2"><i class="fas fa-trash-alt"></i> Clear Logs</button>
                 </div>
-                <!-- ADDED: Fixed height container and sticky header for scrolling -->
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col h-[75vh]">
-                    <div class="overflow-y-auto flex-1 p-0">
-                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300 relative">
-                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0 z-10 shadow-sm">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div class="table-scroll-container h-[75vh]">
+                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                            <thead class="sticky-th bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs">
                                 <tr>
-                                    <th class="px-4 py-3 bg-slate-100 dark:bg-slate-700">ID</th>
-                                    <th class="px-4 py-3 bg-slate-100 dark:bg-slate-700">Timestamp</th>
-                                    <th class="px-4 py-3 bg-slate-100 dark:bg-slate-700">Action</th>
-                                    <th class="px-4 py-3 bg-slate-100 dark:bg-slate-700">Details</th>
+                                    <th class="px-4 py-3">ID</th>
+                                    <th class="px-4 py-3">Timestamp</th>
+                                    <th class="px-4 py-3">Action</th>
+                                    <th class="px-4 py-3">Details</th>
                                 </tr>
                             </thead>
                             <tbody id="logs-body"></tbody>
@@ -417,7 +396,7 @@
         </main>
     </div>
 
-    <!-- Floating Calculator -->
+    <!-- Floating Calculator (Unchanged) -->
     <div id="floating-calculator" class="hidden glass-panel rounded-xl w-64 overflow-hidden border border-slate-400 dark:border-slate-600 shadow-2xl">
         <div class="bg-slate-800 text-white p-2 flex justify-between items-center cursor-move select-none" id="calc-header"><span class="text-xs font-bold uppercase tracking-wider">Calculator</span><button onclick="toggleCalculator()" class="hover:text-red-400"><i class="fas fa-times"></i></button></div>
         <div class="bg-slate-900 text-right p-3 text-2xl font-mono text-green-400"><input id="calc-display" type="text" readonly class="bg-transparent text-right w-full outline-none" value="0"></div>
@@ -430,23 +409,23 @@
         </div>
     </div>
 
-    <!-- MODAL: Withdrawal Details (THPAL FORM) -->
+    <!-- =========================================================
+         MODALS (UPDATED STRUCTURE FOR SCROLLING/FLEX LAYOUT)
+         ========================================================= -->
+
+    <!-- MODAL: Withdrawal Details (THPAL FORM - Print Specific) -->
     <div id="request-details-modal" class="modal">
         <div id="modal-content-wrapper" class="glass-panel bg-white w-full max-w-5xl mx-4 rounded-xl shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
             <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 no-print z-50" onclick="closeModal('request-details-modal')"><i class="fas fa-times text-2xl"></i></button>
             <div id="print-area" class="thpal-form text-black bg-white p-6 overflow-y-auto flex-1 modal-body-scroll">
                 <div class="flex justify-between items-end mb-4 border-b-2 border-black pb-2">
                     <div class="flex items-center gap-3">
-                        <div class="border-2 border-teal-600 p-1 px-2">
-                            <h1 class="text-3xl font-bold text-teal-700 tracking-tighter leading-none">THPAL</h1>
-                            <div class="h-1 bg-teal-600 w-full mt-1"></div>
-                        </div>
+                        <div class="border-2 border-teal-600 p-1 px-2"><h1 class="text-3xl font-bold text-teal-700 tracking-tighter leading-none">THPAL</h1><div class="h-1 bg-teal-600 w-full mt-1"></div></div>
                         <p class="text-xs font-bold mt-2"></br>Taganito HPAL Nickel Corporation</p>
                     </div>
                     <div class="text-right"><p class="text-[10px] font-bold">Form 02 EMS-THPAL-SE-301 Rev 01</p></div>
                 </div>
                 <h2 class="text-center font-bold text-xl mb-4">THPAL MATERIAL ENTRY/EXIT FORM</h2>
-                <!-- Form Content Populated by JS -->
                 <table class="w-full text-xs mb-4">
                     <tr><td class="font-bold bg-gray-100 w-1/6 thpal-bg-gray">Employee's Name:</td><td class="w-2/6" id="thpal-emp-name"></td><td class="font-bold bg-gray-100 w-1/6 thpal-bg-gray">Vehicle:</td><td class="w-2/6"></td></tr>
                     <tr><td class="font-bold bg-gray-100 thpal-bg-gray">Section/Department:</td><td id="thpal-dept"></td><td class="font-bold bg-gray-100 thpal-bg-gray">Driver:</td><td></td></tr>
@@ -481,152 +460,193 @@
 
     <!-- MODAL: Request Edit -->
     <div id="req-edit-modal" class="modal">
-        <div class="glass-panel bg-white w-full max-w-lg mx-4 rounded-xl shadow-2xl p-6 relative">
-            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('req-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
-            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Edit Request Details</h2>
-            <form id="form-req-edit">
-                <input type="hidden" id="req-edit-id">
-                <div class="space-y-4">
-                    <div><label class="block text-sm font-medium">Requester Name</label><input type="text" id="req-edit-name" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">Department</label><select id="req-edit-dept" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"></select></div>
-                    <div><label class="block text-sm font-medium">Reason</label><input type="text" id="req-edit-reason" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <p class="text-xs text-orange-600 italic">* To change items, please delete this request and create a new one.</p>
-                </div>
-                <div class="flex justify-end gap-3 mt-6"><button type="submit" class="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700">Save Changes</button></div>
-            </form>
+        <div class="modal-box glass-panel max-w-lg">
+            <div class="modal-header">
+                <h2 class="text-xl font-bold text-slate-800 dark:text-white">Edit Request Details</h2>
+                <button class="text-slate-400 hover:text-slate-600" onclick="closeModal('req-edit-modal')"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-req-edit">
+                    <input type="hidden" id="req-edit-id">
+                    <div class="space-y-4">
+                        <div class="form-group"><label>Requester Name</label><input type="text" id="req-edit-name" class="form-input"></div>
+                        <div class="form-group"><label>Department</label><select id="req-edit-dept" class="form-select"></select></div>
+                        <div class="form-group"><label>Reason</label><input type="text" id="req-edit-reason" class="form-input"></div>
+                        <p class="text-xs text-orange-600 italic">* To change items, please delete this request and create a new one.</p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('req-edit-modal')" class="px-4 py-2 border rounded hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-300">Cancel</button>
+                <button type="submit" form="form-req-edit" class="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700">Save Changes</button>
+            </div>
         </div>
     </div>
     
-    <!-- MODAL: PR Edit -->
+    <!-- MODAL: PR Edit (FULLY UPDATED TO FIT SCREEN) -->
     <div id="pr-edit-modal" class="modal">
-        <div class="glass-panel bg-white w-full max-w-xl mx-4 rounded-xl shadow-2xl p-6 relative">
-            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('pr-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
-            <h2 id="pr-modal-title" class="text-xl font-bold text-slate-800 dark:text-white mb-4">Purchase Request</h2>
-            <form id="form-pr-edit">
-                <input type="hidden" id="pr-edit-id">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div><label class="block text-sm font-medium">Material Code</label><input type="text" id="pr-material-code" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">Quantity *</label><input type="number" id="pr-quantity" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">Unit *</label><select id="pr-unit" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"></select></div>
-                    <div class="md:col-span-3"><label class="block text-sm font-medium">Description *</label><input type="text" id="pr-description" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div class="md:col-span-2"><label class="block text-sm font-medium">Category</label><select id="pr-category" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"></select></div>
-                    <div><label class="block text-sm font-medium">Date Processed</label><input type="date" id="pr-date-process" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div class="md:col-span-3 pt-4 border-t dark:border-slate-600"><h3 class="font-bold text-sm">Media & Links</h3></div>
-                    <div class="md:col-span-3"><label class="block text-sm font-medium">Image/Reference Link 1 (URL)</label><input type="url" id="pr-image-link-1" placeholder="https://..." class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div class="md:col-span-3"><label class="block text-sm font-medium">Image/Reference Link 2 (URL)</label><input type="url" id="pr-image-link-2" placeholder="https://..." class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div class="md:col-span-3 pt-4 border-t dark:border-slate-600"><h3 class="font-bold text-sm">Tracking</h3></div>
-                    <div><label class="block text-sm font-medium">Expected Date</label><input type="date" id="pr-expected-date" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">Received Date</label><input type="date" id="pr-received-date" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">Vendor Name</label><input type="text" id="pr-vendor-name" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">PR Number</label><input type="text" id="pr-number" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">PO Number</label><input type="text" id="pr-po-number" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">ARF Number</label><input type="text" id="pr-arf-number" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">Purchaser</label><input type="text" id="pr-purchaser" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">Unit Price</label><input type="number" step="0.01" id="pr-unit-price" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <div><label class="block text-sm font-medium">Status</label><select id="pr-status" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"><option value="Pending">Pending</option><option value="Ordered">Ordered</option><option value="Received">Received</option><option value="For Withdrawal">For Withdrawal</option><option value="Cancelled">Cancelled</option></select></div>
-                    <div class="md:col-span-3"><label class="block text-sm font-medium">Remarks / Notes</label><textarea id="pr-remarks" rows="2" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></textarea></div>
-                </div>
-                <div class="flex justify-end gap-3 pt-4 border-t dark:border-slate-600"><button type="submit" id="pr-submit-btn" class="px-6 py-2 bg-brand-600 text-white rounded shadow hover:bg-brand-700">Save</button></div>
-            </form>
+        <div class="modal-box glass-panel">
+            <!-- Header -->
+            <div class="modal-header">
+                <h2 id="pr-modal-title" class="text-xl font-bold text-slate-800 dark:text-white">Purchase Request</h2>
+                <button class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition" onclick="closeModal('pr-edit-modal')"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <!-- Scrollable Body -->
+            <div class="modal-body">
+                <form id="form-pr-edit">
+                    <input type="hidden" id="pr-edit-id">
+                    <div class="form-grid-2">
+                        <!-- Standard inputs using grid -->
+                         <div class="form-group"><label>Material Code</label><input type="text" id="pr-material-code" class="form-input"></div>
+                         <div class="form-group"><label>Quantity *</label><input type="number" id="pr-quantity" required class="form-input"></div>
+                         <div class="form-group"><label>Unit *</label><select id="pr-unit" required class="form-select"></select></div>
+                         <div class="form-group md:col-span-2"><label>Description *</label><input type="text" id="pr-description" required class="form-input"></div>
+                         <div class="form-group"><label>Category</label><select id="pr-category" class="form-select"></select></div>
+                         <div class="form-group"><label>Date Processed</label><input type="date" id="pr-date-process" required class="form-input"></div>
+                    </div>
+                    
+                    <div class="pt-4 border-t border-slate-200 dark:border-slate-700 mb-4"><h3 class="font-bold text-sm text-brand-600 dark:text-brand-400">Media & Links</h3></div>
+                    <div class="form-grid-2">
+                        <div class="form-group md:col-span-2"><label>Image/Reference Link 1 (URL)</label><input type="url" id="pr-image-link-1" placeholder="https://..." class="form-input"></div>
+                        <div class="form-group md:col-span-2"><label>Image/Reference Link 2 (URL)</label><input type="url" id="pr-image-link-2" placeholder="https://..." class="form-input"></div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-200 dark:border-slate-700 mb-4"><h3 class="font-bold text-sm text-brand-600 dark:text-brand-400">Tracking Details</h3></div>
+                    <div class="form-grid-2">
+                        <div class="form-group"><label>Expected Date</label><input type="date" id="pr-expected-date" class="form-input"></div>
+                        <div class="form-group"><label>Received Date</label><input type="date" id="pr-received-date" class="form-input"></div>
+                        <div class="form-group"><label>Vendor Name</label><input type="text" id="pr-vendor-name" class="form-input"></div>
+                        <div class="form-group"><label>PR Number</label><input type="text" id="pr-number" class="form-input"></div>
+                        <div class="form-group"><label>PO Number</label><input type="text" id="pr-po-number" class="form-input"></div>
+                        <div class="form-group"><label>ARF Number</label><input type="text" id="pr-arf-number" class="form-input"></div>
+                        <div class="form-group"><label>Purchaser</label><input type="text" id="pr-purchaser" class="form-input"></div>
+                        <div class="form-group"><label>Unit Price</label><input type="number" step="0.01" id="pr-unit-price" class="form-input"></div>
+                        <div class="form-group"><label>Status</label><select id="pr-status" class="form-select"><option value="Pending">Pending</option><option value="Ordered">Ordered</option><option value="Received">Received</option><option value="For Withdrawal">For Withdrawal</option><option value="Cancelled">Cancelled</option></select></div>
+                        <div class="form-group md:col-span-2"><label>Remarks / Notes</label><textarea id="pr-remarks" rows="2" class="form-textarea"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <!-- Fixed Footer -->
+            <div class="modal-footer">
+                <button onclick="closeModal('pr-edit-modal')" class="px-4 py-2 border rounded hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-300">Cancel</button>
+                <button type="submit" form="form-pr-edit" id="pr-submit-btn" class="bg-brand-600 text-white px-6 py-2 rounded shadow hover:bg-brand-700 transition">Save Record</button>
+            </div>
         </div>
     </div>
 
     <!-- MODAL: Disposal Edit/Add (UPDATED) -->
     <div id="disposal-edit-modal" class="modal">
-        <div class="glass-panel bg-white w-full max-w-lg mx-4 rounded-xl shadow-2xl p-6 relative">
-            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('disposal-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
-            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Record Asset Disposal</h2>
-            <form id="form-disposal-edit">
-                <input type="hidden" id="dsp-id">
-                
-                <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded mb-4 text-sm border border-blue-200 dark:border-blue-800">
-                    <p class="text-blue-800 dark:text-blue-200 font-semibold"><i class="fas fa-info-circle mr-1"></i> Selection Required</p>
-                    <p class="text-slate-600 dark:text-slate-400 mt-1">Disposal must be linked to an <b>Approved Withdrawal Request</b>.</p>
-                </div>
-
-                <div class="space-y-4">
-                    <!-- Step 1: Select Approved Request -->
-                    <div>
-                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">1. Select Approved Withdrawal Request</label>
-                         <select id="dsp-select-req" onchange="loadReqItems(this)" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white text-sm" required>
-                             <option value="">-- Select Request --</option>
-                         </select>
+        <div class="modal-box glass-panel max-w-lg">
+            <div class="modal-header">
+                <h2 class="text-xl font-bold text-slate-800 dark:text-white">Record Asset Disposal</h2>
+                <button class="text-slate-400 hover:text-slate-600" onclick="closeModal('disposal-edit-modal')"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-disposal-edit">
+                    <input type="hidden" id="dsp-id">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded mb-4 text-sm border border-blue-200 dark:border-blue-800">
+                        <p class="text-blue-800 dark:text-blue-200 font-semibold"><i class="fas fa-info-circle mr-1"></i> Selection Required</p>
+                        <p class="text-slate-600 dark:text-slate-400 mt-1">Disposal must be linked to an <b>Approved Withdrawal Request</b>.</p>
                     </div>
-
-                    <!-- Step 2: Select Item from that Request -->
-                    <div>
-                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">2. Select Item from Request</label>
-                         <select id="dsp-select-item" onchange="fillDisposalItem(this)" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white text-sm" disabled required>
-                             <option value="">-- Select Item --</option>
-                         </select>
+                    <div class="space-y-4">
+                        <div class="form-group">
+                             <label>1. Select Approved Withdrawal Request</label>
+                             <select id="dsp-select-req" onchange="loadReqItems(this)" class="form-select" required><option value="">-- Select Request --</option></select>
+                        </div>
+                        <div class="form-group">
+                             <label>2. Select Item from Request</label>
+                             <select id="dsp-select-item" onchange="fillDisposalItem(this)" class="form-select" disabled required><option value="">-- Select Item --</option></select>
+                        </div>
+                        <div class="form-group"><label>Asset Name/Description</label><input type="text" id="dsp-name" readonly class="form-input bg-slate-100 dark:bg-slate-600 cursor-not-allowed"></div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group"><label>Asset Code</label><input type="text" id="dsp-code" readonly class="form-input bg-slate-100 dark:bg-slate-600 cursor-not-allowed"></div>
+                            <div class="form-group"><label>Quantity</label><input type="number" id="dsp-quantity" readonly class="form-input bg-slate-100 dark:bg-slate-600 cursor-not-allowed"></div>
+                        </div>
+                        <div class="form-group"><label>Category</label><input type="text" id="dsp-category" class="form-input"></div>
+                        <div class="form-group"><label>Disposal Reason</label><select id="dsp-reason" class="form-select"><option value="Damaged/Broken">Damaged/Broken</option><option value="Obsolete">Obsolete</option><option value="Expired">Expired</option><option value="Sold">Sold</option><option value="Donated">Donated</option><option value="Other">Other</option></select></div>
+                        <div class="form-group"><label>Disposal Method</label><select id="dsp-method" class="form-select"><option value="Scrap">Scrap</option><option value="Sale">Sale</option><option value="Recycle">Recycle</option><option value="Return to Vendor">Return to Vendor</option><option value="Donation">Donation</option></select></div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group"><label>Date Disposed</label><input type="date" id="dsp-date" required class="form-input"></div>
+                            <div class="form-group"><label>Approved By</label><input type="text" id="dsp-approved-by" class="form-input"></div>
+                        </div>
+                        <div class="form-group"><label>Status</label><select id="dsp-status" class="form-select"><option value="Pending">Pending Approval</option><option value="Disposed">Disposed</option></select></div>
                     </div>
-                    
-                    <div><label class="block text-sm font-medium">Asset Name/Description</label><input type="text" id="dsp-name" readonly class="w-full border bg-slate-100 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 p-2 rounded cursor-not-allowed"></div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium">Asset Code</label><input type="text" id="dsp-code" readonly class="w-full border bg-slate-100 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 p-2 rounded cursor-not-allowed"></div>
-                        <div><label class="block text-sm font-medium">Quantity</label><input type="number" id="dsp-quantity" readonly class="w-full border bg-slate-100 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 p-2 rounded cursor-not-allowed"></div>
-                    </div>
-
-                    <div><label class="block text-sm font-medium">Category</label><input type="text" id="dsp-category" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-
-                    <div><label class="block text-sm font-medium">Disposal Reason</label><select id="dsp-reason" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"><option value="Damaged/Broken">Damaged/Broken</option><option value="Obsolete">Obsolete</option><option value="Expired">Expired</option><option value="Sold">Sold</option><option value="Donated">Donated</option><option value="Other">Other</option></select></div>
-                    <div><label class="block text-sm font-medium">Disposal Method</label><select id="dsp-method" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"><option value="Scrap">Scrap</option><option value="Sale">Sale</option><option value="Recycle">Recycle</option><option value="Return to Vendor">Return to Vendor</option><option value="Donation">Donation</option></select></div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium">Date Disposed</label><input type="date" id="dsp-date" required class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                        <div><label class="block text-sm font-medium">Approved By</label><input type="text" id="dsp-approved-by" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    </div>
-                    
-                    <div><label class="block text-sm font-medium">Status</label><select id="dsp-status" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded bg-white"><option value="Pending">Pending Approval</option><option value="Disposed">Disposed</option></select></div>
-                </div>
-                <div class="flex justify-end gap-3 mt-6"><button type="submit" class="bg-orange-600 text-white px-6 py-2 rounded hover:bg-orange-700 transition shadow">Submit Record</button></div>
-            </form>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('disposal-edit-modal')" class="px-4 py-2 border rounded hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-300">Cancel</button>
+                <button type="submit" form="form-disposal-edit" class="bg-orange-600 text-white px-6 py-2 rounded hover:bg-orange-700 shadow">Submit Record</button>
+            </div>
         </div>
     </div>
 
     <!-- MODAL: PR View -->
     <div id="pr-view-modal" class="modal">
-        <div class="glass-panel bg-white w-full max-w-5xl mx-4 rounded-xl shadow-2xl p-6 relative">
-            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('pr-view-modal')"><i class="fas fa-times text-2xl"></i></button>
-            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4 border-b dark:border-slate-600 pb-2">Purchase Request Details <span id="pr-view-id-display" class="font-mono text-brand-600"></span></h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="md:col-span-1 bg-slate-100 dark:bg-slate-700 p-4 rounded-lg flex flex-col items-center justify-center">
-                    <h3 class="font-bold mb-2 text-slate-600 dark:text-slate-300">Reference Image</h3>
-                    <div id="pr-view-image-container" class="w-full max-h-96 overflow-hidden rounded-md border border-slate-300 dark:border-slate-600"><div class="flex items-center justify-center h-48 text-slate-400"><i class="fas fa-image text-4xl"></i></div></div>
-                    <p id="pr-view-no-image" class="text-slate-500 dark:text-slate-400 italic mt-4 text-sm hidden">No primary image link provided.</p>
-                    <div id="pr-view-links" class="mt-3 text-xs w-full text-center"></div>
-                </div>
-                <div class="md:col-span-2 space-y-4"><div id="pr-view-content" class="text-sm grid grid-cols-2 gap-y-2"></div></div>
+        <div class="modal-box glass-panel max-w-4xl">
+            <div class="modal-header">
+                <h2 class="text-xl font-bold text-slate-800 dark:text-white">Purchase Request Details <span id="pr-view-id-display" class="font-mono text-brand-600 ml-2"></span></h2>
+                <button class="text-slate-400 hover:text-slate-600" onclick="closeModal('pr-view-modal')"><i class="fas fa-times text-xl"></i></button>
             </div>
-            <div class="flex justify-end pt-4 mt-6 border-t dark:border-slate-700"><button onclick="closeModal('pr-view-modal')" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Close</button></div>
+            <div class="modal-body">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1 bg-slate-100 dark:bg-slate-700 p-4 rounded-lg flex flex-col items-center justify-center">
+                        <h3 class="font-bold mb-2 text-slate-600 dark:text-slate-300">Reference Image</h3>
+                        <div id="pr-view-image-container" class="w-full max-h-96 overflow-hidden rounded-md border border-slate-300 dark:border-slate-600"><div class="flex items-center justify-center h-48 text-slate-400"><i class="fas fa-image text-4xl"></i></div></div>
+                        <p id="pr-view-no-image" class="text-slate-500 dark:text-slate-400 italic mt-4 text-sm hidden">No primary image link provided.</p>
+                        <div id="pr-view-links" class="mt-3 text-xs w-full text-center"></div>
+                    </div>
+                    <div class="md:col-span-2 space-y-4"><div id="pr-view-content" class="text-sm grid grid-cols-2 gap-y-2"></div></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('pr-view-modal')" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Close</button>
+            </div>
         </div>
     </div>
     
     <!-- MODAL: Inventory Edit -->
     <div id="inv-edit-modal" class="modal">
-        <div class="glass-panel bg-white w-full max-w-lg mx-4 rounded-xl shadow-2xl p-6 relative">
-            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('inv-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
-            <h2 id="inv-modal-title" class="text-xl font-bold text-slate-800 dark:text-white mb-4">Edit Inventory</h2>
-            <form id="form-inv-edit">
-                <input type="hidden" id="inv-edit-id">
-                <div class="space-y-4">
-                    <div><label class="block text-sm font-medium">Material Code</label><input type="text" id="inv-edit-code" class="w-full border dark:border-slate-600 dark:text-white p-2 rounded bg-slate-50 dark:bg-slate-700" readonly></div>
-                    <div><label class="block text-sm font-medium">Description</label><input type="text" id="inv-edit-name" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                    <!-- NEW: Image Input -->
-                    <div><label class="block text-sm font-medium">Image URL</label><input type="text" id="inv-edit-image" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded" placeholder="Image URL"></div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium">Stock</label><input type="number" id="inv-edit-stock" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
-                        <div><label class="block text-sm font-medium">Location</label><input type="text" id="inv-edit-loc" class="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white p-2 rounded"></div>
+        <div class="modal-box glass-panel max-w-lg">
+            <div class="modal-header">
+                <h2 id="inv-modal-title" class="text-xl font-bold text-slate-800 dark:text-white">Edit Inventory</h2>
+                <button class="text-slate-400 hover:text-slate-600" onclick="closeModal('inv-edit-modal')"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-inv-edit">
+                    <input type="hidden" id="inv-edit-id">
+                    <div class="space-y-4">
+                        <div class="form-group"><label>Material Code</label><input type="text" id="inv-edit-code" class="form-input bg-slate-50 dark:bg-slate-700" readonly></div>
+                        <div class="form-group"><label>Description</label><input type="text" id="inv-edit-name" class="form-input"></div>
+                        <div class="form-group"><label>Image URL</label><input type="text" id="inv-edit-image" class="form-input" placeholder="Image URL"></div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group"><label>Stock</label><input type="number" id="inv-edit-stock" class="form-input"></div>
+                            <div class="form-group"><label>Location</label><input type="text" id="inv-edit-loc" class="form-input"></div>
+                        </div>
                     </div>
-                </div>
-                <div class="flex justify-end gap-3 mt-6"><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Update Item</button></div>
-            </form>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('inv-edit-modal')" class="px-4 py-2 border rounded hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                <button type="submit" form="form-inv-edit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Update Item</button>
+            </div>
         </div>
     </div>
     
     <!-- MODAL: Inventory View -->
-    <div id="inv-view-modal" class="modal"><div class="glass-panel bg-white w-full max-w-md mx-4 rounded-xl shadow-2xl p-6 relative"><button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('inv-view-modal')"><i class="fas fa-times text-2xl"></i></button><h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4 border-b dark:border-slate-600 pb-2">Item Details</h2><div id="inv-view-content" class="space-y-4 text-sm text-slate-700 dark:text-slate-200"></div></div></div>
+    <div id="inv-view-modal" class="modal">
+        <div class="modal-box glass-panel max-w-md">
+            <div class="modal-header">
+                <h2 class="text-xl font-bold text-slate-800 dark:text-white">Item Details</h2>
+                <button class="text-slate-400 hover:text-slate-600" onclick="closeModal('inv-view-modal')"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="inv-view-content" class="space-y-4 text-sm text-slate-700 dark:text-slate-200"></div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('inv-view-modal')" class="px-4 py-2 border rounded hover:bg-slate-100">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-5 right-5 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-xl transform translate-x-full transition-transform duration-300 z-50 flex items-center gap-3"><i id="toast-icon" class="fas fa-info-circle"></i><span id="toast-msg">Notification</span></div>
