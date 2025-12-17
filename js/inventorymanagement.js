@@ -1,16 +1,7 @@
 // --- START OF FILE inventorymanagement.js ---
 
-// inventorymanagement.js
-
-// Ensure necessary globals are accessible
-/*
- * Globals assumed available:
- * - supabase, dbAction, showToast, logAction, masterData, activeCategory,
- * - renderDashboard, closeModal, navTo
- */
-
 document.addEventListener('DOMContentLoaded', () => {
-    // Attach form handlers
+    // Attach form handlers safely
     const addItemForm = document.getElementById('form-add-item');
     if (addItemForm) addItemForm.onsubmit = submitAddItemForm;
 
@@ -25,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (exportBtn) exportBtn.onclick = downloadInventoryCSV;
 });
 
+// --- STATE MANAGEMENT ---
 
 /**
  * Sets the active category filter for inventory rendering.
@@ -37,6 +29,7 @@ function filterCat(cat) {
 
 /**
  * Filters inventory to show items and navigates to the view.
+ * Called from Dashboard "Low Stock" widget.
  */
 function filterInventoryByLowStock() { 
     // Reset search
@@ -46,26 +39,49 @@ function filterInventoryByLowStock() {
     // Set Category to All to ensure we scan everything
     window.activeCategory = 'All';
     
+    // Set Global Filter Flag (This variable is assumed to be in main scope)
+    window.activeInventoryFilter = 'LowStock';
+
     // Navigate to view
-    navTo('view-inventory'); 
+    if(typeof navTo === 'function') navTo('view-inventory'); 
     
-    // Trigger render (Optional: You could implement a specific 'showLowOnly' flag here)
+    // Render with new filter
     renderInventory();
     
-    showToast("Showing Inventory view. Use search/filter to isolate items.", "info");
+    if(typeof showToast === 'function') showToast("Filtered by Low Stock Items", "info");
 }
 
 /**
+ * Clears specific filters like 'LowStock' and resets to default view.
+ */
+function clearInventoryFilter() {
+    window.activeInventoryFilter = 'All';
+    const searchInput = document.getElementById('inv-search');
+    if(searchInput) searchInput.value = ""; 
+    renderInventory();
+}
+
+// --- RENDERING ---
+
+/**
  * Fetches, filters, and renders the inventory table and category filters.
- * Optimized with DocumentFragments and Scroll Reset for Fit-to-Screen layouts.
  */
 async function renderInventory() {
+    // Fetch Data
     const items = await dbAction('inventory', 'readonly', store => store.getAll());
     const tbody = document.getElementById('inventory-body');
     const searchInput = document.getElementById('inv-search');
     const filter = searchInput ? searchInput.value.toLowerCase().trim() : '';
     
+    // Update Category Buttons UI
     renderCategoryButtons();
+
+    // Toggle Filter Badge UI if it exists in HTML
+    const filterBadge = document.getElementById('active-filter-badge');
+    if(filterBadge) {
+        if(window.activeInventoryFilter === 'LowStock') filterBadge.classList.remove('hidden');
+        else filterBadge.classList.add('hidden');
+    }
 
     if(!tbody) return;
     tbody.innerHTML = ''; 
@@ -80,23 +96,31 @@ async function renderInventory() {
     items.forEach(item => {
         const code = (item.code || `ID-${item.id}`).toLowerCase();
         const name = item.name.toLowerCase();
+        const isLow = item.stock <= (item.threshold || 5);
         
+        // 1. Search Filter
         const matchesSearch = code.includes(filter) || name.includes(filter);
-        const matchesCat = window.activeCategory === 'All' || item.category === window.activeCategory;
+        
+        // 2. Category Filter
+        const matchesCat = (window.activeCategory || 'All') === 'All' || item.category === window.activeCategory;
 
-        if (matchesSearch && matchesCat) {
-            fragment.appendChild(createInventoryRow(item));
+        // 3. Global State Filter (e.g., from Dashboard)
+        let passesGlobalFilter = true;
+        if (window.activeInventoryFilter === 'LowStock' && !isLow) {
+            passesGlobalFilter = false;
+        }
+
+        if (matchesSearch && matchesCat && passesGlobalFilter) {
+            fragment.appendChild(createInventoryRow(item, isLow));
             count++;
         }
     });
     
     tbody.appendChild(fragment);
 
-    // CRITICAL: Reset Scroll Position
-    // Because the table height is now dynamic/fixed to screen, 
-    // we must scroll to top when data changes.
-    const scrollContainer = tbody.closest('.table-scroll-container');
-    if (scrollContainer) scrollContainer.scrollTo(0, 0);
+    // Reset Scroll Position
+    const scrollContainer = tbody.closest('.table-scroll-container') || tbody.parentElement;
+    if (scrollContainer) scrollContainer.scrollTop = 0;
     
     const emptyMsg = document.getElementById('inventory-empty');
     if(emptyMsg) emptyMsg.classList.toggle('hidden', count > 0);
@@ -109,12 +133,14 @@ function renderCategoryButtons() {
     const catContainer = document.getElementById('inventory-categories');
     if (!catContainer) return;
 
+    // Ensure masterData exists
+    const cats = window.masterData?.categories || ['Spare Parts', 'Tools', 'Fluids'];
+    const categories = ['All', ...cats];
+    
     const baseClass = "px-3 py-1 rounded-full text-xs font-bold border transition whitespace-nowrap cursor-pointer select-none";
     const activeClass = "bg-brand-600 text-white border-brand-600 shadow-md";
     const inactiveClass = "bg-white dark:bg-slate-700 dark:text-white dark:border-slate-500 text-slate-600 border-slate-300 hover:bg-slate-50 hover:border-slate-400";
 
-    const categories = ['All', ...(masterData?.categories || [])];
-    
     catContainer.innerHTML = categories.map(c => {
         const isActive = (window.activeCategory || 'All') === c;
         return `<button onclick="filterCat('${c}')" class="${baseClass} ${isActive ? activeClass : inactiveClass}">${c}</button>`;
@@ -124,19 +150,16 @@ function renderCategoryButtons() {
 /**
  * Helper: Creates a TR element for the inventory table.
  */
-function createInventoryRow(item) {
+function createInventoryRow(item, isLow) {
     const tr = document.createElement('tr');
-    const isLow = item.stock <= (item.threshold || 5);
     const code = item.code || `ID-${item.id}`;
     
-    // Classes
+    // Row Styling
     tr.className = `hover:bg-slate-50 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-700 ${isLow ? 'bg-red-50 dark:bg-red-900/10' : ''}`;
 
-    // Image logic with fallback
+    // Optional Image Logic (if image exists in DB)
     const imgHtml = item.image 
-        ? `<img src="${item.image}" alt="Img" 
-                class="w-8 h-8 rounded object-cover border border-slate-200 dark:border-slate-600 mr-2 inline-block bg-white shrink-0"
-                onerror="this.onerror=null;this.src='https://placehold.co/100?text=X';">` 
+        ? `<img src="${item.image}" alt="Img" class="w-8 h-8 rounded object-cover border border-slate-200 dark:border-slate-600 mr-2 inline-block bg-white shrink-0">` 
         : ``;
 
     tr.innerHTML = `
@@ -158,49 +181,42 @@ function createInventoryRow(item) {
         <td class="px-6 py-3 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">${item.location || '-'}</td>
         <td class="px-6 py-3 text-right">
             <div class="flex justify-end gap-2">
-                <button onclick="openStockAdjustment(${item.id}, 'In')" class="action-btn text-green-600 hover:bg-green-100 dark:hover:bg-green-900" title="Stock In"><i class="fas fa-arrow-up"></i></button>
-                <button onclick="openStockAdjustment(${item.id}, 'Out')" class="action-btn text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900" title="Stock Out"><i class="fas fa-arrow-down"></i></button>
-                <button onclick="viewInventory(${item.id})" class="action-btn text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900" title="View Details"><i class="fas fa-eye"></i></button>
-                <button onclick="editInventory(${item.id})" class="action-btn text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900" title="Edit Metadata"><i class="fas fa-pencil-alt"></i></button>
-                <button onclick="deleteItem(${item.id})" class="action-btn text-red-500 hover:bg-red-100 dark:hover:bg-red-900" title="Delete Item"><i class="fas fa-trash"></i></button>
+                <button onclick="openStockAdjustment(${item.id}, 'In')" class="p-1.5 rounded text-green-600 hover:bg-green-100 dark:hover:bg-green-900" title="Stock In"><i class="fas fa-arrow-up"></i></button>
+                <button onclick="openStockAdjustment(${item.id}, 'Out')" class="p-1.5 rounded text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900" title="Stock Out"><i class="fas fa-arrow-down"></i></button>
+                <button onclick="viewInventory(${item.id})" class="p-1.5 rounded text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900" title="View Details"><i class="fas fa-eye"></i></button>
+                <button onclick="editInventory(${item.id})" class="p-1.5 rounded text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900" title="Edit Metadata"><i class="fas fa-pencil-alt"></i></button>
+                <button onclick="deleteItem(${item.id})" class="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900" title="Delete Item"><i class="fas fa-trash"></i></button>
             </div>
         </td>
     `;
     return tr;
 }
 
-// --- CRUD & Metadata Editing ---
+// --- CRUD & FORM SUBMISSIONS ---
 
 /**
  * Uploads a file to Supabase Storage and returns the Public URL.
+ * Requires a bucket named 'inventory-images' to exist in Supabase.
  */
 async function uploadImageToSupabase(file) {
     if (!file) return null;
-
     try {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        const { data, error } = await supabase
-            .storage
-            .from('inventory-images')
-            .upload(filePath, file);
+        const { error } = await supabase.storage.from('inventory-images').upload(filePath, file);
 
         if (error) {
-            console.error('Supabase Upload Error:', error);
-            throw new Error('Failed to upload image to storage.');
+            console.warn('Supabase Upload Error (Bucket might not exist):', error);
+            return null; // Fail gracefully
         }
 
-        const { data: urlData } = supabase
-            .storage
-            .from('inventory-images')
-            .getPublicUrl(filePath);
-
+        const { data: urlData } = supabase.storage.from('inventory-images').getPublicUrl(filePath);
         return urlData.publicUrl;
     } catch (err) {
         console.error("Upload process failed:", err);
-        throw err;
+        return null;
     }
 }
 
@@ -209,14 +225,14 @@ async function uploadImageToSupabase(file) {
  */
 async function submitAddItemForm(e) {
     e.preventDefault();
-    
     const btn = e.target.querySelector('button[type="submit"]');
     if(btn) btn.disabled = true;
 
     try {
         let imageUrl = '';
+        // Check if file input exists in HTML (optional feature)
         const fileInput = document.getElementById('add-image-file');
-        const urlInput = document.getElementById('add-image');
+        const urlInput = document.getElementById('add-image-url');
 
         if (fileInput && fileInput.files && fileInput.files[0]) {
             showToast('Uploading image...', 'info');
@@ -236,25 +252,20 @@ async function submitAddItemForm(e) {
             sds: document.getElementById('add-sds').value.trim(),
             image: imageUrl || '' 
         };
-        
-        if (!newItem.code || !newItem.name) {
-            throw new Error('Material Code and Description are required.');
-        }
 
+        // Duplicate Check
         const allItems = await dbAction('inventory', 'readonly', store => store.getAll());
         const isDuplicate = allItems.some(i => i.code.toLowerCase() === newItem.code.toLowerCase());
 
-        if (isDuplicate) {
-            throw new Error(`Material Code "${newItem.code}" already exists.`);
-        }
+        if (isDuplicate) throw new Error(`Material Code "${newItem.code}" already exists.`);
 
+        // DB Insert
         await dbAction('inventory', 'readwrite', store => store.add(newItem));
         await logAction('ADD_ITEM', `Added new material: ${newItem.code} - ${newItem.name}`);
         
         showToast('Item Added Successfully', 'success'); 
         e.target.reset(); 
         
-        // Refresh views
         renderInventory();
         if(typeof renderDashboard === 'function') renderDashboard();
     } catch (error) {
@@ -276,11 +287,11 @@ async function editInventory(id) {
     setVal('inv-edit-code', item.code || `ID-${item.id}`);
     setVal('inv-edit-name', item.name);
     setVal('inv-edit-loc', item.location || '');
-    setVal('inv-edit-image', item.image || '');
-
+    
     const stockInput = document.getElementById('inv-edit-stock');
     if(stockInput) {
         stockInput.value = item.stock; 
+        // We usually don't allow direct stock edit in metadata to enforce audit trails
         stockInput.setAttribute('readonly', true); 
         stockInput.classList.add('bg-slate-200', 'cursor-not-allowed');
     }
@@ -294,7 +305,7 @@ function setVal(id, val) {
 }
 
 /**
- * Handles submission of Inventory Metadata.
+ * Handles submission of Inventory Metadata Updates.
  */
 async function submitInvEdit(e) {
     e.preventDefault(); 
@@ -305,18 +316,16 @@ async function submitInvEdit(e) {
         if(!item) throw new Error("Item no longer exists");
 
         const oldName = item.name;
-
         item.name = document.getElementById('inv-edit-name').value.trim(); 
-        item.location = document.getElementById('inv-edit-loc').value.trim();
         
-        const imgInput = document.getElementById('inv-edit-image');
-        if (imgInput) item.image = imgInput.value.trim();
+        const locInput = document.getElementById('inv-edit-loc');
+        if(locInput) item.location = locInput.value.trim();
 
         await dbAction('inventory', 'readwrite', store => store.put(item));
         await logAction('UPDATE_META', `Updated metadata for ${item.code}. Old Name: ${oldName}`);
         
-        showToast('Inventory Metadata Updated', 'success'); 
-        closeModal('inv-edit-modal'); 
+        showToast('Inventory Updated', 'success'); 
+        if(typeof closeModal === 'function') closeModal('inv-edit-modal'); 
         renderInventory();
     } catch (error) {
         console.error("Error updating inventory:", error);
@@ -339,65 +348,50 @@ async function viewInventory(id) {
         : 'https://placehold.co/400x400/e2e8f0/475569?text=No+Image';
 
     const contentDiv = document.getElementById('inv-view-content');
+    if(!contentDiv) return;
 
-    // Layout optimized for auto-fit screens (flexible height)
+    // View Template
     contentDiv.innerHTML = `
         <div class="flex flex-col md:flex-row gap-6">
-            <!-- Left: Image (Fixed Size to prevent layout shifts) -->
             <div class="w-full md:w-auto flex flex-col items-center justify-start shrink-0">
                 <div class="w-40 h-40 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-sm relative group">
-                    <img src="${imgSrc}" alt="${item.name}" 
-                         class="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105"
-                         onerror="this.src='https://placehold.co/400?text=Image+Error';">
+                    <img src="${imgSrc}" alt="${item.name}" class="max-w-full max-h-full object-contain">
                 </div>
                 <div class="mt-2 text-center w-40">
-                    <span class="text-xs font-mono text-slate-400 copy-btn cursor-pointer break-all" title="Click to copy" onclick="navigator.clipboard.writeText('${item.code}')">
+                    <span class="text-xs font-mono text-slate-400 cursor-pointer" onclick="navigator.clipboard.writeText('${item.code}')">
                         ${item.code || 'ID-'+item.id} <i class="fas fa-copy ml-1"></i>
                     </span>
                 </div>
             </div>
 
-            <!-- Right: Details (Fill Remaining Space) -->
             <div class="w-full md:flex-1 min-w-0">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    
-                    <div class="col-span-1 sm:col-span-2 border-b border-slate-100 dark:border-slate-700 pb-3 mb-1">
-                        <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Item Description</label>
-                        <div class="text-xl font-bold text-slate-800 dark:text-white leading-tight break-words">${item.name}</div>
-                    </div>
-
-                    <div class="info-block">
+                <div class="border-b border-slate-100 dark:border-slate-700 pb-3 mb-3">
+                    <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Description</label>
+                    <div class="text-xl font-bold text-slate-800 dark:text-white leading-tight">${item.name}</div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
                         <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Category</label>
                         <span class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-sm font-bold">${item.category}</span>
                     </div>
-
-                    <div class="info-block">
-                        <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Location</label>
-                        <div class="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                            <i class="fas fa-map-marker-alt text-slate-400"></i> ${item.location || 'Not Assigned'}
-                        </div>
+                    <div>
+                         <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Location</label>
+                         <div class="text-sm font-medium text-slate-700 dark:text-slate-300"><i class="fas fa-map-marker-alt text-slate-400 mr-1"></i> ${item.location || 'N/A'}</div>
                     </div>
+                </div>
 
-                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
-                        <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Current Stock</label>
-                        <div class="text-2xl font-bold ${stockColor} dark:text-opacity-90">
-                            ${item.stock} <span class="text-sm font-normal text-slate-500">${item.unit}</span>
-                        </div>
-                        ${isLow ? `<div class="mt-1 text-xs font-bold text-red-500 flex items-center gap-1"><i class="fas fa-exclamation-triangle"></i> Low Stock</div>` : ''}
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700 mt-4">
+                    <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Current Stock</label>
+                    <div class="text-2xl font-bold ${stockColor} dark:text-opacity-90">
+                        ${item.stock} <span class="text-sm font-normal text-slate-500">${item.unit}</span>
                     </div>
-
-                    <div class="flex flex-col justify-between p-2">
-                        <div class="mb-3">
-                            <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Min Threshold</label>
-                            <span class="font-mono font-bold text-slate-600 dark:text-slate-400">${item.threshold || 5} ${item.unit}</span>
-                        </div>
-                        <div>
-                            <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Safety Data Sheet</label>
-                            ${item.sds 
-                                ? `<a href="${item.sds}" target="_blank" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium transition"><i class="fas fa-file-pdf"></i> View PDF</a>` 
-                                : '<span class="text-sm text-slate-400 italic">No SDS</span>'}
-                        </div>
-                    </div>
+                    ${isLow ? `<div class="mt-1 text-xs font-bold text-red-500"><i class="fas fa-exclamation-triangle"></i> Low Stock Warning</div>` : ''}
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Safety Data Sheet</label>
+                    ${item.sds ? `<a href="${item.sds}" target="_blank" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"><i class="fas fa-file-pdf"></i> View PDF</a>` : '<span class="text-sm text-slate-400 italic">No SDS</span>'}
                 </div>
             </div>
         </div>
@@ -428,14 +422,21 @@ async function deleteItem(id) {
     }
 }
 
-
-// --- Stock Adjustment Logic ---
+// --- Stock Adjustment Logic (Requires Extra Modal in HTML) ---
 
 let currentInventoryItem = null;
 
 async function openStockAdjustment(id, type) {
     currentInventoryItem = await dbAction('inventory', 'readonly', store => store.get(id));
     if (!currentInventoryItem) return showToast('Item not found.', 'error');
+
+    // Check if the modal exists in the HTML, if not warn the developer
+    const modal = document.getElementById('stock-adjust-modal');
+    if(!modal) {
+        console.error("Missing HTML Element: #stock-adjust-modal");
+        alert("Stock Adjustment Modal not found in HTML.");
+        return;
+    }
 
     const title = type === 'In' ? 'Stock In (Receive)' : 'Stock Out (Deduct)';
     const btnSubmit = document.getElementById('btn-adjust-submit');
@@ -444,8 +445,12 @@ async function openStockAdjustment(id, type) {
     document.getElementById('adjust-modal-title').innerText = title;
     document.getElementById('adjust-type').value = type;
     document.getElementById('adjust-item-id').value = id;
-    document.getElementById('adjust-item-name-display').innerText = currentInventoryItem.name;
-    document.getElementById('adjust-current-stock').innerText = `${currentInventoryItem.stock} ${currentInventoryItem.unit}`;
+    
+    const nameDisplay = document.getElementById('adjust-item-name-display');
+    if(nameDisplay) nameDisplay.innerText = currentInventoryItem.name;
+    
+    const stockDisplay = document.getElementById('adjust-current-stock');
+    if(stockDisplay) stockDisplay.innerText = `${currentInventoryItem.stock} ${currentInventoryItem.unit}`;
     
     const qtyInput = document.getElementById('adjust-qty');
     qtyInput.value = '';
@@ -455,16 +460,20 @@ async function openStockAdjustment(id, type) {
     if (type === 'Out') {
         qtyInput.max = currentInventoryItem.stock;
         qtyInput.placeholder = `Max: ${currentInventoryItem.stock}`;
-        btnSubmit.innerText = 'Confirm Deduction';
-        btnSubmit.className = "px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded font-bold transition shadow-lg w-full sm:w-auto";
+        if(btnSubmit) {
+            btnSubmit.innerText = 'Confirm Deduction';
+            btnSubmit.className = "px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded font-bold transition shadow-lg w-full sm:w-auto";
+        }
     } else {
          qtyInput.removeAttribute('max');
          qtyInput.placeholder = `Qty to add`;
-         btnSubmit.innerText = 'Confirm Addition';
-         btnSubmit.className = "px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold transition shadow-lg w-full sm:w-auto";
+         if(btnSubmit) {
+             btnSubmit.innerText = 'Confirm Addition';
+             btnSubmit.className = "px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold transition shadow-lg w-full sm:w-auto";
+         }
     }
 
-    document.getElementById('stock-adjust-modal').classList.add('open');
+    modal.classList.add('open');
     setTimeout(() => qtyInput.focus(), 100);
 }
 
@@ -497,7 +506,7 @@ async function submitStockAdjustment(e) {
         await logAction(actionStr, `${item.code}: ${msg}`);
         
         showToast('Stock Adjusted.', 'success');
-        closeModal('stock-adjust-modal');
+        if(typeof closeModal === 'function') closeModal('stock-adjust-modal');
         renderInventory();
         if(typeof renderDashboard === 'function') renderDashboard();
     } catch (error) {
@@ -514,7 +523,7 @@ async function downloadInventoryCSV() {
         if(!items || items.length === 0) return showToast("No data to export", "info");
 
         // Define Headers
-        const headers = ["ID", "Code", "Name", "Category", "Stock", "Unit", "Location", "Value (est)"];
+        const headers = ["ID", "Code", "Name", "Category", "Stock", "Unit", "Location"];
         
         // Convert Items to CSV rows
         const csvRows = [headers.join(',')];
@@ -527,8 +536,7 @@ async function downloadInventoryCSV() {
                 `"${(item.category || '')}"`,
                 item.stock,
                 item.unit,
-                `"${(item.location || '')}"`,
-                "" 
+                `"${(item.location || '')}"`
             ];
             csvRows.push(row.join(','));
         });
