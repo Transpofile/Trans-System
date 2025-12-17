@@ -1,0 +1,63 @@
+/* Global Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+.dark ::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+.fade-in { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Glass Panel */
+.glass-panel { background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(226, 232, 240, 0.8); }
+.dark .glass-panel { background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(51, 65, 85, 0.8); color: #f1f5f9; }
+
+.modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); align-items: center; justify-content: center; }
+.modal.open { display: flex; }
+
+.badge { padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.badge-pending { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.badge-approved { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.badge-rejected { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.badge-withdrawal { background-color: #bfdbfe; color: #1e40af; border: 1px solid #93c5fd; }
+.badge-disposed { background-color: #e5e7eb; color: #374151; border: 1px solid #9ca3af; }
+
+#floating-calculator { position: fixed; bottom: 20px; right: 20px; z-index: 1500; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+/* ENHANCED PR GRID LAYOUT */
+.pr-list-grid { display: grid; grid-template-columns: 0.5fr 2.5fr 0.9fr 1fr 1fr 1.3fr 1.5fr 1fr; gap: 0.75rem; padding: 0.75rem; align-items: center; }
+#sidebar { transition: all 0.3s ease-in-out; }
+.sidebar-collapsed { width: 0 !important; opacity: 0; overflow: hidden; padding: 0 !important; }
+
+/* MODAL & TABLE TWEAKS */
+.modal-body-scroll { overflow-y: auto; scrollbar-width: thin; }
+.table-scroll-container { overflow-y: auto; max-height: 250px; scrollbar-width: thin; border-bottom: 1px solid black; }
+.sticky-th { position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 0 black; }
+
+/* TAB STYLES */
+.tab-btn { border-bottom: 2px solid transparent; transition: all 0.2s; }
+.tab-btn.active { border-bottom-color: #4f46e5; color: #4f46e5; }
+.dark .tab-btn.active { border-bottom-color: #818cf8; color: #818cf8; }
+
+/* PRINT STYLES - THPAL FORM SPECIFIC */
+@media print {
+    body * { visibility: hidden; }
+    #request-details-modal, #request-details-modal * { visibility: visible; }
+    #request-details-modal { 
+        position: absolute; left: 0; top: 0; width: 100%; height: 100%; 
+        background: white; padding: 0; margin: 0; display: block;
+    }
+    #modal-content-wrapper {
+        box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important;
+        height: auto !important; max-height: none !important; overflow: visible !important;
+    }
+    .modal-body-scroll, .table-scroll-container { overflow: visible !important; max-height: none !important; }
+    .no-print { display: none !important; }
+    .thpal-form { color: black !important; background: white !important; width: 100%; }
+    .thpal-border { border-color: black !important; }
+    .thpal-bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+}
+
+.thpal-form table { width: 100%; border-collapse: collapse; }
+.thpal-form th, .thpal-form td { border: 1px solid black; padding: 4px; font-size: 11px; }
