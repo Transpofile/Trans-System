@@ -2,13 +2,17 @@
 <html lang="en" class="light">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TRANS-SYSTEM | Transportation Record Monitoring System</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    
+    <!-- Chart.js for Interactive Trends -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- Supabase JS Library -->
@@ -27,133 +31,62 @@
                 }
             }
         }
+
+        // --- PRE-LOAD CONFIGURATION ---
+        // Initializes Categories, Units, and Departments so tabs appear immediately
+        window.masterData = {
+            categories: [
+                'Spare Parts', 
+                'Tools', 
+                'Fluids', 
+                'Tires', 
+                'Battery', 
+                'Belt', 
+                'Bulb', 
+                'Others', 
+                'Safety Materials'
+            ],
+            units: ['pcs', 'liters', 'sets', 'pairs', 'box', 'roll', 'meters', 'drums', 'pails'],
+            departments: ['Maintenance', 'Operations', 'Logistics', 'Safety', 'Admin', 'Finance']
+        };
     </script>
-    <style>
-        /* Global Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        .dark ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .dark ::-webkit-scrollbar-thumb { background: #475569; }
-        
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Glass Panel */
-        .glass-panel { background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(226, 232, 240, 0.8); }
-        .dark .glass-panel { background: rgba(30, 41, 59, 0.98); border: 1px solid rgba(51, 65, 85, 0.8); color: #f1f5f9; }
-
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); align-items: center; justify-content: center; padding: 1rem; }
-        .modal.open { display: flex; }
-
-        .badge { padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
-        .badge-pending { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
-        .badge-approved { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
-        .badge-rejected { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .badge-withdrawal { background-color: #bfdbfe; color: #1e40af; border: 1px solid #93c5fd; }
-        .badge-disposed { background-color: #e5e7eb; color: #374151; border: 1px solid #9ca3af; }
-        
-        #floating-calculator { position: fixed; bottom: 80px; right: 20px; z-index: 1500; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
-        
-        /* ENHANCED PR GRID LAYOUT - RESPONSIVE TWEAK */
-        /* Forces horizontal scroll on mobile instead of breaking layout */
-        .pr-list-grid-container { min-width: 900px; } 
-        .pr-list-grid { display: grid; grid-template-columns: 0.5fr 2.5fr 0.9fr 1fr 1fr 1.3fr 1.5fr 1fr; gap: 0.75rem; padding: 0.75rem; align-items: center; }
-        
-        /* SIDEBAR TRANSITIONS */
-        #sidebar { transition: transform 0.3s ease-in-out; }
-        /* Mobile: Hidden by default (translated left), Desktop: Visible (translate 0) */
-        .sidebar-mobile-closed { transform: translateX(-100%); }
-        .sidebar-mobile-open { transform: translateX(0); }
-        .sidebar-desktop-collapsed { width: 0 !important; opacity: 0; overflow: hidden; padding: 0 !important; }
-
-        /* MODAL & TABLE TWEAKS */
-        .modal-body-scroll { overflow-y: auto; scrollbar-width: thin; }
-        .table-scroll-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .sticky-th { position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 0 black; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* TAB STYLES */
-        .tab-btn { border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
-        .tab-btn.active { border-bottom-color: #4f46e5; color: #4f46e5; }
-        .dark .tab-btn.active { border-bottom-color: #818cf8; color: #818cf8; }
-
-        /* PRINT STYLES - THPAL FORM SPECIFIC */
-        @media print {
-            body * { visibility: hidden; }
-            #request-details-modal, #request-details-modal * { visibility: visible; }
-            #request-details-modal { 
-                position: absolute; left: 0; top: 0; width: 100%; height: 100%; 
-                background: white; padding: 0; margin: 0; display: block;
-            }
-            #modal-content-wrapper {
-                box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important;
-                height: auto !important; max-height: none !important; overflow: visible !important;
-            }
-            .modal-body-scroll, .table-scroll-container { overflow: visible !important; max-height: none !important; }
-            .no-print { display: none !important; }
-            .thpal-form { color: black !important; background: white !important; width: 100%; zoom: 90%; }
-            .thpal-border { border-color: black !important; }
-            .thpal-bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-        }
-        
-        .thpal-form table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        .thpal-form th, .thpal-form td { border: 1px solid black; padding: 4px; font-size: 11px; }
-    </style>
+   
 </head>
 
 <body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col overflow-hidden transition-colors duration-300">
 
-    <!-- Mobile Sidebar Overlay -->
-    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden glass-panel backdrop-blur-sm transition-opacity"></div>
-
     <!-- Header -->
-    <header class="bg-brand-900 dark:bg-slate-950 text-white shadow-xl z-30 shrink-0 border-b border-brand-800 dark:border-slate-800 relative">
+    <header class="bg-brand-900 dark:bg-slate-950 text-white shadow-xl z-20 shrink-0 border-b border-brand-800 dark:border-slate-800">
         <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3 md:gap-4">
-                <button onclick="toggleSidebar()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-white focus:outline-none">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="flex items-center gap-2 md:gap-3">
-                    <div class="w-8 h-8 md:w-10 md:h-10 bg-white/10 rounded-lg flex items-center justify-center border border-white/20 shrink-0">
-                        <i class="fas fa-truck-fast text-base md:text-xl text-yellow-400"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-sm md:text-xl font-bold tracking-tight">TRANS-SYSTEM</h1>
-                        <p class="text-[8px] md:text-[10px] text-brand-200 uppercase tracking-widest hidden sm:block">Record Monitoring System</p>
-                    </div>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-white"><i class="fas fa-bars"></i></button>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center border border-white/20"><i class="fas fa-truck-fast text-xl text-yellow-400"></i></div>
+                    <div><h1 class="text-xl font-bold tracking-tight">TRANS-SYSTEM</h1><p class="text-[10px] text-brand-200 uppercase tracking-widest">Transportation Record Monitoring System</p></div>
                 </div>
             </div>
-            <div class="flex items-center gap-2 md:gap-4">
-                 <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white border-none py-1.5 px-3 rounded text-xs md:text-sm font-semibold cursor-pointer transition">
-                    <i class="fas fa-sign-out-alt md:mr-1"></i> <span class="hidden md:inline">Logout</span>
+            <div class="flex items-center gap-4">
+                <button onclick="window.location.reload()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition shadow-sm border border-red-500">
+                    <i class="fas fa-sign-out-alt mr-1"></i> Logout
                 </button> 
-
-                <div class="hidden lg:flex flex-col items-end mr-2">
-                    <span id="header-time" class="text-lg font-mono font-bold leading-none">00:00:00</span>
-                    <span id="header-date" class="text-xs text-brand-300">Loading...</span>
-                </div>
-                <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm md:text-base"><i id="theme-icon" class="fas fa-moon"></i></button>
-                <button onclick="toggleCalculator()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm md:text-base"><i class="fas fa-calculator"></i></button>
-                <a href="../../Trans-System.html"><div id="home-button" onclick="window.location.reload()" class="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-brand-900 border-2 border-white shadow-lg cursor-pointer"><i class="fas fa-home text-sm md:text-lg"></i></div></a>
+                <div class="hidden md:flex flex-col items-end mr-4"><span id="header-time" class="text-lg font-mono font-bold leading-none">00:00:00</span><span id="header-date" class="text-xs text-brand-300">Loading...</span></div>
+                <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition tooltip" title="Toggle Theme"><i id="theme-icon" class="fas fa-moon"></i></button>
+                <button onclick="toggleCalculator()" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"><i class="fas fa-calculator"></i></button>
             </div>
         </div>
     </header>
 
-    <div class="flex flex-1 overflow-hidden relative">
+    <div class="flex flex-1 overflow-hidden">
         <!-- Sidebar -->
-        <aside id="sidebar" class="w-64 bg-slate-900 dark:bg-slate-950 text-slate-300 flex flex-col shrink-0 shadow-2xl z-40 border-r dark:border-slate-800 absolute md:static h-full sidebar-mobile-closed md:transform-none">
-            <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Navigation</h3>
-                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
-            </div>
+        <aside id="sidebar" class="w-64 bg-slate-900 dark:bg-slate-950 text-slate-300 flex flex-col shrink-0 shadow-2xl z-10 hidden md:flex border-r dark:border-slate-800">
+            <div class="p-4 border-b border-slate-800"><h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Navigation</h3></div>
             <nav class="flex-1 overflow-y-auto p-3 space-y-1">
                 <button onclick="navTo('view-dashboard', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition active-nav bg-brand-700 text-white shadow-lg"><i class="fas fa-chart-line w-5 text-center"></i> <span class="nav-text">Dashboard</span></button>
                 <button id="nav-inventory" onclick="navTo('view-inventory', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-boxes-stacked w-5 text-center"></i> <span class="nav-text">Inventory Mgmt</span></button>
                 <button id="nav-requests" onclick="navTo('view-requests', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-file-signature w-5 text-center"></i> <span class="nav-text">Withdrawal Req</span> <span id="nav-pending-badge" class="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span></button>
                 <button onclick="navTo('view-pr-requests', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-list-check w-5 text-center"></i> <span class="nav-text">PR List</span></button>
+                
+                <!-- Disposal Link -->
                 <button onclick="navTo('view-disposal', this)" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition"><i class="fas fa-recycle w-5 text-center text-orange-400"></i> <span class="nav-text">Disposal</span></button>
 
                 <div class="pt-4 pb-2 px-3 border-t border-slate-800 mt-2 nav-divider"><h3 class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Quick Actions</h3></div>
@@ -166,98 +99,112 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900 p-3 md:p-8 relative transition-colors duration-300 w-full" id="main-container">
+        <main class="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900 p-4 md:p-8 relative transition-colors duration-300" id="main-container">
             <!-- VIEW: DASHBOARD -->
             <section id="view-dashboard" class="view-section fade-in">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-                    <h2 class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Operational Dashboard</h2>
-                    <button onclick="renderDashboard()" class="text-xs md:text-sm bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 border border-slate-300 px-3 py-1 rounded shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition w-full sm:w-auto"><i class="fas fa-sync-alt mr-1"></i> Refresh Data</button>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Operational Dashboard</h2>
+                    <button onclick="renderDashboard()" class="text-sm bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 border border-slate-300 px-3 py-1 rounded shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition"><i class="fas fa-sync-alt mr-1"></i> Refresh Data</button>
                 </div>
-                <!-- Stats Grid: 1 col mobile, 2 tablet, 4 desktop -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-brand-600 dark:border-brand-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="document.getElementById('nav-inventory').click()">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-brand-600 dark:border-brand-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="document.getElementById('nav-inventory').click()">
                         <div class="flex justify-between items-center">
-                            <div><p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">Total Inventory Item</p><h3 class="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white mt-1" id="dash-total-items">0</h3></div>
-                            <div class="w-10 h-10 md:w-12 md:h-12 bg-brand-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-brand-600 dark:text-brand-400 text-lg md:text-xl"><i class="fas fa-cubes"></i></div>
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Inventory Item</p><h3 class="text-3xl font-bold text-slate-800 dark:text-white mt-1" id="dash-total-items">0</h3></div>
+                            <div class="w-12 h-12 bg-brand-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-brand-600 dark:text-brand-400 text-xl"><i class="fas fa-cubes"></i></div>
                         </div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-red-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="filterInventoryByLowStock()">
+                    <!-- Low Stock Widget -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-red-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="filterInventoryByLowStock()">
                         <div class="flex justify-between items-center">
-                            <div><p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">Low Stock Inventory</p><h3 class="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400 mt-1" id="dash-low-stock">0</h3></div>
-                            <div class="w-10 h-10 md:w-12 md:h-12 bg-red-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 text-lg md:text-xl animate-pulse"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Low Stock Inventory</p><h3 class="text-3xl font-bold text-red-600 dark:text-red-400 mt-1" id="dash-low-stock">0</h3></div>
+                            <div class="w-12 h-12 bg-red-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 text-xl animate-pulse"><i class="fas fa-exclamation-triangle"></i></div>
                         </div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-yellow-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="document.getElementById('nav-requests').click()">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-yellow-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="document.getElementById('nav-requests').click()">
                         <div class="flex justify-between items-center">
-                            <div><p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">Pending Withdrawals</p><h3 class="text-2xl md:text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-1" id="dash-pending">0</h3></div>
-                            <div class="w-10 h-10 md:w-12 md:h-12 bg-yellow-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-yellow-600 dark:text-yellow-400 text-lg md:text-xl"><i class="fas fa-clock"></i></div>
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Pending Withdrawals</p><h3 class="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-1" id="dash-pending">0</h3></div>
+                            <div class="w-12 h-12 bg-yellow-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-yellow-600 dark:text-yellow-400 text-xl"><i class="fas fa-clock"></i></div>
                         </div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-orange-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="navTo('view-disposal')">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-orange-500 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition duration-300" onclick="navTo('view-disposal')">
                         <div class="flex justify-between items-center">
-                            <div><p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">Total Disposed</p><h3 class="text-2xl md:text-3xl font-bold text-orange-600 dark:text-orange-400 mt-1" id="dash-disposed">0</h3></div>
-                            <div class="w-10 h-10 md:w-12 md:h-12 bg-orange-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 text-lg md:text-xl"><i class="fas fa-trash-alt"></i></div>
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Disposed</p><h3 class="text-3xl font-bold text-orange-600 dark:text-orange-400 mt-1" id="dash-disposed">0</h3></div>
+                            <div class="w-12 h-12 bg-orange-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 text-xl"><i class="fas fa-trash-alt"></i></div>
                         </div>
                     </div>
                 </div>
                 <!-- Additional Stats -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-                     <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-teal-500">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                     <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-teal-500">
                         <div class="flex justify-between items-center">
-                            <div><p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">Total Items Withdrawn</p><h3 class="text-xl md:text-2xl font-bold text-teal-600 dark:text-teal-400 mt-1" id="dash-total-withdraw">0</h3></div>
-                            <div class="w-10 h-10 md:w-12 md:h-12 bg-teal-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-teal-600 dark:text-teal-400 text-lg md:text-xl"><i class="fas fa-dolly-flatbed"></i></div>
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Items Withdrawn</p><h3 class="text-2xl font-bold text-teal-600 dark:text-teal-400 mt-1" id="dash-total-withdraw">0</h3></div>
+                            <div class="w-12 h-12 bg-teal-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-teal-600 dark:text-teal-400 text-xl"><i class="fas fa-dolly-flatbed"></i></div>
                         </div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-blue-500">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
                         <div class="flex justify-between items-center">
-                            <div><p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">Active PRs</p><h3 class="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1" id="dash-pr-active">0</h3></div>
-                            <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 text-lg md:text-xl"><i class="fas fa-file-invoice"></i></div>
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Active PRs</p><h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1" id="dash-pr-active">0</h3></div>
+                            <div class="w-12 h-12 bg-blue-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl"><i class="fas fa-file-invoice"></i></div>
                         </div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border-l-4 border-emerald-500">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border-l-4 border-emerald-500">
                         <div class="flex justify-between items-center">
-                            <div><p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">Total PR Value</p><h3 class="text-xl md:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="dash-pr-value">₱0.00</h3></div>
-                            <div class="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-lg md:text-xl"><i class="fas fa-coins"></i></div>
+                            <div><p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total PR Value</p><h3 class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="dash-pr-value">₱0.00</h3></div>
+                            <div class="w-12 h-12 bg-emerald-50 dark:bg-slate-700 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xl"><i class="fas fa-coins"></i></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                    <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-base md:text-lg font-bold text-slate-700 dark:text-slate-200">Categories Trends</h3>
-                            <span class="text-[10px] uppercase tracking-wider text-green-600 dark:text-green-400 font-bold bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800">Inventory</span>
+                            <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200">Categories Trends Inventory</h3>
+                            <span class="text-[10px] uppercase tracking-wider text-green-600 dark:text-green-400 font-bold bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800">Categories</span>
                         </div>
-                        <div class="h-48 md:h-64 w-full relative"><canvas id="trading-chart"></canvas></div>
+                        <div class="h-80 w-full relative"><canvas id="trading-chart"></canvas></div>
                     </div>
-                    <div class="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                        <h3 class="text-base md:text-lg font-bold text-slate-700 dark:text-slate-200 mb-4">Recent Transactions</h3>
-                        <ul id="recent-logs-list" class="flex-1 overflow-y-auto text-sm space-y-3 pr-2" style="max-height: 250px;"></ul>
+                    <!-- Recent Transactions -->
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col h-96">
+                        <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200 mb-4">Recent Transactions</h3>
+                        <!-- List has flex-1 and overflow-y-auto to scroll within parent -->
+                        <ul id="recent-logs-list" class="flex-1 overflow-y-auto text-sm space-y-3 pr-2"></ul>
                     </div>
                 </div>
             </section>
 
             <!-- VIEW: INVENTORY -->
             <section id="view-inventory" class="view-section hidden fade-in">
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-                    <h2 class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Inventory Management</h2>
-                    <div class="flex gap-2 w-full lg:w-auto">
-                        <button onclick="navTo('view-add-item')" class="flex-1 lg:flex-none justify-center bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2 text-sm"><i class="fas fa-plus"></i> Add Item</button>
-                        <button onclick="exportToExcel('inventory')" class="flex-1 lg:flex-none justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2 text-sm"><i class="fas fa-file-excel"></i> Export</button>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Inventory Management</h2>
+                    <div class="flex gap-2">
+                        <button onclick="navTo('view-add-item')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2"><i class="fas fa-plus"></i> Add Item</button>
+                        <button onclick="exportToExcel('inventory')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2"><i class="fas fa-file-excel"></i> Export</button>
                     </div>
                 </div>
+                
+                <!-- NEW: Analytics Section Container (Injected by JS) -->
+                <div id="inventory-analytics-section" class="mb-8"></div>
+                
+                <!-- Filter Badge Indicator -->
+                <div id="active-filter-badge" class="hidden mb-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 flex justify-between items-center">
+                    <span class="text-red-700 dark:text-red-300 font-bold text-sm"><i class="fas fa-filter mr-2"></i> Filtering by: Low Stock</span>
+                    <button onclick="clearInventoryFilter()" class="text-xs bg-white dark:bg-slate-800 border px-2 py-1 rounded hover:bg-slate-50">Clear Filter</button>
+                </div>
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col lg:flex-row gap-4 justify-between items-center">
-                        <div class="flex overflow-x-auto gap-2 pb-2 lg:pb-0 w-full lg:w-auto no-scrollbar" id="inventory-categories"></div>
-                        <div class="relative w-full lg:w-64">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col md:flex-row gap-4 justify-between items-center">
+                        <!-- Inventory Categories Container -->
+                        <!-- The JS will now populate this with the masterData defined in the Head -->
+                        <div class="flex overflow-x-auto gap-2 pb-2 md:pb-0 w-full md:w-auto no-scrollbar" id="inventory-categories">
+                           <!-- Buttons will be injected here by inventorymanagement.js -->
+                        </div>
+                        <div class="relative w-full md:w-64">
                             <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                            <input type="text" id="inv-search" onkeyup="renderInventory()" placeholder="Search Code, Desc..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                            <input type="text" id="inv-search" onkeyup="renderInventory()" placeholder="Search Code, Desc..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
                         </div>
                     </div>
                     
-                    <div class="overflow-x-auto">
-                        <!-- Added min-w to trigger scroll on mobile -->
-                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300 min-w-[900px]">
+                    <div class="overflow-x-auto overflow-y-auto" style="max-height: 70vh;">
+                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
                             <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0 z-10 shadow-sm">
                                 <tr><th class="px-6 py-3">Material Code</th><th class="px-6 py-3">Material Description</th><th class="px-6 py-3">Category</th><th class="px-6 py-3 text-center">Stock</th><th class="px-6 py-3">Location</th><th class="px-6 py-3 text-right">Actions</th></tr>
                             </thead>
@@ -270,21 +217,19 @@
 
             <!-- VIEW: WITHDRAWAL REQUESTS -->
             <section id="view-requests" class="view-section hidden fade-in">
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-                    <h2 class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Withdrawal Requests</h2>
-                    <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                        <div class="relative w-full sm:w-auto flex-1">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Withdrawal Requests</h2>
+                    <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                        <div class="relative w-full md:w-64">
                             <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                            <input type="text" id="req-search" onkeyup="renderRequests()" placeholder="Search ID, Name..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                            <input type="text" id="req-search" onkeyup="renderRequests()" placeholder="Search ID, Name..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
                         </div>
-                        <div class="flex gap-2">
-                             <button onclick="navTo('view-request-withdrawal')" class="flex-1 bg-brand-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-brand-700 transition flex items-center justify-center gap-2 text-sm whitespace-nowrap"><i class="fas fa-plus"></i> New Request</button>
-                             <button onclick="exportToExcel('requests')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition"><i class="fas fa-file-excel"></i></button>
-                        </div>
+                        <button onclick="navTo('view-request-withdrawal')" class="bg-brand-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-brand-700 transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i> New Request</button>
+                        <button onclick="exportToExcel('requests')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition"><i class="fas fa-file-excel"></i></button>
                     </div>
                 </div>
 
-                <div class="flex border-b border-slate-200 dark:border-slate-700 mb-4 space-x-4 overflow-x-auto pb-1 no-scrollbar">
+                <div class="flex border-b border-slate-200 dark:border-slate-700 mb-4 space-x-6 overflow-x-auto">
                     <button onclick="setReqFilter('All', this)" class="tab-btn active px-2 py-3 text-sm font-medium text-brand-600 dark:text-brand-400 focus:outline-none">All Requests</button>
                     <button onclick="setReqFilter('Pending', this)" class="tab-btn px-2 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none">Pending</button>
                     <button onclick="setReqFilter('Approved', this)" class="tab-btn px-2 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none">Approved</button>
@@ -293,9 +238,18 @@
 
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300 min-w-[800px]">
+                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
                             <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0">
-                                <tr><th class="px-6 py-3">Req ID</th><th class="px-6 py-3">Date</th><th class="px-6 py-3">Requester</th><th class="px-6 py-3">Dept</th><th class="px-6 py-3 text-center">Items</th><th class="px-6 py-3">Status</th><th class="px-6 py-3 text-right">Action</th></tr>
+                                <tr>
+                                    <th class="px-6 py-3">Req ID</th>
+                                    <th class="px-6 py-3">Date</th>
+                                    <th class="px-6 py-3">Requester</th>
+                                    <th class="px-6 py-3">Dept</th>
+                                    <th class="px-6 py-3">Location</th>
+                                    <th class="px-6 py-3 text-center">Items</th>
+                                    <th class="px-6 py-3">Status</th>
+                                    <th class="px-6 py-3 text-right">Action</th>
+                                </tr>
                             </thead>
                             <tbody id="requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
                         </table>
@@ -306,23 +260,20 @@
 
             <!-- VIEW: PR LIST -->
             <section id="view-pr-requests" class="view-section hidden fade-in">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-                    <h2 class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Purchase Request List</h2>
-                    <div class="flex gap-2 w-full sm:w-auto">
-                        <button onclick="openPREditModal()" class="flex-1 sm:flex-none justify-center bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2 text-sm"><i class="fas fa-plus"></i> Add New PR</button>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Purchase Request List</h2>
+                    <div class="flex gap-2">
+                        <button onclick="openPREditModal()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2"><i class="fas fa-plus"></i> Add New PR</button>
                         <button onclick="exportToExcel('pr_requests')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition"><i class="fas fa-file-excel"></i></button>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <!-- Applied custom min-width via class in CSS to force grid layout to persist on mobile with scroll -->
-                        <div class="pr-list-grid-container min-w-[1000px]">
-                            <div class="pr-list-grid bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs border-b border-slate-200 dark:border-slate-600 sticky top-0">
-                                <div>PR ID</div><div>Material Code & Description</div><div class="text-center">Qty / Unit</div><div>Unit Price</div><div>Category</div><div>Date Process / Expected</div><div>PR/PO/ARF</div><div class="text-right">Status & Actions</div>
-                            </div>
-                            <div class="overflow-y-auto" style="max-height: 65vh;">
-                                <div id="pr-requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
-                            </div>
+                    <div class="overflow-x-auto min-w-full">
+                        <div class="pr-list-grid bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs border-b border-slate-200 dark:border-slate-600 sticky top-0">
+                            <div>PR ID</div><div>Material Code & Description</div><div class="text-center">Qty / Unit</div><div>Unit Price</div><div>Category</div><div>Date Process / Expected</div><div>PR/PO/ARF</div><div class="text-right">Status & Actions</div>
+                        </div>
+                        <div class="overflow-y-auto" style="max-height: 60vh;">
+                            <div id="pr-requests-body" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
                         </div>
                     </div>
                 </div>
@@ -330,22 +281,22 @@
 
              <!-- VIEW: DISPOSAL -->
              <section id="view-disposal" class="view-section hidden fade-in">
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-                    <h2 class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Asset Disposal</h2>
-                    <div class="flex gap-2 w-full lg:w-auto">
-                        <button onclick="openDisposalModal()" class="flex-1 lg:flex-none justify-center bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2 text-sm"><i class="fas fa-plus"></i> Record Disposal</button>
-                        <button onclick="exportToExcel('disposal')" class="flex-1 lg:flex-none justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2 text-sm"><i class="fas fa-file-excel"></i> Export</button>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Asset Disposal</h2>
+                    <div class="flex gap-2">
+                        <button onclick="openDisposalModal()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2"><i class="fas fa-plus"></i> Record Disposal</button>
+                        <button onclick="exportToExcel('disposal')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2"><i class="fas fa-file-excel"></i> Export</button>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-end">
                          <div class="relative w-full md:w-64">
                             <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                            <input type="text" id="disposal-search" onkeyup="renderDisposal()" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm">
+                            <input type="text" id="disposal-search" onkeyup="renderDisposal()" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500">
                         </div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300 min-w-[900px]">
+                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
                             <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0">
                                 <tr>
                                     <th class="px-6 py-3">ID</th>
@@ -367,21 +318,21 @@
 
             <!-- VIEW: ADD ITEM FORM -->
              <section id="view-add-item" class="view-section hidden fade-in max-w-4xl mx-auto">
-                <h2 class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white mb-6">Add New Inventory Item</h2>
-                <form id="form-add-item" class="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-xl shadow-md border border-slate-200 dark:border-slate-700">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
-                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Material Code *</label><input type="text" id="add-code" required placeholder="e.g. MTRL-001" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500 text-sm"></div>
-                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Material Description *</label><input type="text" id="add-name" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500 text-sm"></div>
-                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category *</label><select id="add-category" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border bg-white focus:ring-brand-500 text-sm"></select></div>
-                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Initial Stock *</label><input type="number" id="add-stock" min="0" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500 text-sm"></div>
-                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unit of Measure *</label><select id="add-unit" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border bg-white focus:ring-brand-500 text-sm"></select></div>
-                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Low Stock Threshold</label><input type="number" id="add-threshold" value="5" min="1" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500 text-sm"></div>
-                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Storage Location</label><input type="text" id="add-location" placeholder="e.g. Shelf A-01" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500 text-sm"></div>
-                        <div class="md:col-span-2"><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">SDS / Datasheet Link (URL)</label><input type="url" id="add-sds" placeholder="https://..." class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500 text-sm"></div>
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6">Add New Inventory Item</h2>
+                <form id="form-add-item" class="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-md border border-slate-200 dark:border-slate-700">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Material Code *</label><input type="text" id="add-code" required placeholder="e.g. MTRL-001" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Material Description *</label><input type="text" id="add-name" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category *</label><select id="add-category" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border bg-white focus:ring-brand-500"></select></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Initial Stock *</label><input type="number" id="add-stock" min="0" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unit of Measure *</label><select id="add-unit" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border bg-white focus:ring-brand-500"></select></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Low Stock Threshold</label><input type="number" id="add-threshold" value="5" min="1" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Storage Location</label><input type="text" id="add-location" placeholder="e.g. Shelf A-01" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">SDS / Datasheet Link (URL)</label><input type="url" id="add-sds" placeholder="https://..." class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2 border focus:ring-brand-500"></div>
                     </div>
                     <div class="flex justify-end gap-3">
-                        <button type="button" onclick="document.getElementById('form-add-item').reset()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-sm">Reset</button>
-                        <button type="submit" class="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-md transition text-sm">Add Item</button>
+                        <button type="button" onclick="document.getElementById('form-add-item').reset()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Reset</button>
+                        <button type="submit" class="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-md transition">Add Item</button>
                     </div>
                 </form>
             </section>
@@ -390,50 +341,47 @@
             <section id="view-request-withdrawal" class="view-section hidden fade-in max-w-5xl mx-auto">
                 <div class="flex items-center gap-3 mb-6">
                     <button onclick="navTo('view-requests')" class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"><i class="fas fa-arrow-left"></i> Back</button>
-                    <h2 class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Create Withdrawal Request</h2>
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Create Withdrawal Request</h2>
                 </div>
                 
-                <form id="form-withdrawal" class="bg-white dark:bg-slate-800 p-4 md:p-8 rounded-xl shadow-md border border-slate-200 dark:border-slate-700">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8 border-b border-slate-200 dark:border-slate-700 pb-6">
+                <form id="form-withdrawal" class="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-md border border-slate-200 dark:border-slate-700">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 border-b border-slate-200 dark:border-slate-700 pb-6">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Requester Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="req-name" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border focus:ring-2 focus:ring-brand-500 outline-none text-sm">
+                            <input type="text" id="req-name" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border focus:ring-2 focus:ring-brand-500 outline-none">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Department <span class="text-red-500">*</span></label>
-                            <select id="req-dept" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border bg-white focus:ring-2 focus:ring-brand-500 outline-none text-sm"></select>
+                            <select id="req-dept" required class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border bg-white focus:ring-2 focus:ring-brand-500 outline-none"></select>
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Reason / Purpose</label>
-                            <input type="text" id="req-reason" placeholder="e.g. For maintenance of Truck #4" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border focus:ring-2 focus:ring-brand-500 outline-none text-sm">
+                            <input type="text" id="req-reason" placeholder="e.g. For maintenance of Truck #4" class="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 border focus:ring-2 focus:ring-brand-500 outline-none">
                         </div>
                     </div>
 
                     <div class="mb-6">
                         <div class="flex justify-between items-end mb-3">
                             <div>
-                                <h3 class="font-bold text-slate-800 dark:text-white text-sm md:text-base">Items to Withdraw</h3>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Select items from inventory.</p>
+                                <h3 class="font-bold text-slate-800 dark:text-white">Items to Withdraw</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Select items from inventory. Ensure sufficient stock exists.</p>
                             </div>
-                            <button type="button" onclick="addWithdrawalRow()" class="px-3 py-1.5 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 rounded-lg text-xs md:text-sm font-bold hover:bg-brand-100 dark:hover:bg-brand-900/50 transition border border-brand-200 dark:border-brand-800">+ Add Item Row</button>
+                            <button type="button" onclick="addWithdrawalRow()" class="px-3 py-1.5 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 rounded-lg text-sm font-bold hover:bg-brand-100 dark:hover:bg-brand-900/50 transition border border-brand-200 dark:border-brand-800">+ Add Item Row</button>
                         </div>
                         
-                        <!-- Added Horizontal Scroll for Mobile Table -->
-                        <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden overflow-x-auto">
-                            <div class="min-w-[600px]"> <!-- Min-width ensures grid doesn't break on phone -->
-                                <div class="grid grid-cols-12 gap-4 p-3 bg-slate-100 dark:bg-slate-700 text-xs font-bold uppercase text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-600">
-                                    <div class="col-span-7">Item Description</div>
-                                    <div class="col-span-2 text-center">Available</div>
-                                    <div class="col-span-2">Quantity</div>
-                                    <div class="col-span-1 text-center"></div>
-                                </div>
-                                <div id="withdrawal-rows" class="p-3 space-y-2"></div>
+                        <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                            <div class="grid grid-cols-12 gap-4 p-3 bg-slate-100 dark:bg-slate-700 text-xs font-bold uppercase text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-600">
+                                <div class="col-span-7">Item Description</div>
+                                <div class="col-span-2 text-center">Available</div>
+                                <div class="col-span-2">Quantity</div>
+                                <div class="col-span-1 text-center"></div>
                             </div>
+                            <div id="withdrawal-rows" class="p-3 space-y-2"></div>
                         </div>
                     </div>
 
                     <div class="flex justify-end pt-4">
-                        <button type="submit" id="btn-submit-req" class="w-full md:w-auto px-8 py-3 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-700 shadow-md transition flex items-center justify-center gap-2 text-sm">
+                        <button type="submit" id="btn-submit-req" class="px-8 py-3 bg-brand-600 text-white font-bold rounded-lg hover:bg-brand-700 shadow-md transition flex items-center gap-2">
                             <i class="fas fa-paper-plane"></i> Submit Request
                         </button>
                     </div>
@@ -442,7 +390,7 @@
 
              <!-- VIEW: MASTER DATA -->
             <section id="view-master-data" class="view-section hidden fade-in">
-                <h2 class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white mb-6">Master Data Configuration</h2>
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6">Master Data Configuration</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col h-96">
                         <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-2">Categories</h3>
@@ -462,18 +410,26 @@
                 </div>
             </section>
 
-            <!-- VIEW: LOGS -->
+            <!-- VIEW: LOGS (ADDED SCROLLABLE TABLE) -->
             <section id="view-logs" class="view-section hidden fade-in">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-                    <h2 class="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Audit Logs</h2>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Audit Logs</h2>
                     <button onclick="clearLogs()" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition flex items-center gap-2">
                         <i class="fas fa-trash-alt"></i> Clear Logs
                     </button>
                 </div>
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300 min-w-[600px]">
-                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs"><tr><th class="px-4 py-2">ID</th><th class="px-4 py-2">Timestamp</th><th class="px-4 py-2">Action</th><th class="px-4 py-2">Details</th></tr></thead>
+                <!-- ADDED: Fixed height container and sticky header for scrolling -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col h-[75vh]">
+                    <div class="overflow-y-auto flex-1 p-0">
+                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300 relative">
+                            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase font-bold text-xs sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    <th class="px-4 py-3 bg-slate-100 dark:bg-slate-700">ID</th>
+                                    <th class="px-4 py-3 bg-slate-100 dark:bg-slate-700">Timestamp</th>
+                                    <th class="px-4 py-3 bg-slate-100 dark:bg-slate-700">Action</th>
+                                    <th class="px-4 py-3 bg-slate-100 dark:bg-slate-700">Details</th>
+                                </tr>
+                            </thead>
                             <tbody id="logs-body"></tbody>
                         </table>
                     </div>
@@ -482,7 +438,7 @@
         </main>
     </div>
 
-    <!-- Floating Calculator (Draggable) -->
+    <!-- Floating Calculator -->
     <div id="floating-calculator" class="hidden glass-panel rounded-xl w-64 overflow-hidden border border-slate-400 dark:border-slate-600 shadow-2xl">
         <div class="bg-slate-800 text-white p-2 flex justify-between items-center cursor-move select-none" id="calc-header"><span class="text-xs font-bold uppercase tracking-wider">Calculator</span><button onclick="toggleCalculator()" class="hover:text-red-400"><i class="fas fa-times"></i></button></div>
         <div class="bg-slate-900 text-right p-3 text-2xl font-mono text-green-400"><input id="calc-display" type="text" readonly class="bg-transparent text-right w-full outline-none" value="0"></div>
@@ -497,51 +453,48 @@
 
     <!-- MODAL: Withdrawal Details (THPAL FORM) -->
     <div id="request-details-modal" class="modal">
-        <div id="modal-content-wrapper" class="glass-panel bg-white w-full md:w-auto max-w-5xl mx-2 md:mx-4 rounded-xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
-            <button class="absolute top-2 right-2 md:top-4 md:right-4 text-slate-400 hover:text-slate-600 no-print z-50" onclick="closeModal('request-details-modal')"><i class="fas fa-times text-2xl"></i></button>
-            <div id="print-area" class="thpal-form text-black bg-white p-4 md:p-6 overflow-y-auto flex-1 modal-body-scroll">
-                <!-- Wrap in horizontal scroll for mobile view -->
-                <div style="min-width: 650px;">
-                    <div class="flex justify-between items-end mb-4 border-b-2 border-black pb-2">
-                        <div class="flex items-center gap-3">
-                            <div class="border-2 border-teal-600 p-1 px-2">
-                                <h1 class="text-3xl font-bold text-teal-700 tracking-tighter leading-none">THPAL</h1>
-                                <div class="h-1 bg-teal-600 w-full mt-1"></div>
-                            </div>
-                            <p class="text-xs font-bold mt-2"></br>Taganito HPAL Nickel Corporation</p>
+        <div id="modal-content-wrapper" class="glass-panel bg-white w-full max-w-5xl mx-4 rounded-xl shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 no-print z-50" onclick="closeModal('request-details-modal')"><i class="fas fa-times text-2xl"></i></button>
+            <div id="print-area" class="thpal-form text-black bg-white p-6 overflow-y-auto flex-1 modal-body-scroll">
+                <div class="flex justify-between items-end mb-4 border-b-2 border-black pb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="border-2 border-teal-600 p-1 px-2">
+                            <h1 class="text-3xl font-bold text-teal-700 tracking-tighter leading-none">THPAL</h1>
+                            <div class="h-1 bg-teal-600 w-full mt-1"></div>
                         </div>
-                        <div class="text-right"><p class="text-[10px] font-bold">Form 02 EMS-THPAL-SE-301 Rev 01</p></div>
+                        <p class="text-xs font-bold mt-2"></br>Taganito HPAL Nickel Corporation</p>
                     </div>
-                    <h2 class="text-center font-bold text-xl mb-4">THPAL MATERIAL ENTRY/EXIT FORM</h2>
-                    <!-- Form Content Populated by JS -->
-                    <table class="w-full text-xs mb-4">
-                        <tr><td class="font-bold bg-gray-100 w-1/6 thpal-bg-gray">Employee's Name:</td><td class="w-2/6" id="thpal-emp-name"></td><td class="font-bold bg-gray-100 w-1/6 thpal-bg-gray">Vehicle:</td><td class="w-2/6"></td></tr>
-                        <tr><td class="font-bold bg-gray-100 thpal-bg-gray">Section/Department:</td><td id="thpal-dept"></td><td class="font-bold bg-gray-100 thpal-bg-gray">Driver:</td><td></td></tr>
-                        <tr><td class="font-bold bg-gray-100 thpal-bg-gray">Date:</td><td id="thpal-date"></td><td class="font-bold bg-gray-100 thpal-bg-gray">Time:</td><td id="thpal-time"></td></tr>
+                    <div class="text-right"><p class="text-[10px] font-bold">Form 02 EMS-THPAL-SE-301 Rev 01</p></div>
+                </div>
+                <h2 class="text-center font-bold text-xl mb-4">THPAL MATERIAL ENTRY/EXIT FORM</h2>
+                <!-- Form Content Populated by JS -->
+                <table class="w-full text-xs mb-4">
+                    <tr><td class="font-bold bg-gray-100 w-1/6 thpal-bg-gray">Employee's Name:</td><td class="w-2/6" id="thpal-emp-name"></td><td class="font-bold bg-gray-100 w-1/6 thpal-bg-gray">Vehicle:</td><td class="w-2/6"></td></tr>
+                    <tr><td class="font-bold bg-gray-100 thpal-bg-gray">Section/Department:</td><td id="thpal-dept"></td><td class="font-bold bg-gray-100 thpal-bg-gray">Driver:</td><td></td></tr>
+                    <tr><td class="font-bold bg-gray-100 thpal-bg-gray">Date:</td><td id="thpal-date"></td><td class="font-bold bg-gray-100 thpal-bg-gray">Time:</td><td id="thpal-time"></td></tr>
+                </table>
+                <div class="mb-4 border border-black table-scroll-container">
+                    <table class="w-full text-xs border-collapse">
+                        <thead><tr class="bg-gray-100 thpal-bg-gray text-center sticky-th"><th class="w-10">SER</th><th class="w-16">UNIT</th><th class="w-16">QUANTITY</th><th>REMARKS / DESCRIPTION</th></tr></thead>
+                        <tbody id="thpal-items-body"></tbody>
                     </table>
-                    <div class="mb-4 border border-black table-scroll-container">
-                        <table class="w-full text-xs border-collapse">
-                            <thead><tr class="bg-gray-100 thpal-bg-gray text-center sticky-th"><th class="w-10">SER</th><th class="w-16">UNIT</th><th class="w-16">QUANTITY</th><th>REMARKS / DESCRIPTION</th></tr></thead>
-                            <tbody id="thpal-items-body"></tbody>
-                        </table>
-                    </div>
-                    <div class="border border-black p-2 mb-4 h-20"><p class="text-xs font-bold mb-1">Reason for Bringing out:</p><p id="thpal-reason" class="text-sm italic pl-2"></p></div>
-                    <div class="border border-black text-xs mb-6">
-                        <div class="text-center italic border-b border-black bg-gray-100 thpal-bg-gray p-1">Supervisor's Note (Please check one):</div>
-                        <div class="flex justify-around p-2"><label class="flex items-center gap-2"><input type="checkbox" id="chk-approved" disabled> Approved</label><label class="flex items-center gap-2"><input type="checkbox" id="chk-onhold" disabled> On-hold</label><label class="flex items-center gap-2"><input type="checkbox" id="chk-declined" disabled> Declined</label><label class="flex items-center gap-2"><input type="checkbox" id="chk-cancelled" disabled> Cancelled</label></div>
-                    </div>
-                    <div class="flex justify-between text-xs mb-8 px-4 gap-8">
-                        <div class="flex-1 text-center"><p class="mb-8 text-left">Requester:</p><div class="border-b border-black mb-1 font-bold" id="thpal-sig-req"></div></div>
-                        <div class="flex-1 text-center"><p class="mb-8 text-left">Supervisor's Signature:</p><div class="border-b border-black mb-1"></div></div>
-                        <div class="flex-1 text-center"><p class="mb-8 text-left">Authorized Security Signatory:</p><div class="border-b border-black mb-1"></div></div>
-                    </div>
+                </div>
+                <div class="border border-black p-2 mb-4 h-20"><p class="text-xs font-bold mb-1">Reason for Bringing out:</p><p id="thpal-reason" class="text-sm italic pl-2"></p></div>
+                <div class="border border-black text-xs mb-6">
+                    <div class="text-center italic border-b border-black bg-gray-100 thpal-bg-gray p-1">Supervisor's Note (Please check one):</div>
+                    <div class="flex justify-around p-2"><label class="flex items-center gap-2"><input type="checkbox" id="chk-approved" disabled> Approved</label><label class="flex items-center gap-2"><input type="checkbox" id="chk-onhold" disabled> On-hold</label><label class="flex items-center gap-2"><input type="checkbox" id="chk-declined" disabled> Declined</label><label class="flex items-center gap-2"><input type="checkbox" id="chk-cancelled" disabled> Cancelled</label></div>
+                </div>
+                <div class="flex justify-between text-xs mb-8 px-4 gap-8">
+                    <div class="flex-1 text-center"><p class="mb-8 text-left">Requester:</p><div class="border-b border-black mb-1 font-bold" id="thpal-sig-req"></div></div>
+                    <div class="flex-1 text-center"><p class="mb-8 text-left">Supervisor's Signature:</p><div class="border-b border-black mb-1"></div></div>
+                    <div class="flex-1 text-center"><p class="mb-8 text-left">Authorized Security Signatory:</p><div class="border-b border-black mb-1"></div></div>
                 </div>
             </div>
-            <div class="flex justify-end gap-2 md:gap-3 p-4 bg-white border-t dark:border-slate-700 shrink-0 no-print z-20" id="modal-actions">
-                <button onclick="window.print()" class="bg-slate-600 text-white px-3 py-2 rounded hover:bg-slate-700 transition text-sm"><i class="fas fa-print"></i> Print</button>
+            <div class="flex justify-end gap-3 p-4 bg-white border-t dark:border-slate-700 shrink-0 no-print z-20" id="modal-actions">
+                <button onclick="window.print()" class="bg-slate-600 text-white px-4 py-2 rounded hover:bg-slate-700 transition"><i class="fas fa-print"></i> Print</button>
                 <div id="approval-buttons" class="flex gap-2">
-                    <button onclick="processRequest('Rejected')" class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 transition text-sm">Reject</button>
-                    <button onclick="processRequest('Approved')" class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition text-sm">Approve</button>
+                    <button onclick="processRequest('Rejected')" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">Reject</button>
+                    <button onclick="processRequest('Approved')" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Approve & Deduct</button>
                 </div>
             </div>
         </div>
@@ -565,10 +518,10 @@
         </div>
     </div>
     
-    <!-- MODAL: PR Edit (Responsive Grid) -->
+    <!-- MODAL: PR Edit -->
     <div id="pr-edit-modal" class="modal">
-        <div class="glass-panel bg-white w-full max-w-xl mx-2 md:mx-4 rounded-xl shadow-2xl p-4 md:p-6 relative max-h-[90vh] overflow-y-auto">
-            <button class="absolute top-2 right-2 md:top-4 md:right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('pr-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
+        <div class="glass-panel bg-white w-full max-w-xl mx-4 rounded-xl shadow-2xl p-6 relative">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('pr-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
             <h2 id="pr-modal-title" class="text-xl font-bold text-slate-800 dark:text-white mb-4">Purchase Request</h2>
             <form id="form-pr-edit">
                 <input type="hidden" id="pr-edit-id">
@@ -599,10 +552,10 @@
         </div>
     </div>
 
-    <!-- MODAL: Disposal Edit/Add -->
+    <!-- MODAL: Disposal Edit/Add (UPDATED) -->
     <div id="disposal-edit-modal" class="modal">
-        <div class="glass-panel bg-white w-full max-w-lg mx-2 md:mx-4 rounded-xl shadow-2xl p-4 md:p-6 relative max-h-[90vh] overflow-y-auto">
-            <button class="absolute top-2 right-2 md:top-4 md:right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('disposal-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
+        <div class="glass-panel bg-white w-full max-w-lg mx-4 rounded-xl shadow-2xl p-6 relative">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('disposal-edit-modal')"><i class="fas fa-times text-2xl"></i></button>
             <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Record Asset Disposal</h2>
             <form id="form-disposal-edit">
                 <input type="hidden" id="dsp-id">
@@ -655,17 +608,17 @@
 
     <!-- MODAL: PR View -->
     <div id="pr-view-modal" class="modal">
-        <div class="glass-panel bg-white w-full max-w-5xl mx-2 md:mx-4 rounded-xl shadow-2xl p-4 md:p-6 relative max-h-[90vh] overflow-y-auto">
-            <button class="absolute top-2 right-2 md:top-4 md:right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('pr-view-modal')"><i class="fas fa-times text-2xl"></i></button>
-            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4 border-b dark:border-slate-600 pb-2">Purchase Request Details <span id="pr-view-id-display" class="font-mono text-brand-600 text-base"></span></h2>
+        <div class="glass-panel bg-white w-full max-w-5xl mx-4 rounded-xl shadow-2xl p-6 relative">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onclick="closeModal('pr-view-modal')"><i class="fas fa-times text-2xl"></i></button>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-4 border-b dark:border-slate-600 pb-2">Purchase Request Details <span id="pr-view-id-display" class="font-mono text-brand-600"></span></h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="md:col-span-1 bg-slate-100 dark:bg-slate-700 p-4 rounded-lg flex flex-col items-center justify-center">
                     <h3 class="font-bold mb-2 text-slate-600 dark:text-slate-300">Reference Image</h3>
-                    <div id="pr-view-image-container" class="w-full max-h-64 md:max-h-96 overflow-hidden rounded-md border border-slate-300 dark:border-slate-600"><div class="flex items-center justify-center h-48 text-slate-400"><i class="fas fa-image text-4xl"></i></div></div>
+                    <div id="pr-view-image-container" class="w-full max-h-96 overflow-hidden rounded-md border border-slate-300 dark:border-slate-600"><div class="flex items-center justify-center h-48 text-slate-400"><i class="fas fa-image text-4xl"></i></div></div>
                     <p id="pr-view-no-image" class="text-slate-500 dark:text-slate-400 italic mt-4 text-sm hidden">No primary image link provided.</p>
                     <div id="pr-view-links" class="mt-3 text-xs w-full text-center"></div>
                 </div>
-                <div class="md:col-span-2 space-y-4"><div id="pr-view-content" class="text-sm grid grid-cols-1 sm:grid-cols-2 gap-y-2"></div></div>
+                <div class="md:col-span-2 space-y-4"><div id="pr-view-content" class="text-sm grid grid-cols-2 gap-y-2"></div></div>
             </div>
             <div class="flex justify-end pt-4 mt-6 border-t dark:border-slate-700"><button onclick="closeModal('pr-view-modal')" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Close</button></div>
         </div>
@@ -679,866 +632,14 @@
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-5 right-5 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-xl transform translate-x-full transition-transform duration-300 z-50 flex items-center gap-3"><i id="toast-icon" class="fas fa-info-circle"></i><span id="toast-msg">Notification</span></div>
 
-   <script>
-    // --- SUPABASE CONFIGURATION ---
-    const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    let chartInstance = null;
-    let activeReqId = null;
-    let activeCategory = 'All'; 
-    let activeReqFilter = 'All'; 
-    let tempReqItems = []; // For disposal logic
-    let isSidebarOpen = false;
-
-    const DEFAULT_MASTER = {
-        categories: ['Spare Parts', 'Tires', 'Fluids', 'Electrical', 'Tools', 'Safety Gear'],
-        units: ['Pcs', 'Liters', 'Sets', 'Boxes', 'Rolls', 'Kgs'],
-        departments: ['Mining Ops', 'Maintenance', 'Safety', 'Admin', 'Logistics']
-    };
-
-    window.onload = async () => {
-        updateTime(); setInterval(updateTime, 1000);
-        await loadMasterData(); await seedPRData(); await seedDisposalData();
-        loadThemePreference();
-        renderDashboard(); setupCalculatorDrag();
-        
-        document.getElementById('form-pr-edit').onsubmit = submitPRForm;
-        document.getElementById('form-inv-edit').onsubmit = submitInvEdit;
-        document.getElementById('form-req-edit').onsubmit = submitReqEdit;
-        document.getElementById('form-disposal-edit').onsubmit = submitDisposalForm;
-        
-        // Initial setup for requests
-        addWithdrawalRow(); 
-        
-        document.querySelectorAll('.modal').forEach(m => {
-            m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
-        });
-        document.addEventListener('keydown', e => { if(e.key === 'Escape') document.querySelectorAll('.modal').forEach(m => m.classList.remove('open')); });
-    };
-
-    // --- SUPABASE DB ACTION BRIDGE ---
-    async function dbAction(storeName, mode, callback) {
-        const storeMock = {
-            getAll: async () => {
-                const { data, error } = await supabase.from(storeName).select('*');
-                if(error) { console.error('Supabase Error:', error); return []; }
-                return data || [];
-            },
-            get: async (key) => {
-                if(storeName === 'master') {
-                    const { data, error } = await supabase.from('master_data').select('*').eq('key', key).single();
-                    return data; 
-                }
-                const { data, error } = await supabase.from(storeName).select('*').eq('id', key).single();
-                if(error) { console.error('Supabase Error:', error); return null; }
-                return data;
-            },
-            add: async (val) => {
-                if(!val.id) delete val.id;
-                const { data, error } = await supabase.from(storeName).insert(val).select();
-                if(error) { console.error('Supabase Error:', error); throw error; }
-                return data;
-            },
-            put: async (val) => {
-                if(storeName === 'master') {
-                     const { error } = await supabase.from('master_data').upsert(val);
-                     if(error) console.error(error);
-                     return;
-                }
-                const { error } = await supabase.from(storeName).update(val).eq('id', val.id);
-                if(error) { console.error('Supabase Error:', error); throw error; }
-            },
-            delete: async (key) => {
-                const { error } = await supabase.from(storeName).delete().eq('id', key);
-                if(error) { console.error('Supabase Error:', error); throw error; }
-            },
-            count: async () => {
-                const { count } = await supabase.from(storeName).select('*', { count: 'exact', head: true });
-                return count || 0;
-            },
-            clear: async () => {
-                const { error } = await supabase.from(storeName).delete().neq('id', 0);
-                if(error) console.error('Supabase Error:', error);
-            }
-        };
-        return await callback(storeMock);
-    }
-
-    async function logAction(action, details) { await dbAction('logs', 'readwrite', store => store.add({ timestamp: new Date().toLocaleString(), action, details })); }
-
-    function navTo(viewId, btn) {
-        document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-        document.getElementById(viewId).classList.remove('hidden');
-        if(btn) { document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav', 'bg-brand-700', 'text-white')); btn.classList.add('active-nav', 'bg-brand-700', 'text-white'); }
-        if (viewId === 'view-inventory') renderInventory();
-        if (viewId === 'view-requests') renderRequests();
-        if (viewId === 'view-pr-requests') renderPRRequests();
-        if (viewId === 'view-disposal') renderDisposal();
-        if (viewId === 'view-logs') renderLogs();
-        if (viewId === 'view-dashboard') renderDashboard();
-        if (viewId === 'view-master-data') renderMasterLists();
-        
-        // Auto-close sidebar on mobile after navigation
-        if(window.innerWidth < 768 && isSidebarOpen) { toggleSidebar(); }
-    }
-
-    function showToast(msg, type='info') {
-        const toast = document.getElementById('toast');
-        document.getElementById('toast-msg').innerText = msg;
-        const icon = document.getElementById('toast-icon');
-        if(type==='success') icon.className = "fas fa-check-circle";
-        else if(type==='error') icon.className = "fas fa-exclamation-circle";
-        else icon.className = "fas fa-info-circle";
-        
-        toast.className = `fixed top-5 right-5 px-6 py-3 rounded-lg shadow-xl transform transition-transform duration-300 z-50 flex items-center gap-3 text-white ${type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800'}`;
-        toast.classList.remove('translate-x-full');
-        setTimeout(() => toast.classList.add('translate-x-full'), 3000);
-    }
-    function updateTime() { const now = new Date(); document.getElementById('header-time').innerText = now.toLocaleTimeString(); document.getElementById('header-date').innerText = now.toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'short', day:'numeric'}); }
-
-    let masterData = DEFAULT_MASTER;
-    
-    async function loadMasterData() {
-        try { 
-            const result = await dbAction('master', 'readonly', store => store.get('config')); 
-            if (result && result.data) masterData = result.data;
-            else await dbAction('master', 'readwrite', store => store.put({ key: 'config', data: DEFAULT_MASTER }));
-        } catch (e) { console.warn("Master data load issue", e); }
-        populateDropdowns('add-category', masterData.categories); populateDropdowns('add-unit', masterData.units); populateDropdowns('req-dept', masterData.departments);
-        populateDropdowns('pr-category', masterData.categories); populateDropdowns('pr-unit', masterData.units); populateDropdowns('req-edit-dept', masterData.departments);
-    }
-    
-    async function seedPRData() {
-        try {
-            const prCount = await dbAction('pr_requests', 'readonly', store => store.count());
-            if (prCount > 0) return; 
-            const seedData = [
-                { materialCode: 'MTRL001', materialDescription: 'Heavy Duty Truck Filter Pack', unit: 'Sets', quantity: 10, unitPrice: 45.50, category: 'Spare Parts', dateProcess: '2023-11-01', prNumber: 'PR2311001', status: 'Received', imageLink1: 'https://via.placeholder.com/600x400/0000FF/FFFFFF?text=Filter+Pack+A', expectedDate: '2023-11-15', receivedDate: '2023-11-14', vendorName: 'Global Filters Inc.', remarks: 'Urgent replacement for CAT 793D' },
-                { materialCode: 'CHEM020', materialDescription: 'Industrial Lubricant (ISO 46)', unit: 'Liters', quantity: 500, unitPrice: 3.20, category: 'Fluids', dateProcess: '2023-12-01', prNumber: 'PR2312001', status: 'Pending', imageLink2: 'https://via.placeholder.com/600x400/FF0000/FFFFFF?text=Lubricant+Drum', expectedDate: '2024-01-15', receivedDate: '', vendorName: 'PetroChem Supplies', remarks: 'Large volume order' }
-            ];
-            for (const data of seedData) await dbAction('pr_requests', 'readwrite', store => store.add(data));
-        } catch(e) { console.log("Seeding skipped"); }
-    }
-    
-    async function seedDisposalData() {
-        try {
-             const dspCount = await dbAction('disposal', 'readonly', store => store.count());
-             if (dspCount > 0) return;
-             const seed = [
-                 { sourceRequestId: 99, assetName: 'Old Hydraulic Pump', assetCode: 'HYD-99', category: 'Spare Parts', reason: 'Damaged/Broken', method: 'Scrap', quantity: 2, disposalDate: '2023-10-15', approvedBy: 'Engr. Smith', status: 'Disposed' }
-             ];
-             for(const s of seed) await dbAction('disposal', 'readwrite', store => store.add(s));
-        } catch(e) { console.log("Disposal Seeding skipped/failed"); }
-    }
-
-    function populateDropdowns(id, items) {
-        const sel = document.getElementById(id); if(!sel) return;
-        sel.innerHTML = '<option value="">Select...</option>';
-        if(items) items.forEach(i => { const opt = document.createElement('option'); opt.value = i; opt.innerText = i; sel.appendChild(opt); });
-    }
-
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        const isMobile = window.innerWidth < 768;
-
-        if (isMobile) {
-            // Mobile: Toggle Drawer
-            if (!isSidebarOpen) {
-                sidebar.classList.remove('sidebar-mobile-closed');
-                sidebar.classList.add('sidebar-mobile-open');
-                overlay.classList.remove('hidden');
-                isSidebarOpen = true;
-            } else {
-                sidebar.classList.add('sidebar-mobile-closed');
-                sidebar.classList.remove('sidebar-mobile-open');
-                overlay.classList.add('hidden');
-                isSidebarOpen = false;
-            }
-        } else {
-            // Desktop: Toggle Collapse width
-            sidebar.classList.toggle('sidebar-desktop-collapsed');
-        }
-    }
-
-    function toggleDarkMode() {
-        const html = document.documentElement;
-        html.classList.toggle('dark');
-        const isDark = html.classList.contains('dark');
-        document.getElementById('theme-icon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        renderDashboard();
-    }
-
-    function loadThemePreference() {
-        const pref = localStorage.getItem('theme');
-        if (pref === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = 'fas fa-sun'; }
-    }
-    
-    // --- INVENTORY ---
-    function filterCat(cat) { activeCategory = cat; renderInventory(); }
-    async function renderInventory() {
-        const items = await dbAction('inventory', 'readonly', store => store.getAll());
-        const tbody = document.getElementById('inventory-body');
-        const filter = document.getElementById('inv-search').value.toLowerCase();
-        let catHTML = `<button onclick="filterCat('All')" class="px-3 py-1 rounded-full text-xs font-bold border transition ${activeCategory === 'All' ? 'bg-brand-600 text-white border-brand-600' : 'bg-white dark:bg-slate-700 dark:text-white dark:border-slate-500 text-slate-600 border-slate-300 hover:bg-slate-50'}">All</button>`;
-        masterData.categories.forEach(c => {
-            const isActive = activeCategory === c;
-            catHTML += `<button onclick="filterCat('${c}')" class="px-3 py-1 rounded-full text-xs font-bold border transition whitespace-nowrap ${isActive ? 'bg-brand-600 text-white border-brand-600' : 'bg-white dark:bg-slate-700 dark:text-white dark:border-slate-500 text-slate-600 border-slate-300 hover:bg-slate-50'}">${c}</button>`;
-        });
-        document.getElementById('inventory-categories').innerHTML = catHTML;
-        tbody.innerHTML = ''; let count = 0;
-        items.sort((a,b) => b.id - a.id).forEach(item => {
-            const code = item.code || `ID-${item.id}`;
-            const matchesSearch = code.toLowerCase().includes(filter) || item.name.toLowerCase().includes(filter);
-            const matchesCat = activeCategory === 'All' || item.category === activeCategory;
-            if (matchesSearch && matchesCat) {
-                const isLow = item.stock <= (item.threshold || 5);
-                const row = `
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-700 ${isLow ? 'bg-red-50 dark:bg-red-900/20' : ''}">
-                        <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">${code}</td>
-                        <td class="px-6 py-3 text-slate-800 dark:text-white">${item.name} ${isLow ? '<span class="text-[10px] bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 px-1 rounded ml-1 font-bold border border-red-200 dark:border-red-800">LOW</span>' : ''}</td>
-                        <td class="px-6 py-3"><span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap">${item.category}</span></td>
-                        <td class="px-6 py-3 text-center font-bold ${isLow ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}">${item.stock} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">${item.unit}</span></td>
-                        <td class="px-6 py-3 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">${item.location || '-'}</td>
-                        <td class="px-6 py-3 text-right whitespace-nowrap">
-                            <div class="flex justify-end gap-2">
-                                <button onclick="viewInventory(${item.id})" class="text-blue-600 hover:bg-blue-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="View"><i class="fas fa-eye"></i></button>
-                                <button onclick="editInventory(${item.id})" class="text-yellow-600 hover:bg-yellow-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="Edit"><i class="fas fa-pencil-alt"></i></button>
-                                <button onclick="deleteItem(${item.id})" class="text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 p-1.5 rounded transition" title="Delete"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>`;
-                tbody.innerHTML += row; count++;
-            }
-        });
-        document.getElementById('inventory-empty').classList.toggle('hidden', count > 0);
-    }
-    document.getElementById('form-add-item').onsubmit = async (e) => {
-        e.preventDefault();
-        const newItem = {
-            code: document.getElementById('add-code').value, name: document.getElementById('add-name').value,
-            category: document.getElementById('add-category').value, stock: parseInt(document.getElementById('add-stock').value),
-            unit: document.getElementById('add-unit').value, threshold: parseInt(document.getElementById('add-threshold').value),
-            location: document.getElementById('add-location').value, sds: document.getElementById('add-sds').value
-        };
-        await dbAction('inventory', 'readwrite', store => store.add(newItem));
-        await logAction('ADD_ITEM', `Added ${newItem.code}`);
-        showToast('Item Added Successfully', 'success'); e.target.reset(); renderDashboard();
-    };
-    async function editInventory(id) {
-        const item = await dbAction('inventory', 'readonly', store => store.get(id));
-        document.getElementById('inv-edit-id').value = item.id; document.getElementById('inv-edit-code').value = item.code || `ID-${item.id}`;
-        document.getElementById('inv-edit-name').value = item.name; document.getElementById('inv-edit-stock').value = item.stock;
-        document.getElementById('inv-edit-loc').value = item.location || '';
-        document.getElementById('inv-edit-modal').classList.add('open');
-    }
-    async function submitInvEdit(e) {
-        e.preventDefault(); const id = parseInt(document.getElementById('inv-edit-id').value);
-        const item = await dbAction('inventory', 'readonly', store => store.get(id));
-        item.name = document.getElementById('inv-edit-name').value; item.stock = parseInt(document.getElementById('inv-edit-stock').value);
-        item.location = document.getElementById('inv-edit-loc').value;
-        await dbAction('inventory', 'readwrite', store => store.put(item));
-        showToast('Inventory Updated', 'success'); closeModal('inv-edit-modal'); renderInventory();
-    }
-    async function viewInventory(id) {
-        const item = await dbAction('inventory', 'readonly', store => store.get(id));
-        document.getElementById('inv-view-content').innerHTML = `<div class="grid grid-cols-2 gap-y-2"><span class="font-bold text-slate-500 dark:text-slate-400">Material Code:</span> <span class="font-mono text-brand-700 dark:text-brand-400">${item.code || '-'}</span><span class="font-bold text-slate-500 dark:text-slate-400">Description:</span> <span>${item.name}</span><span class="font-bold text-slate-500 dark:text-slate-400">Category:</span> <span>${item.category}</span><span class="font-bold text-slate-500 dark:text-slate-400">Current Stock:</span> <span class="font-bold text-lg">${item.stock} <small class="font-normal text-slate-500 dark:text-slate-400">${item.unit}</small></span><span class="font-bold text-slate-500 dark:text-slate-400">Threshold:</span> <span class="text-red-600 dark:text-red-400">${item.threshold || 5}</span><span class="font-bold text-slate-500 dark:text-slate-400">Location:</span> <span>${item.location || 'N/A'}</span><span class="font-bold text-slate-500 dark:text-slate-400">SDS Link:</span> <span>${item.sds ? `<a href="${item.sds}" target="_blank" class="text-blue-600 underline hover:text-blue-800">View Document</a>` : 'N/A'}</span></div>`;
-        document.getElementById('inv-view-modal').classList.add('open');
-    }
-    async function deleteItem(id) { if(confirm('Are you sure you want to delete this item?')) { await dbAction('inventory', 'readwrite', store => store.delete(id)); renderInventory(); showToast('Item Deleted', 'error'); renderDashboard(); } }
-
-    // --- WITHDRAWAL (ENHANCED) ---
-    async function addWithdrawalRow() {
-        const container = document.getElementById('withdrawal-rows');
-        const items = await dbAction('inventory', 'readonly', store => store.getAll());
-        
-        let options = '<option value="">-- Select Material --</option>';
-        items.sort((a,b) => a.name.localeCompare(b.name)).forEach(i => {
-            const display = `${i.code ? i.code + ' - ' : ''}${i.name}`;
-            options += `<option value="${i.id}" data-max="${i.stock}" data-unit="${i.unit}" data-code="${i.code||''}">${display}</option>`;
-        });
-
-        const rowId = 'row-' + Date.now();
-        const rowHTML = `
-            <div id="${rowId}" class="grid grid-cols-12 gap-2 md:gap-4 items-center fade-in bg-white dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-600 shadow-sm">
-                <div class="col-span-7">
-                    <select class="w-full border p-2 rounded text-sm req-item-select dark:bg-slate-700 dark:text-white dark:border-slate-500 focus:ring-brand-500" onchange="updateRowDetails(this)" required>
-                        ${options}
-                    </select>
-                </div>
-                <div class="col-span-2 text-center text-xs font-bold">
-                    <span class="req-item-available text-slate-500 dark:text-slate-400">-</span>
-                </div>
-                <div class="col-span-2">
-                    <input type="number" oninput="validateRowQty(this)" class="w-full border p-2 rounded text-sm req-item-qty dark:bg-slate-700 dark:text-white dark:border-slate-500 focus:ring-brand-500 text-center" placeholder="0" min="1" required>
-                    <div class="text-[10px] text-red-500 hidden qty-error">Exceeds Stock</div>
-                </div>
-                <div class="col-span-1 text-center">
-                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/50 p-2 rounded transition"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>`;
-        container.insertAdjacentHTML('beforeend', rowHTML);
-    }
-
-    function updateRowDetails(select) {
-        const row = select.closest('div[id^="row-"]');
-        const opt = select.options[select.selectedIndex];
-        const availableSpan = row.querySelector('.req-item-available');
-        const qtyInput = row.querySelector('.req-item-qty');
-        
-        if (select.value) {
-            const maxStock = parseInt(opt.dataset.max);
-            const unit = opt.dataset.unit;
-            availableSpan.innerHTML = `<span class="${maxStock === 0 ? 'text-red-600' : 'text-green-600'}">${maxStock} ${unit}</span>`;
-            qtyInput.max = maxStock;
-            qtyInput.value = '';
-            validateRowQty(qtyInput);
-        } else {
-            availableSpan.innerText = '-';
-            qtyInput.removeAttribute('max');
-        }
-    }
-
-    function validateRowQty(input) {
-        const row = input.closest('div[id^="row-"]');
-        const max = parseInt(input.max);
-        const val = parseInt(input.value);
-        const errorMsg = row.querySelector('.qty-error');
-        const btn = document.getElementById('btn-submit-req');
-        
-        if (max && val > max) {
-            input.classList.add('border-red-500', 'bg-red-50');
-            errorMsg.classList.remove('hidden');
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-        } else {
-            input.classList.remove('border-red-500', 'bg-red-50');
-            errorMsg.classList.add('hidden');
-            if (!document.querySelector('.qty-error:not(.hidden)')) {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        }
-    }
-
-    document.getElementById('form-withdrawal').onsubmit = async (e) => {
-        e.preventDefault();
-        const rows = document.querySelectorAll('#withdrawal-rows > div');
-        if(rows.length === 0) return showToast('Please add items to withdraw', 'error');
-        
-        const items = [];
-        const seenIds = new Set();
-        let valid = true;
-
-        for (const row of rows) {
-            const sel = row.querySelector('.req-item-select');
-            const qtyInput = row.querySelector('.req-item-qty');
-            const qty = parseInt(qtyInput.value);
-            const opt = sel.options[sel.selectedIndex];
-
-            if(!sel.value || !qty || qty <= 0) { valid = false; break; }
-            if(seenIds.has(sel.value)) { showToast('Duplicate item selected. Please combine quantities.', 'error'); return; }
-            
-            seenIds.add(sel.value);
-            items.push({ 
-                id: parseInt(sel.value), 
-                name: opt.text.includes(' - ') ? opt.text.split(' - ')[1] : opt.text, 
-                code: opt.dataset.code, 
-                qty, 
-                unit: opt.dataset.unit 
-            });
-        }
-
-        if(!valid) return showToast('Please fill out all item details correctly.', 'error');
-
-        const reqData = { 
-            requester: document.getElementById('req-name').value, 
-            department: document.getElementById('req-dept').value, 
-            reason: document.getElementById('req-reason').value, 
-            items, 
-            status: 'Pending', 
-            date: new Date().toLocaleDateString() 
-        };
-
-        await dbAction('requests', 'readwrite', store => store.add(reqData));
-        showToast('Request Submitted Successfully', 'success'); 
-        e.target.reset(); 
-        document.getElementById('withdrawal-rows').innerHTML = ''; 
-        addWithdrawalRow(); 
-        navTo('view-requests');
-        renderDashboard();
-    };
-    
-    function setReqFilter(status, btn) {
-        activeReqFilter = status;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderRequests();
-    }
-
-    async function renderRequests() {
-        const all = await dbAction('requests', 'readonly', store => store.getAll());
-        const search = document.getElementById('req-search').value.toLowerCase();
-        const tbody = document.getElementById('requests-body'); 
-        tbody.innerHTML = '';
-        
-        let count = 0;
-        all.sort((a,b) => b.id - a.id).forEach(r => {
-            if (activeReqFilter !== 'All' && r.status !== activeReqFilter) return;
-            const matchesSearch = r.requester.toLowerCase().includes(search) || 
-                                  r.department.toLowerCase().includes(search) || 
-                                  r.id.toString().includes(search);
-            if (!matchesSearch) return;
-
-            count++;
-            const badge = r.status === 'Pending' ? 'badge-pending' : r.status === 'Approved' ? 'badge-approved' : r.status === 'Rejected' ? 'badge-rejected' : 'bg-slate-200 dark:bg-slate-600 dark:text-slate-300';
-            
-            let actions = `<button onclick="openRequestModal(${r.id})" class="text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-700 p-1.5 px-3 rounded transition font-bold text-xs border border-brand-200 dark:border-slate-600">Details</button>`;
-            if(r.status === 'Pending') { 
-                actions += `<button onclick="openRequestEditModal(${r.id})" class="text-yellow-600 hover:bg-yellow-50 dark:hover:bg-slate-700 p-1.5 rounded transition ml-2" title="Edit Details"><i class="fas fa-pencil-alt"></i></button>`; 
-            }
-            actions += `<button onclick="deleteRequest(${r.id})" class="text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 p-1.5 rounded transition ml-1" title="Delete"><i class="fas fa-trash"></i></button>`;
-            
-            const row = `
-                <tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-                    <td class="px-6 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">#${r.id}</td>
-                    <td class="px-6 py-3 text-xs whitespace-nowrap">${r.date}</td>
-                    <td class="px-6 py-3 font-medium text-slate-800 dark:text-white">${r.requester}</td>
-                    <td class="px-6 py-3 text-xs text-slate-500 dark:text-slate-400">${r.department}</td>
-                    <td class="px-6 py-3 text-center"><span class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold">${r.items.length} Items</span></td>
-                    <td class="px-6 py-3"><span class="badge ${badge}">${r.status}</span></td>
-                    <td class="px-6 py-3 text-right whitespace-nowrap">${actions}</td>
-                </tr>`;
-            tbody.innerHTML += row;
-        });
-        document.getElementById('requests-empty').classList.toggle('hidden', count > 0);
-    }
-
-    async function openRequestModal(id) {
-        activeReqId = id; 
-        const req = await dbAction('requests', 'readonly', store => store.get(id));
-        document.getElementById('thpal-emp-name').innerText = req.requester;
-        document.getElementById('thpal-dept').innerText = req.department;
-        document.getElementById('thpal-date').innerText = req.date;
-        document.getElementById('thpal-time').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        document.getElementById('thpal-reason').innerText = req.reason || '';
-        document.getElementById('thpal-sig-req').innerText = req.requester;
-        const tbody = document.getElementById('thpal-items-body'); tbody.innerHTML = '';
-        
-        for(let i=0; i<15; i++) {
-            const item = req.items[i];
-            const ser = i + 1;
-            const unit = item ? item.unit : '';
-            const qty = item ? item.qty : '';
-            const desc = item ? `${item.code || ''} - ${item.name}` : '';
-            tbody.innerHTML += `<tr><td class="text-center h-5">${ser}</td><td class="text-center">${unit}</td><td class="text-center">${qty}</td><td class="pl-2">${desc}</td></tr>`;
-        }
-        
-        document.getElementById('chk-approved').checked = (req.status === 'Approved');
-        document.getElementById('chk-onhold').checked = (req.status === 'Pending');
-        document.getElementById('chk-declined').checked = (req.status === 'Rejected');
-        document.getElementById('chk-cancelled').checked = false;
-        
-        const btns = document.getElementById('approval-buttons'); 
-        if(req.status === 'Pending') btns.classList.remove('hidden'); else btns.classList.add('hidden');
-        document.getElementById('request-details-modal').classList.add('open');
-    }
-
-    async function openRequestEditModal(id) {
-        const req = await dbAction('requests', 'readonly', s=>s.get(id));
-        document.getElementById('req-edit-id').value = req.id; document.getElementById('req-edit-name').value = req.requester;
-        document.getElementById('req-edit-dept').value = req.department; document.getElementById('req-edit-reason').value = req.reason || '';
-        document.getElementById('req-edit-modal').classList.add('open');
-    }
-    async function submitReqEdit(e) {
-        e.preventDefault(); const id = parseInt(document.getElementById('req-edit-id').value);
-        const req = await dbAction('requests', 'readonly', s=>s.get(id));
-        req.requester = document.getElementById('req-edit-name').value; req.department = document.getElementById('req-edit-dept').value;
-        req.reason = document.getElementById('req-edit-reason').value;
-        await dbAction('requests', 'readwrite', s=>s.put(req));
-        showToast('Request Details Updated', 'success'); closeModal('req-edit-modal'); renderRequests(); renderDashboard();
-    }
-    async function deleteRequest(id) { if(confirm(`Delete Request #${id}?`)) { await dbAction('requests', 'readwrite', store => store.delete(id)); renderRequests(); renderDashboard(); } }
-    
-    async function processRequest(status) {
-        const req = await dbAction('requests', 'readonly', store => store.get(activeReqId));
-        if (status === 'Approved') {
-            let insufficient = false;
-            for (const i of req.items) {
-                const inv = await dbAction('inventory', 'readonly', s=>s.get(i.id));
-                if (!inv || inv.stock < i.qty) {
-                    alert(`Cannot Approve: Insufficient stock for ${i.name}. Available: ${inv ? inv.stock : 0}`);
-                    insufficient = true; break;
-                }
-            }
-            if (insufficient) return;
-            for (const i of req.items) {
-                const inv = await dbAction('inventory', 'readonly', s=>s.get(i.id));
-                inv.stock -= i.qty;
-                await dbAction('inventory', 'readwrite', s=>s.put(inv));
-            }
-            await logAction('APPROVE_REQ', `Approved Req #${req.id} for ${req.requester}`);
-        } else {
-             await logAction('REJECT_REQ', `Rejected Req #${req.id}`);
-        }
-        req.status = status; 
-        await dbAction('requests', 'readwrite', s=>s.put(req));
-        closeModal('request-details-modal'); renderRequests(); renderDashboard();
-    }
-
-    // --- DISPOSAL LOGIC (Updated to depend on Approved Requests) ---
-    async function renderDisposal() {
-        const data = await dbAction('disposal', 'readonly', s=>s.getAll());
-        const tbody = document.getElementById('disposal-body');
-        const filter = document.getElementById('disposal-search').value.toLowerCase();
-        tbody.innerHTML = '';
-        let count = 0;
-        data.sort((a,b)=>b.id - a.id).forEach(d => {
-            const matches = (d.assetName && d.assetName.toLowerCase().includes(filter)) || 
-                            (d.assetCode && d.assetCode.toLowerCase().includes(filter)) || 
-                            (d.reason && d.reason.toLowerCase().includes(filter)) ||
-                            (d.sourceRequestId && d.sourceRequestId.toString().includes(filter));
-            if(matches) {
-                count++;
-                const badge = d.status === 'Pending' ? 'badge-pending' : 'badge-disposed';
-                tbody.innerHTML += `
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-700">
-                    <td class="px-6 py-3 text-xs text-slate-500">#${d.id}</td>
-                    <td class="px-6 py-3 text-xs font-mono text-blue-600 dark:text-blue-400">Req #${d.sourceRequestId || 'N/A'}</td>
-                    <td class="px-6 py-3">
-                        <div class="font-bold text-slate-700 dark:text-white text-sm">${d.assetName}</div>
-                        <div class="text-[10px] text-slate-500">${d.assetCode || 'No Code'}</div>
-                    </td>
-                    <td class="px-6 py-3 text-xs">${d.reason}</td>
-                    <td class="px-6 py-3 text-xs">${d.method}</td>
-                    <td class="px-6 py-3 text-xs font-mono whitespace-nowrap">${d.disposalDate}</td>
-                    <td class="px-6 py-3"><span class="badge ${badge}">${d.status}</span></td>
-                    <td class="px-6 py-3 text-right whitespace-nowrap">
-                         <button onclick="openDisposalModal(${d.id})" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 p-1.5"><i class="fas fa-pencil-alt"></i></button>
-                         <button onclick="deleteDisposal(${d.id})" class="text-red-500 hover:text-red-700 p-1.5"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
-            }
-        });
-        document.getElementById('disposal-empty').classList.toggle('hidden', count > 0);
-    }
-
-    async function openDisposalModal(id=null) {
-        document.getElementById('form-disposal-edit').reset();
-        document.getElementById('dsp-id').value = '';
-        
-        // Populate "Approved Requests" dropdown
-        const allReqs = await dbAction('requests', 'readonly', s=>s.getAll());
-        const approvedReqs = allReqs.filter(r => r.status === 'Approved');
-        
-        const reqSelect = document.getElementById('dsp-select-req');
-        const itemSelect = document.getElementById('dsp-select-item');
-        reqSelect.innerHTML = '<option value="">-- Select Approved Withdrawal Request --</option>';
-        itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
-        itemSelect.disabled = true;
-
-        approvedReqs.sort((a,b)=>b.id - a.id).forEach(r => {
-             const opt = document.createElement('option');
-             opt.value = r.id;
-             opt.innerText = `Req #${r.id} - ${r.requester} (${r.date})`;
-             reqSelect.appendChild(opt);
-        });
-
-        if(id) {
-            const d = await dbAction('disposal', 'readonly', s=>s.get(id));
-            document.getElementById('dsp-id').value = d.id;
-            
-            // Set Req Select
-            if(d.sourceRequestId) {
-                reqSelect.value = d.sourceRequestId;
-                await loadReqItems(reqSelect); // Load items first
-                // Need to find which item corresponds to this record logic
-                const options = itemSelect.options;
-                for(let i=0; i<options.length; i++) {
-                     if(options[i].dataset.name === d.assetName && options[i].dataset.code === d.assetCode) {
-                         itemSelect.selectedIndex = i;
-                         break;
-                     }
-                }
-            }
-            
-            document.getElementById('dsp-name').value = d.assetName;
-            document.getElementById('dsp-code').value = d.assetCode;
-            document.getElementById('dsp-category').value = d.category;
-            document.getElementById('dsp-reason').value = d.reason;
-            document.getElementById('dsp-method').value = d.method;
-            document.getElementById('dsp-quantity').value = d.quantity;
-            document.getElementById('dsp-date').value = d.disposalDate;
-            document.getElementById('dsp-approved-by').value = d.approvedBy;
-            document.getElementById('dsp-status').value = d.status;
-        } else {
-             document.getElementById('dsp-date').value = new Date().toISOString().split('T')[0];
-        }
-        document.getElementById('disposal-edit-modal').classList.add('open');
-    }
-    
-    async function loadReqItems(reqSelect) {
-        const itemSelect = document.getElementById('dsp-select-item');
-        itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
-        itemSelect.disabled = true;
-        
-        const reqId = parseInt(reqSelect.value);
-        if(!reqId) return;
-
-        const req = await dbAction('requests', 'readonly', s=>s.get(reqId));
-        if(req && req.items) {
-             tempReqItems = req.items; // Store globally for next step
-             req.items.forEach((item, index) => {
-                 const opt = document.createElement('option');
-                 opt.value = index; // Use index to retrieve obj from tempReqItems
-                 opt.innerText = `${item.qty} x ${item.name} (${item.code || 'No Code'})`;
-                 opt.dataset.name = item.name;
-                 opt.dataset.code = item.code || '';
-                 opt.dataset.qty = item.qty;
-                 itemSelect.appendChild(opt);
-             });
-             itemSelect.disabled = false;
-        }
-    }
-    
-    async function fillDisposalItem(itemSelect) {
-        if(itemSelect.value === "") return;
-        
-        const idx = parseInt(itemSelect.value);
-        const item = tempReqItems[idx];
-        
-        if(item) {
-            document.getElementById('dsp-name').value = item.name;
-            document.getElementById('dsp-code').value = item.code || '';
-            document.getElementById('dsp-quantity').value = item.qty;
-            
-            // Try to find category from Inventory DB for auto-fill
-            if(item.id) {
-                 const invItem = await dbAction('inventory', 'readonly', s=>s.get(item.id));
-                 if(invItem) document.getElementById('dsp-category').value = invItem.category;
-            }
-        }
-    }
-
-    async function submitDisposalForm(e) {
-        e.preventDefault();
-        
-        const id = document.getElementById('dsp-id').value;
-        const reqId = document.getElementById('dsp-select-req').value;
-        const itemIndex = document.getElementById('dsp-select-item').value;
-        
-        // Basic Validation
-        if(!reqId || itemIndex === "") {
-            showToast('Please select a valid Withdrawal Request and Item.', 'error');
-            return;
-        }
-
-        const data = {
-            sourceRequestId: parseInt(reqId),
-            assetName: document.getElementById('dsp-name').value,
-            assetCode: document.getElementById('dsp-code').value,
-            category: document.getElementById('dsp-category').value,
-            quantity: parseInt(document.getElementById('dsp-quantity').value),
-            reason: document.getElementById('dsp-reason').value,
-            method: document.getElementById('dsp-method').value,
-            disposalDate: document.getElementById('dsp-date').value,
-            approvedBy: document.getElementById('dsp-approved-by').value,
-            status: document.getElementById('dsp-status').value
-        };
-        
-        if(id) {
-            // Update Existing Record
-            data.id = parseInt(id);
-            await dbAction('disposal', 'readwrite', s=>s.put(data));
-            await logAction('UPDATE_DISPOSAL', `Updated disposal record #${id}`);
-            showToast('Disposal Record Updated', 'success');
-        } else {
-            // Add New Record
-            await dbAction('disposal', 'readwrite', s=>s.add(data));
-            await logAction('ADD_DISPOSAL', `Added disposal for ${data.assetName} from Req #${reqId}`);
-            showToast('Disposal Record Added', 'success');
-        }
-        
-        closeModal('disposal-edit-modal');
-        renderDisposal();
-        renderDashboard();
-    }
-
-    async function deleteDisposal(id) {
-        if(confirm('Delete this disposal record?')) {
-            await dbAction('disposal', 'readwrite', s=>s.delete(id));
-            renderDisposal();
-            renderDashboard();
-            showToast('Record Deleted', 'error');
-        }
-    }
-
-    // --- PR LOGIC ---
-    async function renderPRRequests() {
-        const list = document.getElementById('pr-requests-body'); list.innerHTML = '';
-        const prs = await dbAction('pr_requests', 'readonly', store => store.getAll());
-        if(prs.length === 0) { list.innerHTML = '<div class="p-8 text-center text-slate-400">No PRs found</div>'; return; }
-        prs.sort((a,b) => b.id - a.id).forEach(r => {
-            const badge = r.status === 'Pending' ? 'badge-pending' : r.status === 'Received' ? 'badge-approved' : r.status === 'For Withdrawal' ? 'badge-withdrawal' : r.status === 'Ordered' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-slate-200 dark:bg-slate-600 dark:text-slate-300';
-            const dateDisplay = `<span class="text-[10px] text-slate-500 dark:text-slate-400">P: ${r.dateProcess||'-'}</span><br><span class="text-[10px] text-orange-600 dark:text-orange-400">E: ${r.expectedDate||'N/A'}</span>`;
-            const trackingDisplay = `<span class="text-[10px] text-slate-500 dark:text-slate-400">PR: ${r.prNumber||'-'}</span><br><span class="text-[10px] text-slate-500 dark:text-slate-400">PO: ${r.poNumber||'-'}</span>`;
-            list.innerHTML += `<div class="pr-list-grid hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-700 text-xs transition">
-                <div><span class="font-mono text-slate-500 dark:text-slate-400">#${r.id}</span></div><div><span class="font-bold text-slate-700 dark:text-slate-200">${r.materialDescription}</span><br><span class="text-[10px] text-slate-500 dark:text-slate-400">${r.materialCode||'-'}</span></div><div class="text-center font-bold">${r.quantity} <span class="font-normal text-slate-500 dark:text-slate-400">${r.unit}</span></div><div class="font-mono text-green-700 dark:text-green-400">₱${(r.unitPrice||0).toFixed(2)}</div><div>${r.category}</div><div>${dateDisplay}</div><div>${trackingDisplay}</div><div class="text-right flex flex-col items-end gap-1"><span class="badge ${badge}">${r.status}</span><div class="flex gap-2 mt-1"><button onclick="openPRViewModal(${r.id})" class="text-brand-600 hover:text-brand-800 dark:text-brand-400 transition" title="View Details"><i class="fas fa-eye"></i></button><button onclick="openPREditModal(${r.id})" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 transition" title="Edit"><i class="fas fa-pencil-alt"></i></button><button onclick="deletePR(${r.id})" class="text-red-600 hover:text-red-800 dark:text-red-400 transition" title="Delete"><i class="fas fa-trash"></i></button></div></div></div>`;
-        });
-    }
-    async function openPREditModal(id=null) {
-        document.getElementById('form-pr-edit').reset(); document.getElementById('pr-edit-id').value = '';
-        if(id) {
-            const pr = await dbAction('pr_requests', 'readonly', s=>s.get(id));
-            document.getElementById('pr-edit-id').value = pr.id; document.getElementById('pr-material-code').value = pr.materialCode;
-            document.getElementById('pr-quantity').value = pr.quantity; document.getElementById('pr-unit').value = pr.unit;
-            document.getElementById('pr-description').value = pr.materialDescription; document.getElementById('pr-category').value = pr.category;
-            document.getElementById('pr-date-process').value = pr.dateProcess; document.getElementById('pr-number').value = pr.prNumber;
-            document.getElementById('pr-po-number').value = pr.poNumber; document.getElementById('pr-arf-number').value = pr.arfNumber;
-            document.getElementById('pr-purchaser').value = pr.purchaserAssign; document.getElementById('pr-unit-price').value = pr.unitPrice;
-            document.getElementById('pr-status').value = pr.status;
-            document.getElementById('pr-image-link-1').value = pr.imageLink1 || ''; document.getElementById('pr-image-link-2').value = pr.imageLink2 || '';
-            document.getElementById('pr-expected-date').value = pr.expectedDate || ''; document.getElementById('pr-received-date').value = pr.receivedDate || '';
-            document.getElementById('pr-vendor-name').value = pr.vendorName || ''; document.getElementById('pr-remarks').value = pr.remarks || '';
-        } else { 
-            document.getElementById('pr-date-process').value = new Date().toISOString().split('T')[0];
-        }
-        document.getElementById('pr-edit-modal').classList.add('open');
-    }
-    async function submitPRForm(e) {
-        e.preventDefault(); const id = document.getElementById('pr-edit-id').value;
-        const data = { 
-            materialCode: document.getElementById('pr-material-code').value, materialDescription: document.getElementById('pr-description').value, 
-            quantity: parseInt(document.getElementById('pr-quantity').value), unit: document.getElementById('pr-unit').value, 
-            category: document.getElementById('pr-category').value, dateProcess: document.getElementById('pr-date-process').value, 
-            prNumber: document.getElementById('pr-number').value, poNumber: document.getElementById('pr-po-number').value, 
-            arfNumber: document.getElementById('pr-arf-number').value, purchaserAssign: document.getElementById('pr-purchaser').value, 
-            unitPrice: parseFloat(document.getElementById('pr-unit-price').value), status: document.getElementById('pr-status').value,
-            imageLink1: document.getElementById('pr-image-link-1').value, imageLink2: document.getElementById('pr-image-link-2').value,  
-            expectedDate: document.getElementById('pr-expected-date').value, receivedDate: document.getElementById('pr-received-date').value,
-            vendorName: document.getElementById('pr-vendor-name').value, remarks: document.getElementById('pr-remarks').value 
-        };
-        if(id) { data.id = parseInt(id); await dbAction('pr_requests', 'readwrite', s=>s.put(data)); showToast('PR Updated', 'success'); } 
-        else { await dbAction('pr_requests', 'readwrite', s=>s.add(data)); showToast('PR Added', 'success'); }
-        closeModal('pr-edit-modal'); renderPRRequests(); renderDashboard();
-    }
-    async function deletePR(id) { if(confirm('Delete PR?')) await dbAction('pr_requests', 'readwrite', s=>s.delete(id)); renderPRRequests(); }
-
-    async function openPRViewModal(id) {
-        const pr = await dbAction('pr_requests', 'readonly', s=>s.get(id));
-        const container = document.getElementById('pr-view-content');
-        const imageContainer = document.getElementById('pr-view-image-container');
-        const linksContainer = document.getElementById('pr-view-links');
-        const noImage = document.getElementById('pr-view-no-image');
-        document.getElementById('pr-view-id-display').innerText = `(#${pr.id})`;
-        imageContainer.innerHTML = '';
-        const primaryImageLink = pr.imageLink1 || pr.imageLink2;
-        if (primaryImageLink) {
-            imageContainer.innerHTML = `<img src="${primaryImageLink}" onerror="this.onerror=null;this.src='https://via.placeholder.com/600x400/CCCCCC/808080?text=Image+Load+Error';" alt="Reference Image" class="w-full h-auto object-cover max-h-full">`;
-            noImage.classList.add('hidden');
-        } else {
-            imageContainer.innerHTML = `<div class="flex items-center justify-center h-48 text-slate-400"><i class="fas fa-image text-4xl"></i></div>`;
-            noImage.classList.remove('hidden');
-        }
-        linksContainer.innerHTML = '';
-        if (pr.imageLink1) linksContainer.innerHTML += `<a href="${pr.imageLink1}" target="_blank" class="mx-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"><i class="fas fa-link mr-1"></i> Link 1</a>`;
-        if (pr.imageLink2) linksContainer.innerHTML += `<a href="${pr.imageLink2}" target="_blank" class="mx-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"><i class="fas fa-link mr-1"></i> Link 2</a>`;
-
-        const totalValue = (pr.quantity * (pr.unitPrice || 0)).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
-        const badge = pr.status === 'Pending' ? 'badge-pending' : pr.status === 'Received' ? 'badge-approved' : pr.status === 'For Withdrawal' ? 'badge-withdrawal' : 'bg-slate-200 dark:bg-slate-600 dark:text-slate-300';
-        const remarksDisplay = pr.remarks ? `<div class="col-span-2 text-xs italic mt-2 p-2 bg-slate-50 dark:bg-slate-700 rounded border dark:border-slate-600">${pr.remarks}</div>` : '';
-
-        container.innerHTML = `
-            <span class="font-bold text-slate-500 dark:text-slate-400">Material Code:</span> <span class="font-mono text-brand-700 dark:text-brand-400">${pr.materialCode || '-'}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400 md:col-span-2">Description:</span> <span class="md:col-span-2">${pr.materialDescription}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">Quantity:</span> <span class="font-bold">${pr.quantity} ${pr.unit}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">Category:</span> <span>${pr.category}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">Unit Price:</span> <span>₱${(pr.unitPrice||0).toFixed(2)}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">Total Value:</span> <span class="font-bold text-lg text-emerald-600 dark:text-emerald-400">${totalValue}</span>
-            <hr class="md:col-span-2 my-2 dark:border-slate-600">
-            <span class="font-bold text-slate-500 dark:text-slate-400">Date Processed:</span> <span>${pr.dateProcess}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">Expected Date:</span> <span class="font-bold text-orange-600 dark:text-orange-400">${pr.expectedDate || 'N/A'}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">Received Date:</span> <span class="font-bold text-green-600 dark:text-green-400">${pr.receivedDate || 'N/A'}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">Vendor:</span> <span>${pr.vendorName || 'N/A'}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">Current Status:</span> <span><span class="badge ${badge}">${pr.status}</span></span>
-            <hr class="md:col-span-2 my-2 dark:border-slate-600">
-            <span class="font-bold text-slate-500 dark:text-slate-400">PR Number:</span> <span>${pr.prNumber || 'N/A'}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">PO Number:</span> <span>${pr.poNumber || 'N/A'}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">ARF Number:</span> <span>${pr.arfNumber || 'N/A'}</span>
-            <span class="font-bold text-slate-500 dark:text-slate-400">Purchaser:</span> <span>${pr.purchaserAssign || 'N/A'}</span>
-            <div class="md:col-span-2"><span class="font-bold text-slate-500 dark:text-slate-400">Remarks:</span></div>${remarksDisplay}
-        `;
-        document.getElementById('pr-view-modal').classList.add('open');
-    }
-
-    // --- MASTER DATA & DASHBOARD ---
-    async function addMasterItem(key) { const input = document.getElementById(`add-master-${key}`); const val = input.value.trim(); if(val) { masterData[key].push(val); await dbAction('master','readwrite',s=>s.put({key:'config',data:masterData})); input.value=''; renderMasterLists(); loadMasterData(); } }
-    async function deleteMasterItem(key, val) { if(!confirm(`Delete ${val}?`)) return; masterData[key] = masterData[key].filter(i => i !== val); await dbAction('master','readwrite',s=>s.put({key:'config',data:masterData})); renderMasterLists(); loadMasterData(); }
-    async function renderMasterLists() { ['categories','units','departments'].forEach(k => { const list = document.getElementById(`master-${k}-list`); if(list && masterData[k]) { list.innerHTML = `<ul class="divide-y divide-slate-100 dark:divide-slate-700">${masterData[k].map(i=>`<li class="py-2 px-1 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-700"><span>${i}</span><button class="text-red-400 hover:text-red-600" onclick="deleteMasterItem('${k}','${i}')"><i class="fas fa-trash-alt"></i></button></li>`).join('')}</ul>`; } }); }
-
-    async function renderDashboard() {
-        const inv = await dbAction('inventory', 'readonly', s=>s.getAll());
-        const req = await dbAction('requests', 'readonly', s=>s.getAll());
-        const pr = await dbAction('pr_requests', 'readonly', s=>s.getAll());
-        const dsp = await dbAction('disposal', 'readonly', s=>s.getAll());
-        
-        document.getElementById('dash-total-items').innerText = inv.length;
-        document.getElementById('dash-low-stock').innerText = inv.filter(i=>i.stock <= (i.threshold||5)).length;
-        document.getElementById('dash-pending').innerText = req.filter(r=>r.status === 'Pending').length;
-        document.getElementById('dash-pr-active').innerText = pr.length;
-        document.getElementById('dash-disposed').innerText = dsp.filter(d=>d.status === 'Disposed').length;
-        
-        document.getElementById('nav-pending-badge').innerText = req.filter(r=>r.status === 'Pending').length;
-        document.getElementById('nav-pending-badge').classList.toggle('hidden', req.filter(r=>r.status === 'Pending').length === 0);
-
-        const totalWithdrawn = req.filter(r => r.status === 'Approved').reduce((total, r) => total + r.items.reduce((sum, i) => sum + i.qty, 0), 0);
-        document.getElementById('dash-total-withdraw').innerText = totalWithdrawn;
-        const totalPRValue = pr.reduce((total, p) => total + (p.quantity * (p.unitPrice || 0)), 0);
-        document.getElementById('dash-pr-value').innerText = totalPRValue.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
-
-        const cats = {}; inv.forEach(i => cats[i.category] = (cats[i.category]||0) + i.stock);
-        const ctx = document.getElementById('trading-chart').getContext('2d');
-        if(chartInstance) chartInstance.destroy();
-        
-        const isDark = document.documentElement.classList.contains('dark');
-        const gridColor = isDark ? '#334155' : '#f1f5f9';
-        const textColor = isDark ? '#94a3b8' : '#64748b';
-
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)'); gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
-
-        chartInstance = new Chart(ctx, { type: 'line', data: { labels: Object.keys(cats), datasets: [{ label: 'Stock Volume', data: Object.values(cats), borderColor: '#10b981', backgroundColor: gradient, borderWidth: 2, pointBackgroundColor: isDark ? '#1e293b' : '#fff', pointBorderColor: '#10b981', pointRadius: 4, fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: textColor } } } } });
-        
-        const logs = await dbAction('logs', 'readonly', s=>s.getAll());
-        const list = document.getElementById('recent-logs-list'); list.innerHTML = '';
-        logs.sort((a,b)=>b.id-a.id).slice(0,5).forEach(l=>list.innerHTML+=`<li class="border-b dark:border-slate-700 py-2 text-xs flex flex-col"><span class="flex justify-between font-bold text-slate-700 dark:text-slate-200"><span>${l.action}</span><span class="font-mono text-[10px] text-slate-400">${l.timestamp.split(',')[1]}</span></span><span class="text-slate-500 dark:text-slate-400">${l.details}</span></li>`);
-    }
-    
-    async function renderLogs() { const l = await dbAction('logs','readonly',s=>s.getAll()); document.getElementById('logs-body').innerHTML = l.sort((a,b)=>b.id-a.id).map(x=>`<tr class="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><td class="px-4 py-2 text-xs">#${x.id}</td><td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">${x.timestamp}</td><td class="px-4 py-2"><span class="badge bg-slate-200 dark:bg-slate-700 dark:text-slate-300">${x.action}</span></td><td class="px-4 py-2 text-sm">${x.details}</td></tr>`).join(''); }
-    async function clearLogs() { if(!confirm('Are you sure you want to clear all audit logs? This cannot be undone.')) return; await dbAction('logs', 'readwrite', store => store.clear()); showToast('Logs Cleared', 'success'); renderLogs(); renderDashboard(); }
-
-    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-    function filterInventoryByLowStock() { document.getElementById('inv-search').value = ""; navTo('view-inventory'); }
-    function exportToExcel(t) { dbAction(t, 'readonly', s=>s.getAll()).then(d => { const ws = XLSX.utils.json_to_sheet(d); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sheet1"); XLSX.writeFile(wb, `${t}_export.xlsx`); }); }
-    function toggleCalculator(){document.getElementById('floating-calculator').classList.toggle('hidden');}
-    function setupCalculatorDrag(){ const calc = document.getElementById('floating-calculator'); let isDragging = false, offset = { x: 0, y: 0 }; document.getElementById('calc-header').addEventListener('mousedown', (e) => { isDragging = true; offset.x = e.clientX - calc.offsetLeft; offset.y = e.clientY - calc.offsetTop; }); document.addEventListener('mousemove', (e) => { if (isDragging) { calc.style.left = (e.clientX - offset.x) + 'px'; calc.style.top = (e.clientY - offset.y) + 'px'; } }); document.addEventListener('mouseup', () => isDragging = false); }
-    function calcInput(v){const d=document.getElementById('calc-display'); if(v=='C')d.value='0'; else if(v=='DEL')d.value=d.value.slice(0,-1); else if(v=='=')try{d.value=eval(d.value)}catch{d.value='Err'} else d.value=d.value=='0'?v:d.value+v;}
-   </script>
-<script src="js/withdrawal-extension.js"></script>
-<script src="js/prlist.js"></script>
-<script src="js/inventorymanagement.js"></script>
-<script src="js/categ.js"></script>
-<script src="js/chat.js"></script>
-<script src="js/auth.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // ... your existing loader code ...
-    });
-</script>
-
+   <script src="js/script.js"></script>
+<!-- External scripts commented out for standalone usage -->
+ <script src="js/withdrawal-extension.js"></script>
+ <script src="js/prlist.js"></script> 
+ <script src="js/inventorymanagement.js"></script> 
+<script src="js/categ.js"></script> 
+ <script src="js/chat.js"></script> 
+ <script src="js/auth.js"></script> 
 
 </body>
 </html>
