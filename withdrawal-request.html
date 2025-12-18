@@ -63,12 +63,10 @@
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
 
-        /* Custom Scrollbar for Dropdown */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        /* Loader */
         #loader-overlay {
             position: fixed; inset: 0; z-index: 100;
             background: #ffffff;
@@ -113,8 +111,8 @@
                     <i class="fas fa-cubes text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight text-slate-800">Trans-System Withdrawal Portal</h1>
-                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Transportation Record Monitoring System 2026</p>
+                    <h1 class="font-bold text-lg leading-tight text-slate-800">Trans-System Withdrawal</h1>
+                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Record Monitoring System</p>
                 </div>
             </div>
             <div id="gps-badge" class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 flex items-center gap-2">
@@ -146,7 +144,7 @@
 
         <form id="withdrawal-form" class="space-y-6">
             
-            <!-- Items Section (Z-Index 20 to sit ON TOP of Requester Info) -->
+            <!-- Items Section -->
             <section class="glass-panel rounded-3xl p-1 shadow-glass relative z-20 overflow-visible">
                 <div class="bg-white/50 rounded-[20px] p-5 overflow-visible">
                     <div class="flex justify-between items-center mb-4">
@@ -160,7 +158,6 @@
                         </button>
                     </div>
                     
-                    <!-- Container must be visible overflow -->
                     <div id="items-container" class="space-y-3 min-h-[100px] overflow-visible">
                         <!-- Dynamic Rows go here -->
                     </div>
@@ -174,7 +171,7 @@
                 </div>
             </section>
 
-            <!-- Requester Details (Z-Index 10 to stay BEHIND dropdowns) -->
+            <!-- Requester Details -->
             <section class="glass-panel rounded-3xl p-6 shadow-glass relative z-10">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-500">
@@ -194,12 +191,12 @@
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department/Agency</label>
                         <div class="relative">
                             <i class="fas fa-building absolute left-4 top-4 text-slate-300"></i>
                             <select id="req-dept" required 
                                 class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none appearance-none cursor-pointer">
-                                <option value="" disabled selected>Select Department</option>
+                                <option value="" disabled selected>Select Department / Agency</option>
                             </select>
                             <i class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-300 pointer-events-none"></i>
                         </div>
@@ -247,10 +244,25 @@
 
         let inventoryList = [];
         let collectedDeviceData = {};
+        let loaderRemoved = false;
+
+        // FIXED: Force loader removal logic
+        function removeLoader() {
+            if (loaderRemoved) return;
+            loaderRemoved = true;
+            $('#loader-overlay').fadeOut(400);
+        }
 
         $(document).ready(async () => {
-            await Promise.all([initGPS(), loadInitialData()]);
+            // FIXED: Safety timer. If data takes longer than 1.5s, remove loader anyway
+            setTimeout(removeLoader, 1500);
+
+            // Run initialization in background (don't await them to block UI)
+            initGPS();
             
+            await loadInitialData();
+            
+            // Check for scanned ID
             const urlParams = new URLSearchParams(window.location.search);
             const scannedId = urlParams.get('id');
             
@@ -268,10 +280,12 @@
                 addItemRow();
             }
 
-            $('#loader-overlay').fadeOut(400);
+            // If data loaded fast, remove loader now
+            removeLoader();
         });
 
         async function initGPS() {
+            // Non-blocking GeoLocation
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -281,29 +295,46 @@
                         $('#gps-badge').addClass('border-emerald-200 bg-emerald-50');
                     },
                     (err) => { 
+                        // Do nothing if failed, just keep "Locating..." or set to Off
                         $('#gps-dot').addClass('bg-red-500'); 
                         $('#gps-text').text('GPS OFF').addClass('text-red-500'); 
                     }
                 );
             }
+
+            // FIXED: Added try/catch and timeout for IP fetch to prevent hanging
             try {
-                const res = await fetch('https://api.ipify.org?format=json');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second max for IP
+
+                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+                clearTimeout(timeoutId);
                 const data = await res.json();
                 collectedDeviceData.ip = data.ip;
                 collectedDeviceData.ua = navigator.userAgent;
-            } catch(e) {}
+            } catch(e) {
+                console.log("IP Fetch skipped or blocked (Adblocker likely)");
+                collectedDeviceData.ip = "Hidden/Blocked";
+            }
         }
 
         async function loadInitialData() {
             try {
+                // Fetch Departments
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
                 const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics'];
                 depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
 
-                const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
+                // Fetch Inventory
+                const { data: inv, error } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
+                if(error) throw error;
                 inventoryList = inv || [];
             } catch (err) {
                 console.error("Data Load Error:", err);
+                // Fallback dummy data if database connection fails entirely
+                if(inventoryList.length === 0) {
+                   // inventoryList = [{id: 1, name: "System Offline Mode", stock: 0, unit: "N/A", image: ""}];
+                }
             }
         }
 
@@ -360,7 +391,6 @@
                 }
             }
 
-            // z-10 by default, will switch to z-50 when active
             const html = `
                 <div id="${rowId}" class="item-row animate-slide-in bg-white border border-slate-100 p-4 rounded-2xl relative shadow-sm group hover:border-accent-200 transition-colors z-10">
                     <button type="button" onclick="removeRow('${rowId}')" 
@@ -369,7 +399,6 @@
                     </button>
                     
                     <div class="flex flex-col sm:flex-row gap-4">
-                        <!-- Dropdown Container -->
                         <div class="flex-1 relative">
                             <input type="hidden" class="item-select-value" value="${hiddenVal}">
                             
@@ -378,7 +407,6 @@
                                 <i class="fas fa-chevron-down text-xs text-slate-300 ml-2"></i>
                             </button>
 
-                            <!-- Absolute positioned dropdown -->
                             <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-slate-200 shadow-floating rounded-xl z-[60] mt-2 flex flex-col max-h-[250px] overflow-hidden">
                                 <div class="p-2 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
                                     <input type="text" class="w-full text-xs pl-3 pr-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-accent-500 bg-white" 
@@ -390,7 +418,6 @@
                             </div>
                         </div>
 
-                        <!-- Quantity -->
                         <div class="w-full sm:w-32 flex flex-col justify-center">
                             <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 p-1">
                                 <button type="button" onclick="stepQty('${rowId}', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600 active:scale-90 transition-all">
@@ -418,28 +445,22 @@
             updateTotal();
         }
 
-        // --- Dropdown Management & Z-Index logic ---
+        // --- Dropdown Management ---
 
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
             
-            // 1. Reset all rows to low z-index
             $('.item-row').removeClass('z-50').addClass('z-10');
-            // 2. Hide all other dropdowns
             $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
 
             const $targetDropdown = $(`#dropdown-${rowId}`);
             const $row = $(`#${rowId}`);
             
             if ($targetDropdown.hasClass('hidden')) {
-                // OPENING
                 $targetDropdown.removeClass('hidden');
-                // Raise this row above others
                 $row.removeClass('z-10').addClass('z-50');
-                // Focus search
                 setTimeout(() => $targetDropdown.find('input').focus(), 100);
             } else {
-                // CLOSING
                 $targetDropdown.addClass('hidden');
                 $row.removeClass('z-50').addClass('z-10');
             }
@@ -448,7 +469,6 @@
         function closeAllDropdowns(event) {
             if (!$(event.target).closest('.custom-dropdown, .dropdown-trigger').length) {
                 $('.custom-dropdown').addClass('hidden');
-                // Reset Z-indexes when clicking outside
                 $('.item-row').removeClass('z-50').addClass('z-10');
             }
         }
@@ -478,14 +498,13 @@
             `;
             $row.find('.dropdown-trigger').html(triggerHtml + '<i class="fas fa-check text-emerald-500 text-xs ml-2"></i>');
             
-            // Close dropdown and reset Z-Index
             $row.find('.custom-dropdown').addClass('hidden');
             $row.removeClass('z-50').addClass('z-10');
 
             updateRowLimit($row, item);
         }
 
-        // --- Qty & Submit Logic (Same as before) ---
+        // --- Qty & Submit Logic ---
         function updateRowLimit($row, item) {
             const $input = $row.find('.qty-input');
             $input.attr('max', item.stock).val(1);
