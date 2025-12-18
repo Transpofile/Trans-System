@@ -19,7 +19,9 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
                     colors: {
                         primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
                         accent: { 500: '#6366f1', 600: '#4f46e5' },
@@ -53,19 +55,20 @@
     
     <style>
         body { background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
+        
         .glass-panel {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
+
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        /* Loader */
         #loader-overlay {
-            position: fixed; inset: 0; z-index: 9999;
+            position: fixed; inset: 0; z-index: 100;
             background: #ffffff;
             display: flex; justify-content: center; align-items: center;
             transition: opacity 0.5s ease;
@@ -240,30 +243,49 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let inventoryList = [];
-        let collectedDeviceData = { ua: navigator.userAgent };
+        let collectedDeviceData = {};
+        let loaderRemoved = false;
 
-        // 1. FORCE REMOVE LOADER FUNCTION
-        function forceRemoveLoader() {
-            $('#loader-overlay').fadeOut(300, function(){
-                $(this).remove(); // Completely delete it from DOM
-            });
+        // FIXED: Force loader removal logic
+        function removeLoader() {
+            if (loaderRemoved) return;
+            loaderRemoved = true;
+            $('#loader-overlay').fadeOut(400);
         }
 
-        // 2. MAIN EXECUTION
-        $(document).ready(function() {
-            // A. Force loader removal after 1.5 seconds NO MATTER WHAT
-            setTimeout(forceRemoveLoader, 1500);
+        $(document).ready(async () => {
+            // FIXED: Safety timer. If data takes longer than 1.5s, remove loader anyway
+            setTimeout(removeLoader, 1500);
 
-            // B. Initialize systems in background (no await)
-            initSimpleGPS();
-            loadInventoryAndDepartments();
+            // Run initialization in background (don't await them to block UI)
+            initGPS();
             
-            // C. Add initial empty row immediately
-            addItemRow();
+            await loadInitialData();
+            
+            // Check for scanned ID
+            const urlParams = new URLSearchParams(window.location.search);
+            const scannedId = urlParams.get('id');
+            
+            if(scannedId && inventoryList.length > 0) {
+                const item = inventoryList.find(i => i.id == scannedId);
+                if(item) {
+                    addItemRow(item.id);
+                    $('#scan-msg').text(item.name);
+                    $('#scan-alert').removeClass('hidden');
+                    setTimeout(() => $('#scan-alert').slideUp(), 5000);
+                } else {
+                    addItemRow();
+                }
+            } else {
+                addItemRow();
+            }
+
+            // If data loaded fast, remove loader now
+            removeLoader();
         });
 
-        // 3. Simplified GPS (Fire and Forget)
-        function initSimpleGPS() {
+        async function initGPS() {
+            // Non-blocking GeoLocation
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -273,46 +295,45 @@
                         $('#gps-badge').addClass('border-emerald-200 bg-emerald-50');
                     },
                     (err) => { 
-                        // Do nothing if it fails, just keep silent
-                        console.log("GPS denied or unavailable");
+                        // Do nothing if failed, just keep "Locating..." or set to Off
+                        $('#gps-dot').addClass('bg-red-500'); 
+                        $('#gps-text').text('GPS OFF').addClass('text-red-500'); 
                     }
                 );
             }
+
+            // FIXED: Added try/catch and timeout for IP fetch to prevent hanging
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second max for IP
+
+                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                const data = await res.json();
+                collectedDeviceData.ip = data.ip;
+                collectedDeviceData.ua = navigator.userAgent;
+            } catch(e) {
+                console.log("IP Fetch skipped or blocked (Adblocker likely)");
+                collectedDeviceData.ip = "Hidden/Blocked";
+            }
         }
 
-        // 4. Load Data
-        async function loadInventoryAndDepartments() {
+        async function loadInitialData() {
             try {
-                // Load Departments
+                // Fetch Departments
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
                 const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics'];
                 depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
 
-                // Load Inventory
-                const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
-                if(inv) {
-                    inventoryList = inv;
-                    // Check for URL param after inventory loads
-                    checkUrlParams(); 
-                }
+                // Fetch Inventory
+                const { data: inv, error } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
+                if(error) throw error;
+                inventoryList = inv || [];
             } catch (err) {
                 console.error("Data Load Error:", err);
-            }
-        }
-
-        function checkUrlParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const scannedId = urlParams.get('id');
-            if(scannedId && inventoryList.length > 0) {
-                $('#items-container').empty(); // Clear default row
-                const item = inventoryList.find(i => i.id == scannedId);
-                if(item) {
-                    addItemRow(item.id);
-                    $('#scan-msg').text(item.name);
-                    $('#scan-alert').removeClass('hidden');
-                    setTimeout(() => $('#scan-alert').slideUp(), 5000);
-                } else {
-                    addItemRow();
+                // Fallback dummy data if database connection fails entirely
+                if(inventoryList.length === 0) {
+                   // inventoryList = [{id: 1, name: "System Offline Mode", stock: 0, unit: "N/A", image: ""}];
                 }
             }
         }
@@ -325,32 +346,25 @@
             
             // Build Dropdown
             let listItemsHtml = '';
-            
-            if(inventoryList.length === 0) {
-                listItemsHtml = '<div class="p-4 text-center text-xs text-slate-400">Loading data... tap again in a moment.</div>';
-            } else {
-                inventoryList.forEach(i => {
-                    // Simple avatar if no image
-                    const imgSrc = i.image && i.image.length > 5 ? i.image : `https://ui-avatars.com/api/?name=${i.name}&background=random&color=fff&size=100`;
-                    
-                    listItemsHtml += `
-                        <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
-                             onclick="selectItem('${rowId}', ${i.id})"
-                             data-name="${i.name.toLowerCase()}">
-                            <img src="${imgSrc}" class="w-10 h-10 rounded-lg object-cover bg-white shadow-sm group-hover:scale-110 transition-transform">
-                            <div class="flex-1 min-w-0">
-                                <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
-                                <div class="flex items-center gap-2 mt-0.5">
-                                    <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit || 'pcs'}</span>
-                                    <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
-                                </div>
+            inventoryList.forEach(i => {
+                const imgSrc = i.image && i.image.length > 5 ? i.image : `https://ui-avatars.com/api/?name=${i.name}&background=random&color=fff&size=100`;
+                listItemsHtml += `
+                    <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
+                         onclick="selectItem('${rowId}', ${i.id})"
+                         data-name="${i.name.toLowerCase()}">
+                        <img src="${imgSrc}" class="w-10 h-10 rounded-lg object-cover bg-white shadow-sm group-hover:scale-110 transition-transform">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit || 'pcs'}</span>
+                                <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
                             </div>
                         </div>
-                    `;
-                });
-            }
+                    </div>
+                `;
+            });
 
-            // Default Display
+            // Pre-selection Logic
             let initialDisplay = `
                 <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3">
                     <i class="fas fa-search"></i>
@@ -362,7 +376,7 @@
             `;
             let hiddenVal = "";
 
-            if(preId && inventoryList.length > 0) {
+            if(preId) {
                 const item = inventoryList.find(i => i.id == preId);
                 if(item) {
                     const imgSrc = item.image && item.image.length > 5 ? item.image : `https://ui-avatars.com/api/?name=${item.name}&background=random&color=fff`;
@@ -424,23 +438,18 @@
             const $row = $(html);
             $('#items-container').append($row);
             
-            if(preId && inventoryList.length > 0) {
+            if(preId) {
                 const item = inventoryList.find(i => i.id == preId);
                 updateRowLimit($row, item);
             }
             updateTotal();
         }
 
-        // --- Event Listeners ---
+        // --- Dropdown Management ---
 
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
-            // If data hasn't loaded yet, try reloading the dropdown content
-            if(inventoryList.length === 0) {
-                 // re-trigger logic silently to see if data arrived
-                 // Ideally this just shows the "Loading..." text from addItemRow
-            }
-
+            
             $('.item-row').removeClass('z-50').addClass('z-10');
             $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
 
@@ -495,6 +504,7 @@
             updateRowLimit($row, item);
         }
 
+        // --- Qty & Submit Logic ---
         function updateRowLimit($row, item) {
             const $input = $row.find('.qty-input');
             $input.attr('max', item.stock).val(1);
