@@ -35,9 +35,10 @@ html, body {
     margin: 0;
     padding: 0;
     overflow: hidden; /* PREVENTS WHOLE PAGE SCROLL */
-    font-family: 'Inter', sans-serif; /* Assuming font */
+    font-family: 'Inter', sans-serif;
 }
 
+/* Custom Scrollbar Styling */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--sb-track); }
 ::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
@@ -67,28 +68,28 @@ html, body {
    4. GLASS PANEL & CONTAINERS
    ========================================= */
 .glass-panel {
-    background: rgba(255, 255, 255, 0.90);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     color: var(--text-main);
-    /* Flex setup for fitting content */
     display: flex;
     flex-direction: column;
 }
 
 .dark .glass-panel {
-    background: rgba(30, 41, 59, 0.95);
+    background: rgba(30, 41, 59, 0.98);
     border: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--text-dark);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 }
 
 /* =========================================
-   5. MODAL SYSTEM (Auto Adjusting)
+   5. ELEGANT CARD MODAL SYSTEM
    ========================================= */
-/* The Overlay */
+
+/* The Overlay - Subtle blur and tint */
 .modal { 
     display: none; 
     position: fixed; 
@@ -97,103 +98,162 @@ html, body {
     top: 0; 
     width: 100%; 
     height: 100%; 
-    background-color: rgba(15, 23, 42, 0.5); 
-    backdrop-filter: blur(3px); 
+    background-color: rgba(15, 23, 42, 0.4); 
+    backdrop-filter: blur(8px); 
     align-items: center; 
     justify-content: center;
     transition: opacity 0.2s ease;
+    padding: 1.5rem; 
 }
 .modal.open { display: flex; }
 
-/* The Modal Box/Container */
-.modal-box {
+/* Elegant Card Base */
+.modal-box, 
+.modal .glass-panel {
     position: relative;
-    width: 95%;                  
-    max-width: 1200px;           
-    height: auto;
-    max-height: 90vh;            
+    width: 100%;                  
+    max-width: 650px;             
+    background: #ffffff;            
+    border-radius: 20px;
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+        0 10px 10px -5px rgba(0, 0, 0, 0.04),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
     display: flex;               
     flex-direction: column;      
-    border-radius: 12px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    margin: auto;
     overflow: hidden;
-    background: #fff;            
+    animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.modal-box.glass-panel { background: rgba(255, 255, 255, 0.98); }
-.dark .modal-box.glass-panel { background: #1e293b; }
+.dark .modal-box, 
+.dark .modal .glass-panel { 
+    background: #1e293b; 
+    border: 1px solid rgba(255, 255, 255, 0.08); 
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
 
-.modal.open .modal-box { animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-
-/* Modal Header & Footer (Fixed) */
-.modal-header, .modal-footer {
-    flex-shrink: 0;              
-    padding: 1rem 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(255, 255, 255, 0.5);
+/* Header Section */
+.modal-header,
+#pr-edit-modal .glass-panel > h2,
+#pr-view-modal .glass-panel > h2 {
+    padding: 1.5rem 2rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.5), transparent);
     border-bottom: 1px solid var(--border-light);
+    margin: 0 !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
-.modal-footer {
-    border-bottom: none;
-    border-top: 1px solid var(--border-light);
-    background: rgba(248, 250, 252, 0.8);
-}
-.dark .modal-header { border-bottom-color: var(--border-dark); background: rgba(30, 41, 59, 0.5); }
-.dark .modal-footer { border-top-color: var(--border-dark); background: rgba(15, 23, 42, 0.5); }
+.dark .modal-header, 
+.dark #pr-edit-modal .glass-panel > h2 { border-bottom-color: var(--border-dark); }
 
-/* Modal Body (Scrollable) */
-.modal-body, .modal-body-scroll {
-    flex-grow: 1;                
-    overflow-y: auto;            
-    overflow-x: hidden;
-    padding: 1.5rem;
+/* Wide Card Overrides */
+#pr-edit-modal .glass-panel,
+#pr-view-modal .glass-panel {
+    width: 95vw !important;
+    max-width: 1200px !important;
+    height: 88vh !important;
+    max-height: 88vh !important;
+}
+
+/* Content Area - Spacious & Scrollable */
+#pr-edit-modal form,
+#pr-view-modal .glass-panel > div:not(h2):not(.absolute),
+.modal-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    background-color: #fafafa;
     scrollbar-width: thin;
 }
 
+.dark #pr-edit-modal form,
+.dark .modal-content { background-color: #1e293b; }
+
+/* Footer Action Bar */
+.modal-footer,
+#pr-edit-modal form .flex.justify-end,
+#pr-view-modal .glass-panel .flex.justify-end {
+    position: sticky;
+    bottom: 0;
+    padding: 1.25rem 2rem;
+    background: #ffffff;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    backdrop-filter: blur(10px);
+    z-index: 10;
+}
+.dark .modal-footer,
+.dark #pr-edit-modal form .flex.justify-end { 
+    background: #1e293b;
+    border-top-color: var(--border-dark); 
+}
+
+/* Modern Close Button */
+.modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+}
+.modal-close:hover { background: #fee2e2; color: #ef4444; transform: rotate(90deg); }
+
 /* =========================================
-   6. FORMS & INPUTS
+   6. REFINED FORMS & INPUTS
    ========================================= */
-.form-grid-2 {
+.auto-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
 }
 
 .form-group label {
     display: block;
     font-size: 0.85rem;
     font-weight: 600;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.5rem;
     color: var(--text-main);
 }
 .dark .form-group label { color: #cbd5e1; }
 
-.form-input, .form-select, .form-textarea {
+.form-input, .form-select, .form-textarea, 
+input[type="text"], input[type="number"], input[type="date"], select, textarea {
     width: 100%;
-    padding: 0.6rem 0.8rem;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    background-color: #fff;
-    transition: all 0.2s;
-    font-size: 0.9rem;
+    padding: 0.65rem 1rem;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background-color: #ffffff;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.95rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-.form-input:focus, .form-select:focus, .form-textarea:focus {
+.form-input:focus, input:focus, select:focus, textarea:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    transform: translateY(-1px);
     outline: none;
 }
 
-.dark .form-input, .dark .form-select, .dark .form-textarea {
+/* Dark Mode Inputs */
+.dark .form-input, .dark input, .dark select, .dark textarea {
     background-color: #0f172a;
-    border-color: #475569;
+    border-color: #334155;
     color: white;
 }
-.dark .form-input:focus { border-color: #818cf8; }
 
 /* =========================================
    7. BADGES & STATUS
@@ -210,7 +270,6 @@ html, body {
     letter-spacing: 0.05em; 
     white-space: nowrap;
 }
-
 .badge-pending    { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
 .badge-approved   { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
 .badge-rejected   { background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
@@ -220,58 +279,33 @@ html, body {
 /* =========================================
    8. LAYOUTS: DASHBOARD & GRID
    ========================================= */
-
-/* --- 8.1 NEW: Automatic Fit-To-Screen Dashboard Layout --- */
 .dashboard-layout {
     display: flex;
-    height: 100vh; /* Fill entire screen height */
+    height: 100vh; 
     width: 100vw;
-    overflow: hidden; /* No outer scrolling */
+    overflow: hidden; 
 }
 
 #sidebar {
     height: 100%;
     overflow-y: auto;
-    flex-shrink: 0; /* Prevent sidebar from shrinking */
+    flex-shrink: 0; 
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
 }
 
 .main-content {
-    flex: 1; /* Take remaining width */
-    height: 100%; /* Fill height */
-    overflow-y: auto; /* SCROLL HERE: Only the content scrolls */
+    flex: 1; 
+    height: 100%; 
+    overflow-y: auto; 
     overflow-x: hidden;
     position: relative;
     display: flex;
     flex-direction: column;
 }
 
-/* Full height panel wrapper for tables */
-.panel-full-height {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0; /* Crucial for nested flex scrolling */
-    margin-bottom: 0; /* Remove bottom margin if fitting to screen */
-}
-
-/* --- End Dashboard Layout --- */
-
-#floating-calculator { 
-    position: fixed; 
-    bottom: 25px; 
-    right: 25px; 
-    z-index: 1500; 
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-    transition: transform 0.2s;
-}
-#floating-calculator:hover { transform: translateY(-2px); }
-
-.sidebar-collapsed { width: 0 !important; opacity: 0; overflow: hidden; padding: 0 !important; }
-
 .pr-list-grid { 
     display: grid; 
-    grid-template-columns: 0.5fr 2.5fr 0.9fr 1fr 1fr 1.3fr 1.5fr 1fr; 
+    grid-template-columns: 80px 2fr 100px 100px 120px 120px 100px 150px; 
     gap: 0.75rem; 
     padding: 0.75rem 1rem; 
     align-items: center; 
@@ -279,44 +313,27 @@ html, body {
     transition: background-color 0.15s;
 }
 .pr-list-grid:hover { background-color: rgba(255,255,255, 0.5); }
-.dark .pr-list-grid { border-bottom-color: var(--border-dark); }
 .dark .pr-list-grid:hover { background-color: rgba(255,255,255, 0.03); }
 
 @media (max-width: 1200px) {
-    .pr-list-grid { grid-template-columns: 50px 2fr 1fr 1fr 1fr; font-size: 0.9em; }
+    .pr-list-grid { grid-template-columns: 60px 2fr 1fr 1fr 1fr; font-size: 0.9em; }
 }
 
 /* =========================================
-   9. TABLES & TABS (Updated for Fit-to-Screen)
+   9. TABLES & TABS
    ========================================= */
-
-/* 
-   UPDATED: This container now fills available space instead 
-   of being stuck at 250px max-height 
-*/
 .table-scroll-container { 
-    flex-grow: 1;               /* Fill remaining vertical space */
-    height: 100%;               /* Ensure it takes height of parent */
-    max-height: calc(100vh - 200px); /* Fallback: Fit screen minus header */
-    overflow-y: auto;           /* Enable scroll inside table */
+    flex-grow: 1;               
+    height: 100%;               
+    max-height: calc(100vh - 200px); 
+    overflow-y: auto;           
     scrollbar-width: thin; 
     border: 1px solid var(--border-light);
     border-radius: 6px;
     background: white;
-    /* Prevent table from collapsing too small */
-    min-height: 300px; 
 }
 
-/* Remove border radius if sitting at bottom of screen */
-.panel-full-height .table-scroll-container {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    border-bottom: none;
-    max-height: none; /* Let Flexbox handle the height */
-}
-
-.dark .table-scroll-container { border-color: var(--border-dark); background: #1e293b; }
-
+.view-section table { border-collapse: collapse; width: 100%; }
 .sticky-th { 
     position: sticky; 
     top: 0; 
@@ -326,78 +343,16 @@ html, body {
 }
 .dark .sticky-th { background-color: #0f172a; box-shadow: 0 1px 0 rgba(255,255,255,0.1); }
 
-/* Tabs */
-.tab-btn { 
-    border-bottom: 2px solid transparent; 
-    transition: all 0.2s ease; 
-    padding-bottom: 0.5rem;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-.tab-btn:hover { color: var(--primary-color); }
-.tab-btn.active { border-bottom-color: var(--primary-color); color: var(--primary-color); }
-.dark .tab-btn.active { border-bottom-color: #818cf8; color: #818cf8; }
-
 /* =========================================
-   10. PRINT STYLES (THPAL FORM)
+   10. PRINT STYLES
    ========================================= */
 @media print {
     body * { visibility: hidden; }
-    
     #request-details-modal, #request-details-modal * { visibility: visible; }
-    
     #request-details-modal { 
         position: absolute; left: 0; top: 0; 
         width: 100% !important; height: auto !important; 
-        background: white !important; padding: 0; margin: 0; 
-        display: block; overflow: visible !important;
-    }
-    
-    #modal-content-wrapper, .modal-box {
-        box-shadow: none !important; 
-        border: none !important; 
-        width: 100% !important; 
-        max-width: 100% !important;
-        height: auto !important; 
-        max-height: none !important; 
-        overflow: visible !important;
-        background: white !important;
-        display: block !important; 
-    }
-
-    .modal-body-scroll, .modal-body, .table-scroll-container { 
-        overflow: visible !important; 
-        max-height: none !important; 
-        height: auto !important;
-        border: none !important;
-        padding: 0 !important;
-    }
-    
-    .modal-header, .modal-footer, .no-print { display: none !important; }
-    
-    .thpal-form { 
-        color: black !important; 
         background: white !important; 
-        width: 100%; 
-        font-family: "Times New Roman", Serif; 
     }
-    
-    .thpal-border { border-color: black !important; }
-    .thpal-bg-gray { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    
-    .thpal-form table { width: 100%; border-collapse: collapse; page-break-inside: avoid; }
-    .thpal-form th, .thpal-form td { 
-        border: 1px solid black !important; 
-        padding: 4px; 
-        font-size: 11px; 
-    }
+    .no-print { display: none !important; }
 }
-
-/* Default Table Styles (Non-Print) */
-.thpal-form table { width: 100%; border-collapse: collapse; }
-.thpal-form th, .thpal-form td { 
-    border: 1px solid #e2e8f0; 
-    padding: 6px 8px; 
-    font-size: 0.85rem; 
-}
-.dark .thpal-form th, .dark .thpal-form td { border-color: #334155; }
