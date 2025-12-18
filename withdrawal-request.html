@@ -1,174 +1,243 @@
-<!-- START OF FILE withdrawal-request.html -->
-
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Quick Withdrawal | TRANS-SYSTEM</title>
+    <title>Withdrawal Portal | TRANS-SYSTEM</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
-                    colors: {
-                        brand: { 50: '#f5f7ff', 100: '#ebf0fe', 500: '#4f46e5', 600: '#4338ca', 700: '#3730a3', 900: '#1e1b4b' },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
                     },
-                    borderRadius: { 'xl': '1rem', '2xl': '1.5rem' }
+                    colors: {
+                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
+                        accent: { 500: '#6366f1', 600: '#4f46e5' },
+                        surface: '#ffffff',
+                        background: '#f8fafc'
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+                        'floating': '0 20px 40px -10px rgba(0,0,0,0.15)',
+                    },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'slide-in': 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        slideIn: {
+                            '0%': { opacity: 0, transform: 'translateY(15px)' },
+                            '100%': { opacity: 1, transform: 'translateY(0)' },
+                        }
+                    }
                 }
             }
         }
     </script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #f8fafc; }
+        body { background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
         
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
-        
-        /* Smooth Animations */
-        .row-appear { animation: slideUp 0.3s ease-out forwards; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-
-        #loader { position: fixed; inset: 0; background: #ffffff; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .spinner-custom { width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
 
         /* Custom Scrollbar for Dropdown */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* Loader */
+        #loader-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: #ffffff;
+            display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .loader-dot {
+            width: 15px; height: 15px; background: #4f46e5; border-radius: 50%;
+            margin: 0 5px; animation: loaderBounce 1.4s infinite ease-in-out both;
+        }
+        .loader-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loader-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes loaderBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        
+        .input-animated { transition: all 0.3s ease; }
+        .input-animated:focus { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15); }
     </style>
 </head>
-<body class="text-slate-900 pb-10" onclick="closeAllDropdowns(event)">
+<body class="text-slate-800 pb-32" onclick="closeAllDropdowns(event)">
 
-    <!-- Loading Screen -->
-    <div id="loader">
-        <div class="spinner-custom mb-4"></div>
-        <p class="text-brand-900 font-bold animate-pulse text-sm tracking-widest uppercase">Initializing System</p>
+    <!-- Loader -->
+    <div id="loader-overlay">
+        <div class="flex flex-col items-center">
+            <div class="flex mb-4">
+                <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+            </div>
+            <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase">System Loading</p>
+        </div>
+    </div>
+
+    <!-- Background -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div class="absolute top-0 left-0 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-0 right-0 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
     </div>
 
     <!-- Header -->
-    <header class="bg-brand-900 text-white shadow-2xl sticky top-0 z-40 rounded-b-3xl">
-        <div class="max-w-2xl mx-auto px-6 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
-                    <i class="fas fa-truck-ramp-box text-yellow-400 text-xl"></i>
+    <header class="glass-panel sticky top-0 z-40 shadow-sm">
+        <div class="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent-600 to-purple-600 flex items-center justify-center shadow-lg text-white">
+                    <i class="fas fa-cubes text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-extrabold tracking-tight">TRANS-STORAGE</h1>
-                    <p class="text-[10px] text-brand-200 font-medium uppercase tracking-wider opacity-80">Inventory Withdrawal Portal</p>
+                    <h1 class="font-bold text-lg leading-tight text-slate-800">Trans-System Withdrawal Portal</h1>
+                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Transportation Record Monitoring System 2026</p>
                 </div>
             </div>
-            <div id="gps-status" class="bg-black/20 px-3 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-2 border border-white/10">
-                <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse" id="gps-dot"></div>
-                <span id="gps-text">GPS OFF</span>
+            <div id="gps-badge" class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-slate-400" id="gps-dot"></div>
+                <span class="text-[10px] font-bold text-slate-500" id="gps-text">LOCATING...</span>
             </div>
         </div>
     </header>
 
-    <main class="max-w-2xl mx-auto px-4 mt-6 space-y-6">
-        
-        <!-- Scanned Item Banner -->
-        <div id="scan-alert" class="hidden bg-indigo-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between animate-bounce">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-barcode text-2xl"></i>
-                <div>
-                    <p class="text-xs font-bold uppercase opacity-80">Auto-Detected Item</p>
-                    <p class="font-semibold" id="scan-msg">Item Found</p>
+    <main class="max-w-3xl mx-auto px-4 mt-6 space-y-6 relative">
+
+        <!-- Scanner Alert -->
+        <div id="scan-alert" class="hidden transform transition-all duration-500">
+            <div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-4 text-white shadow-xl flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <i class="fas fa-qrcode text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold opacity-75 uppercase">Auto-Added Item</p>
+                        <p class="font-bold text-lg leading-none" id="scan-msg">...</p>
+                    </div>
                 </div>
+                <button onclick="$('#scan-alert').slideUp()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <button onclick="$('#scan-alert').fadeOut()" class="text-white/50"><i class="fas fa-times"></i></button>
         </div>
 
         <form id="withdrawal-form" class="space-y-6">
             
-            <!-- Requester Info -->
-            <section class="glass-card p-6 rounded-3xl shadow-sm border border-slate-200">
-                <div class="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
-                    <i class="fas fa-user-circle text-brand-500"></i>
-                    <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Requester Information</h2>
+            <!-- Items Section (Z-Index 20 to sit ON TOP of Requester Info) -->
+            <section class="glass-panel rounded-3xl p-1 shadow-glass relative z-20 overflow-visible">
+                <div class="bg-white/50 rounded-[20px] p-5 overflow-visible">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fas fa-shopping-basket text-accent-500"></i> Selected Items
+                        </h2>
+                        <button type="button" onclick="addItemRow()" 
+                            class="group bg-slate-100 hover:bg-accent-50 text-slate-600 hover:text-accent-600 text-xs font-bold py-2 px-4 rounded-xl transition-all border border-slate-200 flex items-center gap-2">
+                            <i class="fas fa-plus transform group-hover:rotate-180 transition-transform duration-300"></i> 
+                            Add Row
+                        </button>
+                    </div>
+                    
+                    <!-- Container must be visible overflow -->
+                    <div id="items-container" class="space-y-3 min-h-[100px] overflow-visible">
+                        <!-- Dynamic Rows go here -->
+                    </div>
+
+                    <div id="empty-state" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl mt-4">
+                        <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300">
+                            <i class="fas fa-box-open text-2xl"></i>
+                        </div>
+                        <p class="text-slate-400 text-sm font-medium">Cart is empty</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Requester Details (Z-Index 10 to stay BEHIND dropdowns) -->
+            <section class="glass-panel rounded-3xl p-6 shadow-glass relative z-10">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-500">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <h2 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider">Requester Info</h2>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div class="md:col-span-1">
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Full Name</label>
-                        <input type="text" id="req-name" required placeholder="Ex. Juan Dela Cruz" 
-                            class="w-full bg-slate-50 border-slate-200 rounded-xl p-3.5 border focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none text-sm">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Your Name</label>
+                        <div class="relative">
+                            <i class="fas fa-user absolute left-4 top-4 text-slate-300"></i>
+                            <input type="text" id="req-name" required placeholder="Full Name" 
+                                class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none">
+                        </div>
                     </div>
-                    <div class="md:col-span-1">
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Department</label>
-                        <select id="req-dept" required 
-                            class="w-full bg-slate-50 border-slate-200 rounded-xl p-3.5 border focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none text-sm appearance-none cursor-pointer">
-                            <option value="">Select Department...</option>
-                        </select>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department</label>
+                        <div class="relative">
+                            <i class="fas fa-building absolute left-4 top-4 text-slate-300"></i>
+                            <select id="req-dept" required 
+                                class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none appearance-none cursor-pointer">
+                                <option value="" disabled selected>Select Department</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-300 pointer-events-none"></i>
+                        </div>
                     </div>
+
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Work Order / Purpose</label>
-                        <textarea id="req-reason" rows="2" placeholder="Describe why you need these items..." 
-                            class="w-full bg-slate-50 border-slate-200 rounded-xl p-3.5 border focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none text-sm"></textarea>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Purpose / Work Order</label>
+                        <textarea id="req-reason" rows="2" placeholder="Briefly describe the usage..." 
+                            class="input-animated w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none resize-none"></textarea>
                     </div>
                 </div>
             </section>
-
-            <!-- Items List -->
-            <section class="glass-card p-6 rounded-3xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-boxes-stacked text-brand-500"></i>
-                        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Requested Items</h2>
-                    </div>
-                    <button type="button" onclick="addItemRow()" 
-                        class="bg-brand-50 text-brand-600 text-xs font-bold py-2 px-4 rounded-xl hover:bg-brand-100 transition-colors border border-brand-200 flex items-center gap-2">
-                        <i class="fas fa-plus"></i> Add Item
-                    </button>
-                </div>
-                
-                <div id="items-container" class="space-y-4">
-                    <!-- Rows injected here -->
-                </div>
-                
-                <div id="empty-state" class="text-center py-10">
-                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-box-open text-slate-300 text-2xl"></i>
-                    </div>
-                    <p class="text-slate-400 text-sm font-medium">No items added to this request.</p>
-                </div>
-            </section>
-
-            <!-- Submission Area -->
-            <div class="space-y-4">
-                <div class="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3">
-                    <i class="fas fa-info-circle text-amber-500 mt-1"></i>
-                    <p class="text-[11px] text-amber-800 leading-relaxed">
-                        <strong>Notice:</strong> After submission, please contact the Person In-Charge to unlock the storage. <br/>
-                        <span class="font-bold"><i class="fas fa-phone mr-1"></i> 0977-712-0595</span>
-                    </p>
-                </div>
-
-                <button type="submit" id="submit-btn" 
-                    class="w-full bg-brand-600 text-white font-extrabold py-5 rounded-2xl shadow-xl shadow-brand-500/20 hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-lg group">
-                    <span>Submit Request</span>
-                    <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
-                </button>
-            </div>
+            
+            <div class="h-6"></div>
         </form>
     </main>
 
-    <!-- Toast UI -->
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl opacity-0 translate-y-10 transition-all duration-300 z-50 pointer-events-none min-w-[320px]">
-        <i id="toast-icon" class="text-lg"></i>
-        <span id="toast-msg" class="text-sm font-bold uppercase tracking-wide"></span>
+    <!-- Bottom Sticky Action Bar -->
+    <div class="fixed bottom-0 left-0 w-full glass-panel border-t border-slate-200/50 pb-6 pt-4 px-6 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
+            <div class="hidden sm:block">
+                <p class="text-[10px] text-slate-400 font-bold uppercase">Total Items</p>
+                <p class="text-xl font-bold text-slate-800" id="total-count-display">0</p>
+            </div>
+            <button onclick="$('#withdrawal-form').submit()" id="submit-btn" 
+                class="flex-1 bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-500/30 hover:bg-slate-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-sm group disabled:opacity-70 disabled:cursor-not-allowed">
+                <span>Confirm Withdrawal</span>
+                <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-4">
+        <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 min-w-[280px]">
+            <i id="toast-icon" class="text-lg text-emerald-400"></i>
+            <span id="toast-msg" class="text-sm font-medium">Notification</span>
+        </div>
     </div>
 
     <script>
@@ -180,29 +249,26 @@
         let collectedDeviceData = {};
 
         $(document).ready(async () => {
-            initGPS();
-            await loadInitialData();
+            await Promise.all([initGPS(), loadInitialData()]);
             
-            // Handle URL Parameters
             const urlParams = new URLSearchParams(window.location.search);
-            const id = urlParams.get('id');
-            if(id) {
-                // If scanned ID provided, try to find item and add row
-                await loadInitialData(); // Ensure data is loaded
-                const item = inventoryList.find(i => i.id == id);
+            const scannedId = urlParams.get('id');
+            
+            if(scannedId && inventoryList.length > 0) {
+                const item = inventoryList.find(i => i.id == scannedId);
                 if(item) {
                     addItemRow(item.id);
                     $('#scan-msg').text(item.name);
                     $('#scan-alert').removeClass('hidden');
+                    setTimeout(() => $('#scan-alert').slideUp(), 5000);
                 } else {
-                    addItemRow(); // Default empty
+                    addItemRow();
                 }
             } else {
                 addItemRow();
             }
 
-            // Hide Loader
-            $('#loader').fadeOut(500);
+            $('#loader-overlay').fadeOut(400);
         });
 
         async function initGPS() {
@@ -210,13 +276,16 @@
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
                         collectedDeviceData.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                        $('#gps-dot').removeClass('bg-red-500').addClass('bg-green-500');
-                        $('#gps-text').text('LOCATION SECURED').addClass('text-green-400');
+                        $('#gps-dot').removeClass('bg-slate-400').addClass('bg-emerald-500 animate-pulse');
+                        $('#gps-text').text('SECURED').addClass('text-emerald-600');
+                        $('#gps-badge').addClass('border-emerald-200 bg-emerald-50');
                     },
-                    () => { $('#gps-text').text('GPS DENIED'); }
+                    (err) => { 
+                        $('#gps-dot').addClass('bg-red-500'); 
+                        $('#gps-text').text('GPS OFF').addClass('text-red-500'); 
+                    }
                 );
             }
-            // Simple IP collection
             try {
                 const res = await fetch('https://api.ipify.org?format=json');
                 const data = await res.json();
@@ -227,135 +296,160 @@
 
         async function loadInitialData() {
             try {
-                // Load Depts
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
-                const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety'];
+                const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics'];
                 depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
 
-                // Load Inventory (include image column)
-                const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0);
+                const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
                 inventoryList = inv || [];
             } catch (err) {
-                console.error("Initial load error:", err);
+                console.error("Data Load Error:", err);
             }
         }
+
+        // --- Core UI Logic ---
 
         function addItemRow(preId = null) {
             $('#empty-state').hide();
             const rowId = 'row-' + Date.now();
             
-            // Build the Custom Dropdown List
+            // Build Dropdown
             let listItemsHtml = '';
             inventoryList.forEach(i => {
-                const imgSrc = i.image && i.image.trim() !== '' ? i.image : 'https://placehold.co/100x100?text=No+Img';
+                const imgSrc = i.image && i.image.length > 5 ? i.image : `https://ui-avatars.com/api/?name=${i.name}&background=random&color=fff&size=100`;
                 listItemsHtml += `
-                    <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 flex items-center gap-3 transition-colors" 
+                    <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
                          onclick="selectItem('${rowId}', ${i.id})"
                          data-name="${i.name.toLowerCase()}">
-                        <img src="${imgSrc}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white">
-                        <div class="flex-1">
-                            <p class="text-xs font-bold text-slate-700">${i.name}</p>
-                            <p class="text-[10px] text-slate-400">Stock: ${i.stock} ${i.unit}</p>
+                        <img src="${imgSrc}" class="w-10 h-10 rounded-lg object-cover bg-white shadow-sm group-hover:scale-110 transition-transform">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit || 'pcs'}</span>
+                                <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
+                            </div>
                         </div>
-                        <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
                     </div>
                 `;
             });
 
             // Pre-selection Logic
             let initialDisplay = `
-                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-2">
+                <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3">
                     <i class="fas fa-search"></i>
                 </div>
-                <span class="text-slate-400 text-xs">Tap to search item...</span>
+                <div class="flex-1 text-left">
+                    <span class="block text-xs font-bold text-slate-400">Select Item...</span>
+                    <span class="block text-[10px] text-slate-300">Tap to search inventory</span>
+                </div>
             `;
-            let inputValue = "";
-            
-            if (preId) {
+            let hiddenVal = "";
+
+            if(preId) {
                 const item = inventoryList.find(i => i.id == preId);
-                if (item) {
-                    const imgSrc = item.image && item.image.trim() !== '' ? item.image : 'https://placehold.co/100x100?text=No+Img';
-                    inputValue = item.id;
+                if(item) {
+                    const imgSrc = item.image && item.image.length > 5 ? item.image : `https://ui-avatars.com/api/?name=${item.name}&background=random&color=fff`;
+                    hiddenVal = item.id;
                     initialDisplay = `
-                        <img src="${imgSrc}" class="w-8 h-8 rounded-lg object-cover border border-slate-200 mr-2">
-                        <span class="text-slate-700 text-xs font-bold truncate flex-1">${item.name}</span>
+                        <img src="${imgSrc}" class="w-9 h-9 rounded-lg object-cover shadow-sm mr-3 border border-slate-100">
+                        <div class="flex-1 min-w-0 text-left">
+                            <span class="block text-xs font-bold text-slate-700 truncate">${item.name}</span>
+                            <span class="block text-[10px] text-accent-500 font-medium">${item.stock} ${item.unit} available</span>
+                        </div>
                     `;
                 }
             }
 
+            // z-10 by default, will switch to z-50 when active
             const html = `
-                <div id="${rowId}" class="row-appear bg-slate-50/50 border border-slate-200 p-4 rounded-2xl relative group hover:border-brand-300 transition-all shadow-sm hover:shadow-md">
-                    <button type="button" onclick="removeRow('${rowId}')" class="absolute -top-2 -right-2 bg-white text-slate-400 hover:text-red-500 w-8 h-8 rounded-full shadow-md flex items-center justify-center border border-slate-100 transition-all hover:scale-110 z-10">
-                        <i class="fas fa-times"></i>
+                <div id="${rowId}" class="item-row animate-slide-in bg-white border border-slate-100 p-4 rounded-2xl relative shadow-sm group hover:border-accent-200 transition-colors z-10">
+                    <button type="button" onclick="removeRow('${rowId}')" 
+                        class="absolute -top-2 -right-2 bg-white text-slate-300 hover:text-red-500 w-7 h-7 rounded-full shadow-md flex items-center justify-center border border-slate-100 transition-all z-10 hover:scale-110">
+                        <i class="fas fa-times text-xs"></i>
                     </button>
                     
-                    <div class="grid grid-cols-12 gap-4">
-                        <!-- Custom Select Container -->
-                        <div class="col-span-12 md:col-span-7 relative">
-                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Select Item</label>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <!-- Dropdown Container -->
+                        <div class="flex-1 relative">
+                            <input type="hidden" class="item-select-value" value="${hiddenVal}">
                             
-                            <!-- Hidden Input Stores Real Value -->
-                            <input type="hidden" class="item-select-value" value="${inputValue}">
-
-                            <!-- Visible Trigger -->
-                            <div class="dropdown-trigger bg-white border border-slate-200 rounded-xl p-2 flex items-center cursor-pointer hover:border-brand-400 transition-colors" onclick="toggleDropdown('${rowId}', event)">
+                            <button type="button" class="dropdown-trigger w-full bg-slate-50 border border-slate-200 rounded-xl p-2 flex items-center transition-all hover:bg-white focus:ring-2 focus:ring-accent-500/20" onclick="toggleDropdown('${rowId}', event)">
                                 ${initialDisplay}
-                            </div>
+                                <i class="fas fa-chevron-down text-xs text-slate-300 ml-2"></i>
+                            </button>
 
-                            <!-- Dropdown Menu (Hidden) -->
-                            <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-slate-200 shadow-xl rounded-xl z-50 mt-2 overflow-hidden max-h-60 flex flex-col">
+                            <!-- Absolute positioned dropdown -->
+                            <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-slate-200 shadow-floating rounded-xl z-[60] mt-2 flex flex-col max-h-[250px] overflow-hidden">
                                 <div class="p-2 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
-                                    <input type="text" class="w-full text-xs p-2 rounded-lg border border-slate-200 focus:outline-none focus:border-brand-500" placeholder="Type to filter..." onkeyup="filterDropdown(this)">
+                                    <input type="text" class="w-full text-xs pl-3 pr-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-accent-500 bg-white" 
+                                           placeholder="Search name..." onkeyup="filterDropdown(this)">
                                 </div>
-                                <div class="overflow-y-auto custom-scrollbar flex-1 bg-white">
+                                <div class="overflow-y-auto flex-1 custom-scrollbar">
                                     ${listItemsHtml}
                                 </div>
                             </div>
                         </div>
 
-                        <div class="col-span-6 md:col-span-3">
-                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Quantity</label>
-                            <div class="relative">
-                                <input type="number" min="1" oninput="validateQty(this)" placeholder="0" 
-                                    class="qty-input w-full bg-white border-slate-200 rounded-lg p-2.5 border text-sm font-bold text-center outline-none focus:border-brand-500" required>
-                                <span class="unit-label absolute right-3 top-2.5 text-[10px] font-bold text-slate-400 pointer-events-none"></span>
+                        <!-- Quantity -->
+                        <div class="w-full sm:w-32 flex flex-col justify-center">
+                            <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 p-1">
+                                <button type="button" onclick="stepQty('${rowId}', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600 active:scale-90 transition-all">
+                                    <i class="fas fa-minus text-[10px]"></i>
+                                </button>
+                                <input type="number" min="1" value="1" oninput="validateQty(this); updateTotal()" 
+                                    class="qty-input w-full bg-transparent text-center text-sm font-bold text-slate-700 outline-none p-0 appearance-none mx-1" required>
+                                <button type="button" onclick="stepQty('${rowId}', 1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600 active:scale-90 transition-all">
+                                    <i class="fas fa-plus text-[10px]"></i>
+                                </button>
                             </div>
-                        </div>
-                        <div class="col-span-6 md:col-span-2 flex flex-col justify-end">
-                             <div class="stock-info text-[9px] font-bold text-slate-400 bg-slate-200/50 p-2 rounded-lg text-center truncate">STOCK: -</div>
+                            <p class="qty-error text-[10px] text-red-500 font-bold mt-1 text-center hidden">Over Limit!</p>
                         </div>
                     </div>
-                    <p class="qty-error text-[10px] text-red-500 font-bold mt-2 hidden"><i class="fas fa-exclamation-triangle mr-1"></i> Exceeds available stock!</p>
                 </div>
             `;
             
             const $row = $(html);
             $('#items-container').append($row);
             
-            // Auto scroll to new item
-            $('html, body').animate({ scrollTop: $row.offset().top - 100 }, 400);
-
-            // Initial validation if pre-selected
             if(preId) {
                 const item = inventoryList.find(i => i.id == preId);
-                updateRowStockInfo($row, item);
+                updateRowLimit($row, item);
             }
+            updateTotal();
         }
 
-        // --- Custom Dropdown Logic ---
+        // --- Dropdown Management & Z-Index logic ---
 
         function toggleDropdown(rowId, event) {
-            event.stopPropagation(); // Prevent closing immediately
-            // Close all others
+            event.stopPropagation();
+            
+            // 1. Reset all rows to low z-index
+            $('.item-row').removeClass('z-50').addClass('z-10');
+            // 2. Hide all other dropdowns
             $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
-            $(`#dropdown-${rowId}`).toggleClass('hidden');
-            // Focus search
-            setTimeout(() => $(`#dropdown-${rowId} input`).focus(), 100);
+
+            const $targetDropdown = $(`#dropdown-${rowId}`);
+            const $row = $(`#${rowId}`);
+            
+            if ($targetDropdown.hasClass('hidden')) {
+                // OPENING
+                $targetDropdown.removeClass('hidden');
+                // Raise this row above others
+                $row.removeClass('z-10').addClass('z-50');
+                // Focus search
+                setTimeout(() => $targetDropdown.find('input').focus(), 100);
+            } else {
+                // CLOSING
+                $targetDropdown.addClass('hidden');
+                $row.removeClass('z-50').addClass('z-10');
+            }
         }
 
         function closeAllDropdowns(event) {
             if (!$(event.target).closest('.custom-dropdown, .dropdown-trigger').length) {
                 $('.custom-dropdown').addClass('hidden');
+                // Reset Z-indexes when clicking outside
+                $('.item-row').removeClass('z-50').addClass('z-10');
             }
         }
 
@@ -363,8 +457,7 @@
             const term = $(input).val().toLowerCase();
             $(input).closest('.custom-dropdown').find('.dropdown-item').each(function() {
                 const name = $(this).data('name');
-                if(name.includes(term)) $(this).show();
-                else $(this).hide();
+                $(this).toggle(name.includes(term));
             });
         }
 
@@ -373,55 +466,93 @@
             if (!item) return;
 
             const $row = $(`#${rowId}`);
-            
-            // Update Hidden Value
             $row.find('.item-select-value').val(item.id);
 
-            // Update Trigger UI
-            const imgSrc = item.image && item.image.trim() !== '' ? item.image : 'https://placehold.co/100x100?text=No+Img';
+            const imgSrc = item.image && item.image.length > 5 ? item.image : `https://ui-avatars.com/api/?name=${item.name}&background=random&color=fff`;
             const triggerHtml = `
-                <img src="${imgSrc}" class="w-8 h-8 rounded-lg object-cover border border-slate-200 mr-2">
-                <span class="text-slate-700 text-xs font-bold truncate flex-1">${item.name}</span>
+                <img src="${imgSrc}" class="w-9 h-9 rounded-lg object-cover shadow-sm mr-3 border border-slate-100">
+                <div class="flex-1 min-w-0 text-left">
+                    <span class="block text-xs font-bold text-slate-700 truncate">${item.name}</span>
+                    <span class="block text-[10px] text-accent-500 font-medium">${item.stock} ${item.unit} available</span>
+                </div>
             `;
-            $row.find('.dropdown-trigger').html(triggerHtml);
-
-            // Hide Dropdown
+            $row.find('.dropdown-trigger').html(triggerHtml + '<i class="fas fa-check text-emerald-500 text-xs ml-2"></i>');
+            
+            // Close dropdown and reset Z-Index
             $row.find('.custom-dropdown').addClass('hidden');
+            $row.removeClass('z-50').addClass('z-10');
 
-            // Update Stock Info
-            updateRowStockInfo($row, item);
+            updateRowLimit($row, item);
         }
 
-        function updateRowStockInfo($row, item) {
-            if (!item) return;
-            $row.find('.stock-info').text(`STOCK: ${item.stock}`);
-            $row.find('.unit-label').text(item.unit || '');
-            $row.find('.qty-input').attr('max', item.stock);
-            validateQty($row.find('.qty-input')[0]);
+        // --- Qty & Submit Logic (Same as before) ---
+        function updateRowLimit($row, item) {
+            const $input = $row.find('.qty-input');
+            $input.attr('max', item.stock).val(1);
+            validateQty($input[0]);
+            updateTotal();
         }
 
-        function removeRow(id) {
-            $(`#${id}`).fadeOut(300, function() { 
-                $(this).remove(); 
-                if($('.row-appear').length === 0) $('#empty-state').fadeIn();
-            });
+        function stepQty(rowId, step) {
+            const $input = $(`#${rowId} .qty-input`);
+            let val = parseInt($input.val()) || 0;
+            let newVal = val + step;
+            if(newVal < 1) newVal = 1;
+            $input.val(newVal);
+            validateQty($input[0]);
+            updateTotal();
         }
 
         function validateQty(el) {
             const $el = $(el);
-            const $row = $el.closest('.row-appear');
-            const max = parseInt($el.attr('max')) || 0;
+            const $row = $el.closest('.item-row');
+            const max = parseInt($el.attr('max')) || 999;
             const val = parseInt($el.val()) || 0;
 
             if(val > max) {
-                $el.addClass('border-red-500 text-red-600 bg-red-50 shake');
-                $row.find('.qty-error').show();
-                $('#submit-btn').prop('disabled', true).addClass('opacity-50');
+                $el.addClass('text-red-600');
+                $row.find('.qty-error').removeClass('hidden');
+                $('#submit-btn').prop('disabled', true);
             } else {
-                $el.removeClass('border-red-500 text-red-600 bg-red-50 shake');
-                $row.find('.qty-error').hide();
-                $('#submit-btn').prop('disabled', false).removeClass('opacity-50');
+                $el.removeClass('text-red-600');
+                $row.find('.qty-error').addClass('hidden');
+                checkGlobalValidity();
             }
+        }
+
+        function checkGlobalValidity() {
+            const hasError = $('.qty-error:visible').length > 0;
+            $('#submit-btn').prop('disabled', hasError);
+        }
+
+        function removeRow(id) {
+            $(`#${id}`).slideUp(200, function() { 
+                $(this).remove(); 
+                if($('#items-container').children().length === 0) $('#empty-state').fadeIn();
+                updateTotal();
+            });
+        }
+
+        function updateTotal() {
+            let total = 0;
+            $('.qty-input').each(function() { total += parseInt($(this).val()) || 0; });
+            $('#total-count-display').text(total);
+        }
+
+        function showToast(msg, type = 'success') {
+            const $toast = $('#toast');
+            $('#toast-msg').text(msg);
+            
+            if(type === 'success') {
+                $('#toast-icon').attr('class', 'fas fa-check-circle text-lg text-emerald-400');
+            } else {
+                $('#toast-icon').attr('class', 'fas fa-exclamation-triangle text-lg text-red-400');
+            }
+
+            $toast.removeClass('opacity-0 -translate-y-4').addClass('opacity-100 translate-y-0');
+            setTimeout(() => {
+                $toast.addClass('opacity-0 -translate-y-4').removeClass('opacity-100 translate-y-0');
+            }, 3000);
         }
 
         $('#withdrawal-form').on('submit', async function(e) {
@@ -429,25 +560,16 @@
             const $btn = $('#submit-btn');
             
             const items = [];
-            // Loop through rows using the custom value class
-            $('.row-appear').each(function() {
+            $('.item-row').each(function() {
                 const id = $(this).find('.item-select-value').val();
                 const qty = parseInt($(this).find('.qty-input').val());
-                
                 if(id && qty > 0) {
                     const itemObj = inventoryList.find(i => i.id == id);
-                    if(itemObj) {
-                        items.push({
-                            id: id,
-                            name: itemObj.name,
-                            qty: qty,
-                            unit: itemObj.unit
-                        });
-                    }
+                    if(itemObj) items.push({ id: id, name: itemObj.name, qty: qty, unit: itemObj.unit });
                 }
             });
 
-            if(items.length === 0) return showToast("Add at least one item", "error");
+            if(items.length === 0) return showToast("Please select at least one item", "error");
 
             $btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...').prop('disabled', true);
 
@@ -455,7 +577,7 @@
                 const payload = {
                     requester: $('#req-name').val(),
                     department: $('#req-dept').val(),
-                    reason: $('#req-reason').val() + " [Mobile Scan]",
+                    reason: $('#req-reason').val() + " [Mobile App]",
                     items: items,
                     status: 'Pending',
                     date: new Date().toLocaleDateString(),
@@ -465,32 +587,29 @@
                 const { error } = await supabase.from('requests').insert(payload);
                 if(error) throw error;
 
-                showToast("Request Submitted!", "success");
-                setTimeout(() => window.location.reload(), 2000);
+                $btn.html('<i class="fas fa-check"></i> Success!').addClass('bg-emerald-600');
+                showToast("Request Sent Successfully!", "success");
+                
+                var duration = 2 * 1000;
+                var animationEnd = Date.now() + duration;
+                var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+                var random = (min, max) => Math.random() * (max - min) + min;
+                var interval = setInterval(function() {
+                    var timeLeft = animationEnd - Date.now();
+                    if (timeLeft <= 0) return clearInterval(interval);
+                    var particleCount = 50 * (timeLeft / duration);
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+
+                setTimeout(() => window.location.reload(), 2500);
+
             } catch (err) {
                 console.error(err);
-                showToast("Failed: " + (err.message || "Unknown error"), "error");
-                $btn.html('Submit Request <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false);
+                showToast("Error: " + (err.message || "Network issue"), "error");
+                $btn.html('Confirm Withdrawal <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false).removeClass('bg-emerald-600');
             }
         });
-
-        function showToast(msg, type) {
-            const $toast = $('#toast');
-            $('#toast-msg').text(msg);
-            
-            if(type === 'success') {
-                $toast.addClass('bg-green-600 text-white').removeClass('bg-red-600');
-                $('#toast-icon').attr('class', 'fas fa-check-circle');
-            } else {
-                $toast.addClass('bg-red-600 text-white').removeClass('bg-green-600');
-                $('#toast-icon').attr('class', 'fas fa-exclamation-circle');
-            }
-
-            $toast.removeClass('opacity-0 translate-y-10').addClass('opacity-100 translate-y-0');
-            setTimeout(() => {
-                $toast.addClass('opacity-0 translate-y-10').removeClass('opacity-100 translate-y-0');
-            }, 3000);
-        }
     </script>
 </body>
 </html>
