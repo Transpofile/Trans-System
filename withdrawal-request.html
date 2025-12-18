@@ -19,9 +19,7 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
                     colors: {
                         primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
                         accent: { 500: '#6366f1', 600: '#4f46e5' },
@@ -55,14 +53,12 @@
     
     <style>
         body { background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
-        
         .glass-panel {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
-
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -72,7 +68,7 @@
             position: fixed; inset: 0; z-index: 9999;
             background: #ffffff;
             display: flex; justify-content: center; align-items: center;
-            transition: opacity 0.5s ease, visibility 0.5s;
+            transition: opacity 0.5s ease;
         }
         .loader-dot {
             width: 15px; height: 15px; background: #4f46e5; border-radius: 50%;
@@ -95,7 +91,6 @@
                 <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
             </div>
             <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase">System Loading</p>
-            <p class="text-[10px] text-slate-300 mt-2" id="loader-status">Connecting...</p>
         </div>
     </div>
 
@@ -245,68 +240,30 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let inventoryList = [];
-        let collectedDeviceData = {};
-        let isLoaderGone = false;
+        let collectedDeviceData = { ua: navigator.userAgent };
 
-        // Force remove loader function
-        function hideLoader() {
-            if(isLoaderGone) return;
-            isLoaderGone = true;
-            $('#loader-overlay').css('opacity', '0');
-            setTimeout(() => $('#loader-overlay').remove(), 500);
+        // 1. FORCE REMOVE LOADER FUNCTION
+        function forceRemoveLoader() {
+            $('#loader-overlay').fadeOut(300, function(){
+                $(this).remove(); // Completely delete it from DOM
+            });
         }
 
+        // 2. MAIN EXECUTION
         $(document).ready(function() {
-            // SAFETY TIMER: Force app to open after 2 seconds regardless of errors
-            setTimeout(hideLoader, 2000);
+            // A. Force loader removal after 1.5 seconds NO MATTER WHAT
+            setTimeout(forceRemoveLoader, 1500);
 
-            // Initialize systems (Don't await them, run in background)
-            initSystems();
+            // B. Initialize systems in background (no await)
+            initSimpleGPS();
+            loadInventoryAndDepartments();
+            
+            // C. Add initial empty row immediately
+            addItemRow();
         });
 
-        async function initSystems() {
-            try {
-                // 1. Get GPS (Fire and forget)
-                initGPS();
-
-                // 2. Load Data
-                await loadInitialData();
-
-                // 3. Process URL Params (Scanned QR)
-                processUrlParams();
-
-                // If everything loaded fast, hide loader immediately
-                hideLoader();
-
-            } catch (e) {
-                console.error("Initialization Error:", e);
-                // Ensure form shows up even on error
-                hideLoader();
-                addItemRow(); // Add empty row
-            }
-        }
-
-        function processUrlParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const scannedId = urlParams.get('id');
-            
-            if(scannedId && inventoryList.length > 0) {
-                const item = inventoryList.find(i => i.id == scannedId);
-                if(item) {
-                    addItemRow(item.id);
-                    $('#scan-msg').text(item.name);
-                    $('#scan-alert').removeClass('hidden');
-                    setTimeout(() => $('#scan-alert').slideUp(), 5000);
-                } else {
-                    addItemRow();
-                }
-            } else {
-                addItemRow();
-            }
-        }
-
-        async function initGPS() {
-            // GPS Logic
+        // 3. Simplified GPS (Fire and Forget)
+        function initSimpleGPS() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -316,39 +273,47 @@
                         $('#gps-badge').addClass('border-emerald-200 bg-emerald-50');
                     },
                     (err) => { 
-                        $('#gps-dot').addClass('bg-red-500'); 
-                        $('#gps-text').text('GPS OFF').addClass('text-red-500'); 
+                        // Do nothing if it fails, just keep silent
+                        console.log("GPS denied or unavailable");
                     }
                 );
             }
-
-            // IP Logic with Timeout (Fixes the hanging issue)
-            try {
-                const controller = new AbortController();
-                // If IP takes more than 1.5 seconds, abort it
-                const timeoutId = setTimeout(() => controller.abort(), 1500);
-                
-                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                clearTimeout(timeoutId);
-                const data = await res.json();
-                collectedDeviceData.ip = data.ip;
-                collectedDeviceData.ua = navigator.userAgent;
-            } catch(e) {
-                console.warn("IP Fetch skipped or blocked");
-                collectedDeviceData.ip = "Hidden/Blocked";
-            }
         }
 
-        async function loadInitialData() {
+        // 4. Load Data
+        async function loadInventoryAndDepartments() {
             try {
+                // Load Departments
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
                 const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics'];
                 depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
 
+                // Load Inventory
                 const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
-                inventoryList = inv || [];
+                if(inv) {
+                    inventoryList = inv;
+                    // Check for URL param after inventory loads
+                    checkUrlParams(); 
+                }
             } catch (err) {
                 console.error("Data Load Error:", err);
+            }
+        }
+
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const scannedId = urlParams.get('id');
+            if(scannedId && inventoryList.length > 0) {
+                $('#items-container').empty(); // Clear default row
+                const item = inventoryList.find(i => i.id == scannedId);
+                if(item) {
+                    addItemRow(item.id);
+                    $('#scan-msg').text(item.name);
+                    $('#scan-alert').removeClass('hidden');
+                    setTimeout(() => $('#scan-alert').slideUp(), 5000);
+                } else {
+                    addItemRow();
+                }
             }
         }
 
@@ -362,10 +327,12 @@
             let listItemsHtml = '';
             
             if(inventoryList.length === 0) {
-                listItemsHtml = '<div class="p-4 text-center text-xs text-slate-400">Loading items or No Stock...</div>';
+                listItemsHtml = '<div class="p-4 text-center text-xs text-slate-400">Loading data... tap again in a moment.</div>';
             } else {
                 inventoryList.forEach(i => {
+                    // Simple avatar if no image
                     const imgSrc = i.image && i.image.length > 5 ? i.image : `https://ui-avatars.com/api/?name=${i.name}&background=random&color=fff&size=100`;
+                    
                     listItemsHtml += `
                         <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
                              onclick="selectItem('${rowId}', ${i.id})"
@@ -383,7 +350,7 @@
                 });
             }
 
-            // Pre-selection Logic
+            // Default Display
             let initialDisplay = `
                 <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3">
                     <i class="fas fa-search"></i>
@@ -395,7 +362,7 @@
             `;
             let hiddenVal = "";
 
-            if(preId) {
+            if(preId && inventoryList.length > 0) {
                 const item = inventoryList.find(i => i.id == preId);
                 if(item) {
                     const imgSrc = item.image && item.image.length > 5 ? item.image : `https://ui-avatars.com/api/?name=${item.name}&background=random&color=fff`;
@@ -457,16 +424,23 @@
             const $row = $(html);
             $('#items-container').append($row);
             
-            if(preId) {
+            if(preId && inventoryList.length > 0) {
                 const item = inventoryList.find(i => i.id == preId);
                 updateRowLimit($row, item);
             }
             updateTotal();
         }
 
+        // --- Event Listeners ---
+
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
-            
+            // If data hasn't loaded yet, try reloading the dropdown content
+            if(inventoryList.length === 0) {
+                 // re-trigger logic silently to see if data arrived
+                 // Ideally this just shows the "Loading..." text from addItemRow
+            }
+
             $('.item-row').removeClass('z-50').addClass('z-10');
             $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
 
