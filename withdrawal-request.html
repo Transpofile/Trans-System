@@ -9,7 +9,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <!-- Google Fonts -->
@@ -53,7 +55,6 @@
     <style>
         body { background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
         
-        /* Glassmorphism Classes */
         .glass-panel {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
@@ -61,12 +62,10 @@
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
         
-        /* Scrollbar Styling */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
-        /* Loader Animation */
         #loader-overlay {
             position: fixed; inset: 0; z-index: 100;
             background: #ffffff;
@@ -93,11 +92,11 @@
             <div class="flex mb-4">
                 <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
             </div>
-            <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase">Connecting to Database...</p>
+            <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase" id="loader-text">Initializing...</p>
         </div>
     </div>
 
-    <!-- Animated Background -->
+    <!-- Background -->
     <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div class="absolute top-0 left-0 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
         <div class="absolute top-0 right-0 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
@@ -112,10 +111,9 @@
                 </div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight text-slate-800">Trans-System</h1>
-                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Withdrawal Request</p>
+                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Withdrawal Portal</p>
                 </div>
             </div>
-            <!-- GPS Status Badge -->
             <div id="gps-badge" class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full bg-slate-400" id="gps-dot"></div>
                 <span class="text-[10px] font-bold text-slate-500" id="gps-text">LOCATING...</span>
@@ -125,7 +123,13 @@
 
     <main class="max-w-3xl mx-auto px-4 mt-6 space-y-6 relative">
 
-        <!-- Scanner / URL Parameter Alert -->
+        <!-- Offline/Demo Alert -->
+        <div id="offline-alert" class="hidden bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 rounded-r shadow-md mb-4" role="alert">
+            <p class="font-bold text-xs uppercase">Demo Mode Active</p>
+            <p class="text-sm">Database connection failed (check keys/permissions). Using local demo data.</p>
+        </div>
+
+        <!-- Scanner Alert -->
         <div id="scan-alert" class="hidden transform transition-all duration-500">
             <div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-4 text-white shadow-xl flex items-center justify-between">
                 <div class="flex items-center gap-4">
@@ -145,7 +149,7 @@
 
         <form id="withdrawal-form" class="space-y-6">
             
-            <!-- Items Selection Section -->
+            <!-- Items Section -->
             <section class="glass-panel rounded-3xl p-1 shadow-glass relative z-20 overflow-visible">
                 <div class="bg-white/50 rounded-[20px] p-5 overflow-visible">
                     <div class="flex justify-between items-center mb-4">
@@ -160,7 +164,7 @@
                     </div>
                     
                     <div id="items-container" class="space-y-3 min-h-[100px] overflow-visible">
-                        <!-- Dynamic Rows go here -->
+                        <!-- Dynamic Rows -->
                     </div>
 
                     <div id="empty-state" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl mt-4">
@@ -172,7 +176,7 @@
                 </div>
             </section>
 
-            <!-- Requester Details Section -->
+            <!-- Requester Info -->
             <section class="glass-panel rounded-3xl p-6 shadow-glass relative z-10">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-500">
@@ -182,7 +186,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <!-- Name Input -->
                     <div>
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Your Name</label>
                         <div class="relative">
@@ -192,23 +195,21 @@
                         </div>
                     </div>
 
-                    <!-- Department Select -->
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department / Position</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department</label>
                         <div class="relative">
                             <i class="fas fa-building absolute left-4 top-4 text-slate-300"></i>
                             <select id="req-dept" required 
                                 class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none appearance-none cursor-pointer">
-                                <option value="" disabled selected>Loading Departments...</option>
+                                <option value="" disabled selected>Loading...</option>
                             </select>
                             <i class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-300 pointer-events-none"></i>
                         </div>
                     </div>
 
-                    <!-- Reason Textarea -->
                     <div class="md:col-span-2">
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Purpose / Work Order</label>
-                        <textarea id="req-reason" rows="2" placeholder="Briefly describe the usage or WO#..." 
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Reason / Work Order</label>
+                        <textarea id="req-reason" rows="2" placeholder="Briefly describe usage..." 
                             class="input-animated w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none resize-none"></textarea>
                     </div>
                 </div>
@@ -218,7 +219,7 @@
         </form>
     </main>
 
-    <!-- Bottom Sticky Action Bar -->
+    <!-- Bottom Bar -->
     <div class="fixed bottom-0 left-0 w-full glass-panel border-t border-slate-200/50 pb-6 pt-4 px-6 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
             <div class="hidden sm:block">
@@ -233,7 +234,7 @@
         </div>
     </div>
 
-    <!-- Notification Toast -->
+    <!-- Toast -->
     <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-4">
         <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 min-w-[280px]">
             <i id="toast-icon" class="text-lg text-emerald-400"></i>
@@ -242,38 +243,43 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        // Ensure your Supabase project has tables: 'inventory', 'master_data', 'requests'
-        const SUPABASE_URL = 'sb_publishable_5BKfhBbD61xpB8oSAs9g8w_K9x3RFA7';
+        // ==========================================
+        // CONFIGURATION (UPDATE THESE KEYS!)
+        // ==========================================
+        const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co'; 
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
-        
-        let supabase;
-        try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } catch(e) {
-            console.error("Supabase Init Failed. Check Keys.", e);
-        }
+        // ==========================================
 
+        let supabase;
+        let isOffline = false;
         let inventoryList = [];
         let collectedDeviceData = {};
-        let loaderRemoved = false;
 
+        // 1. Initialize Supabase
+        try {
+            if(SUPABASE_URL.includes('YOUR_PROJECT')) {
+                throw new Error("Missing Credentials");
+            }
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch(e) {
+            console.warn("Supabase Init Failed (Keys missing or invalid). Switching to Demo Mode.");
+            isOffline = true;
+        }
+
+        // 2. Remove Loader Helper
         function removeLoader() {
-            if (loaderRemoved) return;
-            loaderRemoved = true;
             $('#loader-overlay').fadeOut(400);
         }
 
-        // --- INITIALIZATION ---
+        // 3. Main Start
         $(document).ready(async () => {
-            // Safety timer: Remove loader after 3s regardless of network status
-            setTimeout(removeLoader, 3000);
+            // Force remove loader after 2.5s to prevent getting stuck
+            setTimeout(removeLoader, 2500);
 
-            // Initialize Background tasks
             initGPS();
-            await loadInitialData();
-            
-            // Check for scanned ID via URL (e.g. ?id=5)
+            await loadDataSafe();
+
+            // Handle URL ID scanning
             const urlParams = new URLSearchParams(window.location.search);
             const scannedId = urlParams.get('id');
             
@@ -283,19 +289,60 @@
                     addItemRow(item.id);
                     $('#scan-msg').text(item.name);
                     $('#scan-alert').removeClass('hidden');
-                    // Play vibrate on mobile
-                    if(navigator.vibrate) navigator.vibrate(200);
                     setTimeout(() => $('#scan-alert').slideUp(), 5000);
                 } else {
-                    addItemRow(); // Scanned ID not found in DB
+                    addItemRow(); 
                 }
             } else {
-                addItemRow(); // Default empty row
+                addItemRow(); 
             }
-
+            
+            // Ensure loader is gone
             removeLoader();
         });
 
+        // 4. Data Loading (Robust with Fallback)
+        async function loadDataSafe() {
+            try {
+                if(isOffline) throw new Error("Offline Mode forced");
+
+                // Fetch Departments
+                const { data: config, error: configError } = await supabase.from('master_data').select('*').eq('key', 'config').single();
+                if(configError) throw configError;
+
+                let depts = (config && config.data && config.data.departments) ? config.data.departments : ['General'];
+                
+                $('#req-dept').empty().append('<option value="" disabled selected>Select Department</option>');
+                depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
+
+                // Fetch Inventory
+                const { data: inv, error: invError } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
+                if(invError) throw invError;
+                
+                inventoryList = inv || [];
+
+            } catch (err) {
+                console.error("Data Load Error:", err);
+                activateDemoMode();
+            }
+        }
+
+        function activateDemoMode() {
+            isOffline = true;
+            $('#offline-alert').removeClass('hidden');
+            $('#req-dept').empty().append('<option value="" disabled selected>Select Dept (Demo)</option>');
+            ['Maintenance', 'Operations', 'IT', 'Demo Dept'].forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
+
+            // Dummy Inventory
+            inventoryList = [
+                { id: 1, name: 'Demo Hammer', stock: 10, unit: 'pcs' },
+                { id: 2, name: 'Safety Goggles', stock: 50, unit: 'pairs' },
+                { id: 3, name: 'Drill Battery', stock: 5, unit: 'pcs' },
+                { id: 4, name: 'Cat 6 Cable', stock: 100, unit: 'meters' }
+            ];
+        }
+
+        // 5. GPS & Device Info
         async function initGPS() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
@@ -311,50 +358,22 @@
                     }
                 );
             }
-
             try {
-                // Fetch public IP
-                const res = await fetch('https://api.ipify.org?format=json');
+                // Short timeout for IP fetch so it doesn't block
+                const controller = new AbortController();
+                setTimeout(() => controller.abort(), 1000); 
+                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
                 const data = await res.json();
                 collectedDeviceData.ip = data.ip;
-                collectedDeviceData.ua = navigator.userAgent;
-            } catch(e) {
-                collectedDeviceData.ip = "Unknown/Blocked";
-            }
+            } catch(e) { collectedDeviceData.ip = "Unknown"; }
         }
 
-        async function loadInitialData() {
-            if(!supabase) return;
-
-            try {
-                // 1. Fetch Departments from 'master_data' table
-                const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
-                let depts = ['Maintenance', 'Operation', 'Admin']; // Fallback if DB fetch fails
-                
-                if (config && config.data && config.data.departments) {
-                    depts = config.data.departments;
-                }
-                
-                $('#req-dept').empty().append('<option value="" disabled selected>Select Department</option>');
-                depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
-
-                // 2. Fetch Inventory from 'inventory' table
-                const { data: inv, error } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
-                if(error) throw error;
-                inventoryList = inv || [];
-            } catch (err) {
-                console.error("Data Load Error:", err);
-                showToast("Connection Error - Using Offline Defaults", "error");
-            }
-        }
-
-        // --- DYNAMIC FORM LOGIC ---
-
+        // 6. UI Logic (Dropdowns & Rows)
         function addItemRow(preId = null) {
             $('#empty-state').hide();
             const rowId = 'row-' + Date.now() + Math.floor(Math.random() * 1000);
             
-            // Generate List Items for the Custom Dropdown
+            // Build Dropdown List
             let listItemsHtml = '';
             if(inventoryList.length === 0) {
                 listItemsHtml = `<div class="p-4 text-center text-xs text-slate-400">No items available</div>`;
@@ -367,7 +386,7 @@
                             <div class="flex-1 min-w-0">
                                 <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
                                 <div class="flex items-center gap-2 mt-0.5">
-                                    <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit || 'pcs'}</span>
+                                    <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit}</span>
                                     <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
                                 </div>
                             </div>
@@ -376,14 +395,14 @@
                 });
             }
 
-            // Determine what to show initially (Empty Select vs Pre-selected Item)
+            // Pre-selection Logic
             let initialDisplay = `
                 <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3 shrink-0">
                     <i class="fas fa-search"></i>
                 </div>
                 <div class="flex-1 text-left overflow-hidden">
                     <span class="block text-xs font-bold text-slate-400 truncate">Select Item...</span>
-                    <span class="block text-[10px] text-slate-300">Tap to search inventory</span>
+                    <span class="block text-[10px] text-slate-300">Tap to search</span>
                 </div>
             `;
             let hiddenVal = "";
@@ -392,12 +411,7 @@
                 const item = inventoryList.find(i => i.id == preId);
                 if(item) {
                     hiddenVal = item.id;
-                    initialDisplay = `
-                        <div class="flex-1 min-w-0 text-left">
-                            <span class="block text-xs font-bold text-slate-700 truncate">${item.name}</span>
-                            <span class="block text-[10px] text-accent-500 font-medium">${item.stock} ${item.unit} available</span>
-                        </div>
-                    `;
+                    initialDisplay = renderItemDisplay(item);
                 }
             }
 
@@ -412,20 +426,15 @@
                         <div class="flex-1 relative">
                             <input type="hidden" class="item-select-value" value="${hiddenVal}">
                             
-                            <!-- Custom Dropdown Trigger -->
                             <button type="button" class="dropdown-trigger w-full bg-slate-50 border border-slate-200 rounded-xl p-2 flex items-center transition-all hover:bg-white focus:ring-2 focus:ring-accent-500/20" onclick="toggleDropdown('${rowId}', event)">
                                 ${initialDisplay}
                                 <i class="fas fa-chevron-down text-xs text-slate-300 ml-2"></i>
                             </button>
 
-                            <!-- Custom Dropdown Body -->
                             <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-slate-200 shadow-floating rounded-xl z-[60] mt-2 flex flex-col max-h-[250px] overflow-hidden">
                                 <div class="p-2 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
-                                    <input type="text" 
-                                           class="w-full text-xs pl-3 pr-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-accent-500 bg-white" 
-                                           placeholder="Search name..." 
-                                           onkeyup="filterDropdown(this)"
-                                           onkeydown="if(event.key === 'Enter') event.preventDefault()">
+                                    <input type="text" class="w-full text-xs pl-3 pr-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-accent-500 bg-white" 
+                                           placeholder="Search..." onkeyup="filterDropdown(this)">
                                 </div>
                                 <div class="overflow-y-auto flex-1 custom-scrollbar">
                                     ${listItemsHtml}
@@ -433,19 +442,14 @@
                             </div>
                         </div>
 
-                        <!-- Qty Input -->
                         <div class="w-full sm:w-32 flex flex-col justify-center">
                             <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 p-1">
-                                <button type="button" onclick="stepQty('${rowId}', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600 active:scale-90 transition-all">
-                                    <i class="fas fa-minus text-[10px]"></i>
-                                </button>
+                                <button type="button" onclick="stepQty('${rowId}', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600"><i class="fas fa-minus text-[10px]"></i></button>
                                 <input type="number" min="1" value="1" oninput="validateQty(this); updateTotal()" 
-                                    class="qty-input w-full bg-transparent text-center text-sm font-bold text-slate-700 outline-none p-0 appearance-none mx-1" required>
-                                <button type="button" onclick="stepQty('${rowId}', 1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600 active:scale-90 transition-all">
-                                    <i class="fas fa-plus text-[10px]"></i>
-                                </button>
+                                    class="qty-input w-full bg-transparent text-center text-sm font-bold text-slate-700 outline-none mx-1" required>
+                                <button type="button" onclick="stepQty('${rowId}', 1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600"><i class="fas fa-plus text-[10px]"></i></button>
                             </div>
-                            <p class="qty-error text-[10px] text-red-500 font-bold mt-1 text-center hidden">Over Limit!</p>
+                            <p class="qty-error text-[10px] text-red-500 font-bold mt-1 text-center hidden">Limit Exceeded</p>
                         </div>
                     </div>
                 </div>
@@ -453,7 +457,6 @@
             
             const $row = $(html);
             $('#items-container').append($row);
-            
             if(preId) {
                 const item = inventoryList.find(i => i.id == preId);
                 if(item) updateRowLimit($row, item);
@@ -461,25 +464,28 @@
             updateTotal();
         }
 
-        // --- DROPDOWN HELPERS ---
+        function renderItemDisplay(item) {
+            return `
+                <div class="flex-1 min-w-0 text-left">
+                    <span class="block text-xs font-bold text-slate-700 truncate">${item.name}</span>
+                    <span class="block text-[10px] text-accent-500 font-medium">${item.stock} ${item.unit} available</span>
+                </div>
+            `;
+        }
 
+        // Dropdown & Input Event Handlers
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
-            
-            // Close other dropdowns
             $('.item-row').removeClass('z-50').addClass('z-10');
             $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
-
-            const $targetDropdown = $(`#dropdown-${rowId}`);
-            const $row = $(`#${rowId}`);
-            
-            if ($targetDropdown.hasClass('hidden')) {
-                $targetDropdown.removeClass('hidden');
-                $row.removeClass('z-10').addClass('z-50'); // Bring parent to front (z-index hack)
-                setTimeout(() => $targetDropdown.find('input').focus(), 100);
+            const $target = $(`#dropdown-${rowId}`);
+            if ($target.hasClass('hidden')) {
+                $target.removeClass('hidden');
+                $(`#${rowId}`).removeClass('z-10').addClass('z-50');
+                setTimeout(() => $target.find('input').focus(), 100);
             } else {
-                $targetDropdown.addClass('hidden');
-                $row.removeClass('z-50').addClass('z-10');
+                $target.addClass('hidden');
+                $(`#${rowId}`).removeClass('z-50').addClass('z-10');
             }
         }
 
@@ -494,45 +500,25 @@
             const term = $(input).val().toLowerCase();
             const $container = $(input).closest('.custom-dropdown');
             let found = 0;
-            
             $container.find('.dropdown-item').each(function() {
                 const name = $(this).data('name');
-                if(name.includes(term)) {
-                    $(this).removeClass('hidden');
-                    found++;
-                } else {
-                    $(this).addClass('hidden');
-                }
+                if(name.includes(term)) { $(this).removeClass('hidden'); found++; } 
+                else { $(this).addClass('hidden'); }
             });
-
             $container.find('.no-results').remove();
-            if(found === 0) {
-                $container.find('.custom-scrollbar').append('<div class="no-results p-4 text-center text-xs text-slate-400">No items found</div>');
-            }
+            if(found === 0) $container.find('.custom-scrollbar').append('<div class="no-results p-4 text-center text-xs text-slate-400">No items found</div>');
         }
 
         function selectItem(rowId, itemId) {
             const item = inventoryList.find(i => i.id === itemId);
             if (!item) return;
-
             const $row = $(`#${rowId}`);
             $row.find('.item-select-value').val(item.id);
-
-            const triggerHtml = `
-                <div class="flex-1 min-w-0 text-left">
-                    <span class="block text-xs font-bold text-slate-700 truncate">${item.name}</span>
-                    <span class="block text-[10px] text-accent-500 font-medium">${item.stock} ${item.unit} available</span>
-                </div>
-            `;
-            $row.find('.dropdown-trigger').html(triggerHtml + '<i class="fas fa-check text-emerald-500 text-xs ml-2"></i>');
-            
+            $row.find('.dropdown-trigger').html(renderItemDisplay(item) + '<i class="fas fa-check text-emerald-500 text-xs ml-2"></i>');
             $row.find('.custom-dropdown').addClass('hidden');
             $row.removeClass('z-50').addClass('z-10');
-
             updateRowLimit($row, item);
         }
-
-        // --- QUANTITY LOGIC ---
 
         function updateRowLimit($row, item) {
             const $input = $row.find('.qty-input');
@@ -546,7 +532,6 @@
             let val = parseInt($input.val()) || 0;
             let newVal = val + step;
             if(newVal < 1) newVal = 1;
-            
             $input.val(newVal);
             validateQty($input[0]);
             updateTotal();
@@ -554,10 +539,10 @@
 
         function validateQty(el) {
             const $el = $(el);
-            const $row = $el.closest('.item-row');
             const max = parseInt($el.attr('max')) || 9999;
-            let val = parseInt($el.val()) || 0;
-
+            const val = parseInt($el.val()) || 0;
+            const $row = $el.closest('.item-row');
+            
             if(val > max) {
                 $el.addClass('text-red-600');
                 $row.find('.qty-error').removeClass('hidden').text(`Max: ${max}`);
@@ -565,12 +550,7 @@
                 $el.removeClass('text-red-600');
                 $row.find('.qty-error').addClass('hidden');
             }
-            checkGlobalValidity();
-        }
-
-        function checkGlobalValidity() {
-            const hasError = $('.qty-error').not('.hidden').length > 0;
-            $('#submit-btn').prop('disabled', hasError);
+            $('#submit-btn').prop('disabled', $('.qty-error').not('.hidden').length > 0);
         }
 
         function removeRow(id) {
@@ -590,86 +570,66 @@
         function showToast(msg, type = 'success') {
             const $toast = $('#toast');
             $('#toast-msg').text(msg);
-            
-            if(type === 'success') {
-                $('#toast-icon').attr('class', 'fas fa-check-circle text-lg text-emerald-400');
-            } else {
-                $('#toast-icon').attr('class', 'fas fa-exclamation-triangle text-lg text-red-400');
-            }
-
+            const iconClass = type === 'success' ? 'fas fa-check-circle text-emerald-400' : 'fas fa-exclamation-triangle text-red-400';
+            $('#toast-icon').attr('class', `${iconClass} text-lg`);
             $toast.removeClass('opacity-0 -translate-y-4').addClass('opacity-100 translate-y-0');
-            setTimeout(() => {
-                $toast.addClass('opacity-0 -translate-y-4').removeClass('opacity-100 translate-y-0');
-            }, 3000);
+            setTimeout(() => $toast.addClass('opacity-0 -translate-y-4').removeClass('opacity-100 translate-y-0'), 3000);
         }
 
-        // --- SUBMIT HANDLING ---
-
+        // 7. Submit Handler
         $('#withdrawal-form').on('submit', async function(e) {
             e.preventDefault();
             const $btn = $('#submit-btn');
             
-            // 1. Gather Data
             const items = [];
             $('.item-row').each(function() {
                 const id = $(this).find('.item-select-value').val();
                 const qty = parseInt($(this).find('.qty-input').val());
-                
                 if(id && qty > 0) {
                     const itemObj = inventoryList.find(i => i.id == id);
                     if(itemObj) {
-                        items.push({ 
-                            id: itemObj.id, 
-                            name: itemObj.name, 
-                            qty: qty, 
-                            unit: itemObj.unit,
-                            category: itemObj.category || 'General' 
-                        });
+                        items.push({ id: itemObj.id, name: itemObj.name, qty: qty, unit: itemObj.unit, category: itemObj.category || 'General' });
                     }
                 }
             });
 
-            if(items.length === 0) return showToast("Please select at least one item", "error");
+            if(items.length === 0) return showToast("Please select items", "error");
 
-            // 2. UI Loading State
-            $btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...').prop('disabled', true);
+            $btn.html('<i class="fas fa-circle-notch fa-spin"></i> Sending...').prop('disabled', true);
 
+            // SIMULATE SUCCESS IN DEMO MODE
+            if(isOffline) {
+                setTimeout(() => {
+                    $btn.html('<i class="fas fa-check"></i> Demo Success!').addClass('bg-emerald-600');
+                    showToast("Demo Request Sent!", "success");
+                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    setTimeout(() => window.location.reload(), 2000);
+                }, 1000);
+                return;
+            }
+
+            // REAL SUBMISSION
             try {
-                // 3. Prepare Payload for 'requests' table
                 const payload = {
                     requester: $('#req-name').val(),
                     department: $('#req-dept').val(),
                     reason: $('#req-reason').val() + " [Web App]",
                     items: items, 
                     status: 'Pending',
-                    metadata: collectedDeviceData // Stores GPS/IP
+                    metadata: collectedDeviceData
                 };
 
                 const { error } = await supabase.from('requests').insert(payload);
                 if(error) throw error;
 
-                // 4. Success UI
                 $btn.html('<i class="fas fa-check"></i> Success!').addClass('bg-emerald-600');
                 showToast("Request Sent Successfully!", "success");
-                
-                // Confetti Celebration
-                var duration = 2 * 1000;
-                var animationEnd = Date.now() + duration;
-                var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
-                var random = (min, max) => Math.random() * (max - min) + min;
-                var interval = setInterval(function() {
-                    var timeLeft = animationEnd - Date.now();
-                    if (timeLeft <= 0) return clearInterval(interval);
-                    var particleCount = 50 * (timeLeft / duration);
-                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } }));
-                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } }));
-                }, 250);
-
-                setTimeout(() => window.location.reload(), 2500);
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                setTimeout(() => window.location.reload(), 2000);
 
             } catch (err) {
                 console.error(err);
-                showToast("Error: " + (err.message || "Network issue"), "error");
+                showToast("Error: " + err.message, "error");
                 $btn.html('Confirm Withdrawal <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false).removeClass('bg-emerald-600');
             }
         });
