@@ -243,10 +243,9 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let inventoryList = [];
-        let collectedDeviceData = {};
+        let collectedDeviceData = { ip: "Unknown", ua: navigator.userAgent };
         let loaderRemoved = false;
 
-        // FIXED: Force loader removal logic
         function removeLoader() {
             if (loaderRemoved) return;
             loaderRemoved = true;
@@ -254,15 +253,14 @@
         }
 
         $(document).ready(async () => {
-            // FIXED: Safety timer. If data takes longer than 1.5s, remove loader anyway
+            // Safety timer: Ensure loader is removed after 1.5s max, even if DB fails
             setTimeout(removeLoader, 1500);
 
-            // Run initialization in background (don't await them to block UI)
-            initGPS();
+            initGPS(); // Run non-blocking GPS check
             
             await loadInitialData();
             
-            // Check for scanned ID
+            // Check for scanned ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const scannedId = urlParams.get('id');
             
@@ -280,12 +278,11 @@
                 addItemRow();
             }
 
-            // If data loaded fast, remove loader now
             removeLoader();
         });
 
-        async function initGPS() {
-            // Non-blocking GeoLocation
+        function initGPS() {
+            // Basic Geolocation - often requires permission, but doesn't block page load
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -295,27 +292,12 @@
                         $('#gps-badge').addClass('border-emerald-200 bg-emerald-50');
                     },
                     (err) => { 
-                        // Do nothing if failed, just keep "Locating..." or set to Off
                         $('#gps-dot').addClass('bg-red-500'); 
                         $('#gps-text').text('GPS OFF').addClass('text-red-500'); 
                     }
                 );
             }
-
-            // FIXED: Added try/catch and timeout for IP fetch to prevent hanging
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second max for IP
-
-                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                clearTimeout(timeoutId);
-                const data = await res.json();
-                collectedDeviceData.ip = data.ip;
-                collectedDeviceData.ua = navigator.userAgent;
-            } catch(e) {
-                console.log("IP Fetch skipped or blocked (Adblocker likely)");
-                collectedDeviceData.ip = "Hidden/Blocked";
-            }
+            // Removed IP fetching (api.ipify.org) to prevent blocking on GitHub Pages/Adblockers
         }
 
         async function loadInitialData() {
@@ -331,10 +313,8 @@
                 inventoryList = inv || [];
             } catch (err) {
                 console.error("Data Load Error:", err);
-                // Fallback dummy data if database connection fails entirely
-                if(inventoryList.length === 0) {
-                   // inventoryList = [{id: 1, name: "System Offline Mode", stock: 0, unit: "N/A", image: ""}];
-                }
+                // Ensure loader removes even if data fetch fails
+                removeLoader();
             }
         }
 
