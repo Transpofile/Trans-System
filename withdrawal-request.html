@@ -67,11 +67,12 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
+        /* Loader */
         #loader-overlay {
-            position: fixed; inset: 0; z-index: 100;
+            position: fixed; inset: 0; z-index: 9999;
             background: #ffffff;
             display: flex; justify-content: center; align-items: center;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.5s ease, visibility 0.5s;
         }
         .loader-dot {
             width: 15px; height: 15px; background: #4f46e5; border-radius: 50%;
@@ -94,6 +95,7 @@
                 <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
             </div>
             <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase">System Loading</p>
+            <p class="text-[10px] text-slate-300 mt-2" id="loader-status">Connecting...</p>
         </div>
     </div>
 
@@ -244,25 +246,47 @@
 
         let inventoryList = [];
         let collectedDeviceData = {};
-        let loaderRemoved = false;
+        let isLoaderGone = false;
 
-        // FIXED: Force loader removal logic
-        function removeLoader() {
-            if (loaderRemoved) return;
-            loaderRemoved = true;
-            $('#loader-overlay').fadeOut(400);
+        // Force remove loader function
+        function hideLoader() {
+            if(isLoaderGone) return;
+            isLoaderGone = true;
+            $('#loader-overlay').css('opacity', '0');
+            setTimeout(() => $('#loader-overlay').remove(), 500);
         }
 
-        $(document).ready(async () => {
-            // FIXED: Safety timer. If data takes longer than 1.5s, remove loader anyway
-            setTimeout(removeLoader, 1500);
+        $(document).ready(function() {
+            // SAFETY TIMER: Force app to open after 2 seconds regardless of errors
+            setTimeout(hideLoader, 2000);
 
-            // Run initialization in background (don't await them to block UI)
-            initGPS();
-            
-            await loadInitialData();
-            
-            // Check for scanned ID
+            // Initialize systems (Don't await them, run in background)
+            initSystems();
+        });
+
+        async function initSystems() {
+            try {
+                // 1. Get GPS (Fire and forget)
+                initGPS();
+
+                // 2. Load Data
+                await loadInitialData();
+
+                // 3. Process URL Params (Scanned QR)
+                processUrlParams();
+
+                // If everything loaded fast, hide loader immediately
+                hideLoader();
+
+            } catch (e) {
+                console.error("Initialization Error:", e);
+                // Ensure form shows up even on error
+                hideLoader();
+                addItemRow(); // Add empty row
+            }
+        }
+
+        function processUrlParams() {
             const urlParams = new URLSearchParams(window.location.search);
             const scannedId = urlParams.get('id');
             
@@ -279,13 +303,10 @@
             } else {
                 addItemRow();
             }
-
-            // If data loaded fast, remove loader now
-            removeLoader();
-        });
+        }
 
         async function initGPS() {
-            // Non-blocking GeoLocation
+            // GPS Logic
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -295,46 +316,39 @@
                         $('#gps-badge').addClass('border-emerald-200 bg-emerald-50');
                     },
                     (err) => { 
-                        // Do nothing if failed, just keep "Locating..." or set to Off
                         $('#gps-dot').addClass('bg-red-500'); 
                         $('#gps-text').text('GPS OFF').addClass('text-red-500'); 
                     }
                 );
             }
 
-            // FIXED: Added try/catch and timeout for IP fetch to prevent hanging
+            // IP Logic with Timeout (Fixes the hanging issue)
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second max for IP
-
+                // If IP takes more than 1.5 seconds, abort it
+                const timeoutId = setTimeout(() => controller.abort(), 1500);
+                
                 const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
                 clearTimeout(timeoutId);
                 const data = await res.json();
                 collectedDeviceData.ip = data.ip;
                 collectedDeviceData.ua = navigator.userAgent;
             } catch(e) {
-                console.log("IP Fetch skipped or blocked (Adblocker likely)");
+                console.warn("IP Fetch skipped or blocked");
                 collectedDeviceData.ip = "Hidden/Blocked";
             }
         }
 
         async function loadInitialData() {
             try {
-                // Fetch Departments
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
                 const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics'];
                 depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
 
-                // Fetch Inventory
-                const { data: inv, error } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
-                if(error) throw error;
+                const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
                 inventoryList = inv || [];
             } catch (err) {
                 console.error("Data Load Error:", err);
-                // Fallback dummy data if database connection fails entirely
-                if(inventoryList.length === 0) {
-                   // inventoryList = [{id: 1, name: "System Offline Mode", stock: 0, unit: "N/A", image: ""}];
-                }
             }
         }
 
@@ -346,23 +360,28 @@
             
             // Build Dropdown
             let listItemsHtml = '';
-            inventoryList.forEach(i => {
-                const imgSrc = i.image && i.image.length > 5 ? i.image : `https://ui-avatars.com/api/?name=${i.name}&background=random&color=fff&size=100`;
-                listItemsHtml += `
-                    <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
-                         onclick="selectItem('${rowId}', ${i.id})"
-                         data-name="${i.name.toLowerCase()}">
-                        <img src="${imgSrc}" class="w-10 h-10 rounded-lg object-cover bg-white shadow-sm group-hover:scale-110 transition-transform">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit || 'pcs'}</span>
-                                <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
+            
+            if(inventoryList.length === 0) {
+                listItemsHtml = '<div class="p-4 text-center text-xs text-slate-400">Loading items or No Stock...</div>';
+            } else {
+                inventoryList.forEach(i => {
+                    const imgSrc = i.image && i.image.length > 5 ? i.image : `https://ui-avatars.com/api/?name=${i.name}&background=random&color=fff&size=100`;
+                    listItemsHtml += `
+                        <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
+                             onclick="selectItem('${rowId}', ${i.id})"
+                             data-name="${i.name.toLowerCase()}">
+                            <img src="${imgSrc}" class="w-10 h-10 rounded-lg object-cover bg-white shadow-sm group-hover:scale-110 transition-transform">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit || 'pcs'}</span>
+                                    <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            }
 
             // Pre-selection Logic
             let initialDisplay = `
@@ -445,8 +464,6 @@
             updateTotal();
         }
 
-        // --- Dropdown Management ---
-
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
             
@@ -504,7 +521,6 @@
             updateRowLimit($row, item);
         }
 
-        // --- Qty & Submit Logic ---
         function updateRowLimit($row, item) {
             const $input = $row.find('.qty-input');
             $input.attr('max', item.stock).val(1);
