@@ -15,6 +15,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             theme: {
@@ -51,16 +52,21 @@
     
     <style>
         body { background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
+        
+        /* Glassmorphism Classes */
         .glass-panel {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
+        
+        /* Scrollbar Styling */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
+        /* Loader Animation */
         #loader-overlay {
             position: fixed; inset: 0; z-index: 100;
             background: #ffffff;
@@ -87,11 +93,11 @@
             <div class="flex mb-4">
                 <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
             </div>
-            <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase">System Loading</p>
+            <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase">Connecting to Database...</p>
         </div>
     </div>
 
-    <!-- Background -->
+    <!-- Animated Background -->
     <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div class="absolute top-0 left-0 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
         <div class="absolute top-0 right-0 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
@@ -109,6 +115,7 @@
                     <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Withdrawal Request</p>
                 </div>
             </div>
+            <!-- GPS Status Badge -->
             <div id="gps-badge" class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full bg-slate-400" id="gps-dot"></div>
                 <span class="text-[10px] font-bold text-slate-500" id="gps-text">LOCATING...</span>
@@ -118,7 +125,7 @@
 
     <main class="max-w-3xl mx-auto px-4 mt-6 space-y-6 relative">
 
-        <!-- Scanner Alert -->
+        <!-- Scanner / URL Parameter Alert -->
         <div id="scan-alert" class="hidden transform transition-all duration-500">
             <div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-4 text-white shadow-xl flex items-center justify-between">
                 <div class="flex items-center gap-4">
@@ -138,7 +145,7 @@
 
         <form id="withdrawal-form" class="space-y-6">
             
-            <!-- Items Section -->
+            <!-- Items Selection Section -->
             <section class="glass-panel rounded-3xl p-1 shadow-glass relative z-20 overflow-visible">
                 <div class="bg-white/50 rounded-[20px] p-5 overflow-visible">
                     <div class="flex justify-between items-center mb-4">
@@ -165,7 +172,7 @@
                 </div>
             </section>
 
-            <!-- Requester Details -->
+            <!-- Requester Details Section -->
             <section class="glass-panel rounded-3xl p-6 shadow-glass relative z-10">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-500">
@@ -175,6 +182,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Name Input -->
                     <div>
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Your Name</label>
                         <div class="relative">
@@ -184,18 +192,20 @@
                         </div>
                     </div>
 
+                    <!-- Department Select -->
                     <div>
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department / Position</label>
                         <div class="relative">
                             <i class="fas fa-building absolute left-4 top-4 text-slate-300"></i>
                             <select id="req-dept" required 
                                 class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none appearance-none cursor-pointer">
-                                <option value="" disabled selected>Select Department</option>
+                                <option value="" disabled selected>Loading Departments...</option>
                             </select>
                             <i class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-300 pointer-events-none"></i>
                         </div>
                     </div>
 
+                    <!-- Reason Textarea -->
                     <div class="md:col-span-2">
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Purpose / Work Order</label>
                         <textarea id="req-reason" rows="2" placeholder="Briefly describe the usage or WO#..." 
@@ -223,7 +233,7 @@
         </div>
     </div>
 
-    <!-- Toast -->
+    <!-- Notification Toast -->
     <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-4">
         <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 min-w-[280px]">
             <i id="toast-icon" class="text-lg text-emerald-400"></i>
@@ -232,7 +242,8 @@
     </div>
 
     <script>
-        // CONFIGURATION: REPLACE THESE WITH YOUR KEYS
+        // --- CONFIGURATION ---
+        // Ensure your Supabase project has tables: 'inventory', 'master_data', 'requests'
         const SUPABASE_URL = 'sb_publishable_5BKfhBbD61xpB8oSAs9g8w_K9x3RFA7';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
         
@@ -240,7 +251,7 @@
         try {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         } catch(e) {
-            console.error("Supabase Init Failed. Check Keys.");
+            console.error("Supabase Init Failed. Check Keys.", e);
         }
 
         let inventoryList = [];
@@ -253,9 +264,10 @@
             $('#loader-overlay').fadeOut(400);
         }
 
+        // --- INITIALIZATION ---
         $(document).ready(async () => {
-            // Safety timer: Remove loader after 2s regardless of network
-            setTimeout(removeLoader, 2000);
+            // Safety timer: Remove loader after 3s regardless of network status
+            setTimeout(removeLoader, 3000);
 
             // Initialize Background tasks
             initGPS();
@@ -271,11 +283,11 @@
                     addItemRow(item.id);
                     $('#scan-msg').text(item.name);
                     $('#scan-alert').removeClass('hidden');
-                    // Play sound or vibrate if possible
+                    // Play vibrate on mobile
                     if(navigator.vibrate) navigator.vibrate(200);
                     setTimeout(() => $('#scan-alert').slideUp(), 5000);
                 } else {
-                    addItemRow(); // Scanned ID not found
+                    addItemRow(); // Scanned ID not found in DB
                 }
             } else {
                 addItemRow(); // Default empty row
@@ -301,11 +313,8 @@
             }
 
             try {
-                // Short timeout for IP to avoid freezing
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 1500);
-                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                clearTimeout(timeoutId);
+                // Fetch public IP
+                const res = await fetch('https://api.ipify.org?format=json');
                 const data = await res.json();
                 collectedDeviceData.ip = data.ip;
                 collectedDeviceData.ua = navigator.userAgent;
@@ -318,35 +327,37 @@
             if(!supabase) return;
 
             try {
-                // 1. Fetch Departments
+                // 1. Fetch Departments from 'master_data' table
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
-                let depts = ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics']; // Fallback
+                let depts = ['Maintenance', 'Operation', 'Admin']; // Fallback if DB fetch fails
+                
                 if (config && config.data && config.data.departments) {
                     depts = config.data.departments;
                 }
+                
                 $('#req-dept').empty().append('<option value="" disabled selected>Select Department</option>');
                 depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
 
-                // 2. Fetch Inventory
+                // 2. Fetch Inventory from 'inventory' table
                 const { data: inv, error } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
                 if(error) throw error;
                 inventoryList = inv || [];
             } catch (err) {
                 console.error("Data Load Error:", err);
-                showToast("Connection Error - Offline Mode?", "error");
+                showToast("Connection Error - Using Offline Defaults", "error");
             }
         }
 
-        // --- Core UI Logic ---
+        // --- DYNAMIC FORM LOGIC ---
 
         function addItemRow(preId = null) {
             $('#empty-state').hide();
             const rowId = 'row-' + Date.now() + Math.floor(Math.random() * 1000);
             
-            // Build Dropdown Items
+            // Generate List Items for the Custom Dropdown
             let listItemsHtml = '';
             if(inventoryList.length === 0) {
-                listItemsHtml = `<div class="p-4 text-center text-xs text-slate-400">No items loaded or DB error</div>`;
+                listItemsHtml = `<div class="p-4 text-center text-xs text-slate-400">No items available</div>`;
             } else {
                 inventoryList.forEach(i => {
                     listItemsHtml += `
@@ -365,7 +376,7 @@
                 });
             }
 
-            // Pre-selection Logic
+            // Determine what to show initially (Empty Select vs Pre-selected Item)
             let initialDisplay = `
                 <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3 shrink-0">
                     <i class="fas fa-search"></i>
@@ -401,11 +412,13 @@
                         <div class="flex-1 relative">
                             <input type="hidden" class="item-select-value" value="${hiddenVal}">
                             
+                            <!-- Custom Dropdown Trigger -->
                             <button type="button" class="dropdown-trigger w-full bg-slate-50 border border-slate-200 rounded-xl p-2 flex items-center transition-all hover:bg-white focus:ring-2 focus:ring-accent-500/20" onclick="toggleDropdown('${rowId}', event)">
                                 ${initialDisplay}
                                 <i class="fas fa-chevron-down text-xs text-slate-300 ml-2"></i>
                             </button>
 
+                            <!-- Custom Dropdown Body -->
                             <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-slate-200 shadow-floating rounded-xl z-[60] mt-2 flex flex-col max-h-[250px] overflow-hidden">
                                 <div class="p-2 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
                                     <input type="text" 
@@ -420,6 +433,7 @@
                             </div>
                         </div>
 
+                        <!-- Qty Input -->
                         <div class="w-full sm:w-32 flex flex-col justify-center">
                             <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 p-1">
                                 <button type="button" onclick="stepQty('${rowId}', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600 active:scale-90 transition-all">
@@ -447,12 +461,12 @@
             updateTotal();
         }
 
-        // --- Dropdown Management ---
+        // --- DROPDOWN HELPERS ---
 
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
             
-            // Reset others
+            // Close other dropdowns
             $('.item-row').removeClass('z-50').addClass('z-10');
             $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
 
@@ -461,7 +475,7 @@
             
             if ($targetDropdown.hasClass('hidden')) {
                 $targetDropdown.removeClass('hidden');
-                $row.removeClass('z-10').addClass('z-50'); // Bring parent to front
+                $row.removeClass('z-10').addClass('z-50'); // Bring parent to front (z-index hack)
                 setTimeout(() => $targetDropdown.find('input').focus(), 100);
             } else {
                 $targetDropdown.addClass('hidden');
@@ -491,7 +505,6 @@
                 }
             });
 
-            // Handle no results
             $container.find('.no-results').remove();
             if(found === 0) {
                 $container.find('.custom-scrollbar').append('<div class="no-results p-4 text-center text-xs text-slate-400">No items found</div>');
@@ -519,7 +532,8 @@
             updateRowLimit($row, item);
         }
 
-        // --- Qty & Submit Logic ---
+        // --- QUANTITY LOGIC ---
+
         function updateRowLimit($row, item) {
             const $input = $row.find('.qty-input');
             $input.attr('max', item.stock).val(1);
@@ -533,10 +547,6 @@
             let newVal = val + step;
             if(newVal < 1) newVal = 1;
             
-            // Limit check handled by validateQty, but we can clamp here too
-            const max = parseInt($input.attr('max')) || 9999;
-            // if(newVal > max) newVal = max; // Optional: Force clamp
-
             $input.val(newVal);
             validateQty($input[0]);
             updateTotal();
@@ -593,10 +603,13 @@
             }, 3000);
         }
 
+        // --- SUBMIT HANDLING ---
+
         $('#withdrawal-form').on('submit', async function(e) {
             e.preventDefault();
             const $btn = $('#submit-btn');
             
+            // 1. Gather Data
             const items = [];
             $('.item-row').each(function() {
                 const id = $(this).find('.item-select-value').val();
@@ -618,26 +631,28 @@
 
             if(items.length === 0) return showToast("Please select at least one item", "error");
 
+            // 2. UI Loading State
             $btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...').prop('disabled', true);
 
             try {
+                // 3. Prepare Payload for 'requests' table
                 const payload = {
                     requester: $('#req-name').val(),
                     department: $('#req-dept').val(),
                     reason: $('#req-reason').val() + " [Web App]",
-                    items: items, // Sent as JSONB
+                    items: items, 
                     status: 'Pending',
-                    date: new Date().toISOString(),
-                    metadata: collectedDeviceData
+                    metadata: collectedDeviceData // Stores GPS/IP
                 };
 
                 const { error } = await supabase.from('requests').insert(payload);
                 if(error) throw error;
 
+                // 4. Success UI
                 $btn.html('<i class="fas fa-check"></i> Success!').addClass('bg-emerald-600');
                 showToast("Request Sent Successfully!", "success");
                 
-                // Confetti Effect
+                // Confetti Celebration
                 var duration = 2 * 1000;
                 var animationEnd = Date.now() + duration;
                 var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
