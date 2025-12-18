@@ -55,16 +55,14 @@
         <p class="text-sm font-medium text-gray-500">Loading...</p>
     </div>
 
-    <!-- Simple Header -->
+    <!-- Simple Header (No GPS Badge) -->
     <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div class="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <i class="fas fa-box text-primary text-xl"></i>
                 <h1 class="font-semibold text-lg text-gray-800">Withdrawal Form</h1>
             </div>
-            <div id="gps-badge" class="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-gray-500 border border-gray-200">
-                <i class="fas fa-location-arrow mr-1"></i> <span id="gps-text">Locating...</span>
-            </div>
+            <!-- Location Badge Removed -->
         </div>
     </header>
 
@@ -86,7 +84,7 @@
 
         <form id="withdrawal-form" class="space-y-6">
             
-            <!-- Items Section (Moved to Top) -->
+            <!-- Items Section (Top) -->
             <section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
                 <div class="px-5 py-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                     <h2 class="text-sm font-bold text-gray-700 uppercase">Items to Withdraw</h2>
@@ -108,7 +106,7 @@
                 </div>
             </section>
 
-            <!-- Requester Details Card (Moved Below) -->
+            <!-- Requester Details Card (Bottom) -->
             <section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
                     <h2 class="text-sm font-bold text-gray-700 uppercase">Requester Information</h2>
@@ -171,7 +169,6 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let inventoryList = [];
-        let collectedDeviceData = {};
         let loaderRemoved = false;
 
         function removeLoader() {
@@ -181,8 +178,10 @@
         }
 
         $(document).ready(async () => {
+            // Safety timer
             setTimeout(removeLoader, 1500);
-            initGPS();
+
+            // Load Data
             await loadInitialData();
             
             // Scanner Logic
@@ -203,35 +202,14 @@
             removeLoader();
         });
 
-        async function initGPS() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        collectedDeviceData.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                        $('#gps-text').text('Location Secured').addClass('text-green-600');
-                        $('#gps-badge').addClass('bg-green-50 border-green-200');
-                    },
-                    (err) => { 
-                        $('#gps-text').text('Location Off'); 
-                    }
-                );
-            }
-            try {
-                const res = await fetch('https://api.ipify.org?format=json');
-                const data = await res.json();
-                collectedDeviceData.ip = data.ip;
-                collectedDeviceData.ua = navigator.userAgent;
-            } catch(e) {
-                collectedDeviceData.ip = "Unknown";
-            }
-        }
-
         async function loadInitialData() {
             try {
+                // Fetch Departments
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
                 const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics'];
                 depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
 
+                // Fetch Inventory
                 const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
                 inventoryList = inv || [];
             } catch (err) { console.error(err); }
@@ -323,7 +301,7 @@
             updateTotal();
         }
 
-        // --- Standard Logic Functions ---
+        // --- Core Functions ---
 
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
@@ -439,6 +417,7 @@
             $btn.html('<i class="fas fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
 
             try {
+                // Simplified payload (No Location Data)
                 const payload = {
                     requester: $('#req-name').val(),
                     department: $('#req-dept').val(),
@@ -446,7 +425,7 @@
                     items: items,
                     status: 'Pending',
                     date: new Date().toLocaleDateString(),
-                    metadata: collectedDeviceData
+                    metadata: { ua: navigator.userAgent } 
                 };
 
                 const { error } = await supabase.from('requests').insert(payload);
