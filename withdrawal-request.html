@@ -19,14 +19,10 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
                     colors: {
-                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
-                        accent: { 500: '#6366f1', 600: '#4f46e5' },
-                        surface: '#ffffff',
-                        background: '#f8fafc'
+                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                        accent: { 500: '#6366f1', 600: '#4f46e5' }
                     },
                     boxShadow: {
                         'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
@@ -55,18 +51,16 @@
     
     <style>
         body { background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
-        
         .glass-panel {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
-
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
+        
         #loader-overlay {
             position: fixed; inset: 0; z-index: 100;
             background: #ffffff;
@@ -96,19 +90,6 @@
             <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase">System Loading</p>
         </div>
     </div>
-    
-    <!-- FAILSAFE LOADER REMOVER: Runs independently of main script -->
-    <script>
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                var loader = document.getElementById('loader-overlay');
-                if(loader) {
-                    loader.style.opacity = '0';
-                    setTimeout(function() { loader.style.display = 'none'; }, 500);
-                }
-            }, 2000); // Forces loader off after 2 seconds
-        });
-    </script>
 
     <!-- Background -->
     <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
@@ -124,8 +105,8 @@
                     <i class="fas fa-cubes text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight text-slate-800">Trans-System Withdrawal</h1>
-                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Record Monitoring System</p>
+                    <h1 class="font-bold text-lg leading-tight text-slate-800">Trans-System</h1>
+                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Withdrawal Request</p>
                 </div>
             </div>
             <div id="gps-badge" class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 flex items-center gap-2">
@@ -149,7 +130,7 @@
                         <p class="font-bold text-lg leading-none" id="scan-msg">...</p>
                     </div>
                 </div>
-                <button onclick="$('#scan-alert').slideUp()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
+                <button type="button" onclick="$('#scan-alert').slideUp()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -204,12 +185,12 @@
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department/Agency</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department / Position</label>
                         <div class="relative">
                             <i class="fas fa-building absolute left-4 top-4 text-slate-300"></i>
                             <select id="req-dept" required 
                                 class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none appearance-none cursor-pointer">
-                                <option value="" disabled selected>Select Department / Agency</option>
+                                <option value="" disabled selected>Select Department</option>
                             </select>
                             <i class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-300 pointer-events-none"></i>
                         </div>
@@ -217,7 +198,7 @@
 
                     <div class="md:col-span-2">
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Purpose / Work Order</label>
-                        <textarea id="req-reason" rows="2" placeholder="Briefly describe the usage..." 
+                        <textarea id="req-reason" rows="2" placeholder="Briefly describe the usage or WO#..." 
                             class="input-animated w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none resize-none"></textarea>
                     </div>
                 </div>
@@ -251,46 +232,59 @@
     </div>
 
     <script>
-        // Supabase Init
-        const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
+        // CONFIGURATION: REPLACE THESE WITH YOUR KEYS
+        const SUPABASE_URL = 'sb_publishable_5BKfhBbD61xpB8oSAs9g8w_K9x3RFA7';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch(e) {
+            console.error("Supabase Init Failed. Check Keys.");
+        }
 
         let inventoryList = [];
-        let collectedDeviceData = { ua: navigator.userAgent };
+        let collectedDeviceData = {};
+        let loaderRemoved = false;
 
-        // We do NOT wait for Supabase to be ready to start the UI logic
-        $(document).ready(function() {
-            
-            // Try to load data, but don't block the UI
-            loadInitialData();
-            
-            // Start GPS check
+        function removeLoader() {
+            if (loaderRemoved) return;
+            loaderRemoved = true;
+            $('#loader-overlay').fadeOut(400);
+        }
+
+        $(document).ready(async () => {
+            // Safety timer: Remove loader after 2s regardless of network
+            setTimeout(removeLoader, 2000);
+
+            // Initialize Background tasks
             initGPS();
-
-            // Setup URL scanning
+            await loadInitialData();
+            
+            // Check for scanned ID via URL (e.g. ?id=5)
             const urlParams = new URLSearchParams(window.location.search);
             const scannedId = urlParams.get('id');
             
-            // Render first row immediately (empty)
-            addItemRow(); 
-
-            // If scanned ID exists, we try to set it after a short delay to allow data load
-            if(scannedId) {
-                setTimeout(() => {
-                    const item = inventoryList.find(i => i.id == scannedId);
-                    if(item) {
-                        $('#items-container').empty(); // Clear default row
-                        addItemRow(item.id);
-                        $('#scan-msg').text(item.name);
-                        $('#scan-alert').removeClass('hidden');
-                        setTimeout(() => $('#scan-alert').slideUp(), 5000);
-                    }
-                }, 1000);
+            if(scannedId && inventoryList.length > 0) {
+                const item = inventoryList.find(i => i.id == scannedId);
+                if(item) {
+                    addItemRow(item.id);
+                    $('#scan-msg').text(item.name);
+                    $('#scan-alert').removeClass('hidden');
+                    // Play sound or vibrate if possible
+                    if(navigator.vibrate) navigator.vibrate(200);
+                    setTimeout(() => $('#scan-alert').slideUp(), 5000);
+                } else {
+                    addItemRow(); // Scanned ID not found
+                }
+            } else {
+                addItemRow(); // Default empty row
             }
+
+            removeLoader();
         });
 
-        function initGPS() {
+        async function initGPS() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -300,36 +294,46 @@
                         $('#gps-badge').addClass('border-emerald-200 bg-emerald-50');
                     },
                     (err) => { 
-                        $('#gps-dot').addClass('bg-red-500'); 
-                        $('#gps-text').text('GPS OFF').addClass('text-red-500'); 
+                        $('#gps-dot').addClass('bg-orange-500'); 
+                        $('#gps-text').text('GPS OFF').addClass('text-orange-500'); 
                     }
                 );
+            }
+
+            try {
+                // Short timeout for IP to avoid freezing
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1500);
+                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                const data = await res.json();
+                collectedDeviceData.ip = data.ip;
+                collectedDeviceData.ua = navigator.userAgent;
+            } catch(e) {
+                collectedDeviceData.ip = "Unknown/Blocked";
             }
         }
 
         async function loadInitialData() {
-            try {
-                // Fetch Departments
-                const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
-                if(config && config.data && config.data.departments) {
-                    const depts = config.data.departments;
-                    depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
-                } else {
-                    // Fallback departments if DB fails
-                    ['Maintenance', 'Operation', 'Admin', 'Safety'].forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
-                }
+            if(!supabase) return;
 
-                // Fetch Inventory
-                const { data: inv, error } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
-                
-                if(inv) {
-                    inventoryList = inv;
-                } else {
-                    console.log("Supabase returned no inventory or error");
+            try {
+                // 1. Fetch Departments
+                const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
+                let depts = ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics']; // Fallback
+                if (config && config.data && config.data.departments) {
+                    depts = config.data.departments;
                 }
+                $('#req-dept').empty().append('<option value="" disabled selected>Select Department</option>');
+                depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
+
+                // 2. Fetch Inventory
+                const { data: inv, error } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
+                if(error) throw error;
+                inventoryList = inv || [];
             } catch (err) {
-                console.error("Supabase Connection Failed:", err);
-                // System will continue running with empty inventory or fallback
+                console.error("Data Load Error:", err);
+                showToast("Connection Error - Offline Mode?", "error");
             }
         }
 
@@ -337,11 +341,13 @@
 
         function addItemRow(preId = null) {
             $('#empty-state').hide();
-            const rowId = 'row-' + Date.now();
+            const rowId = 'row-' + Date.now() + Math.floor(Math.random() * 1000);
             
-            // Build Dropdown
+            // Build Dropdown Items
             let listItemsHtml = '';
-            if(inventoryList.length > 0) {
+            if(inventoryList.length === 0) {
+                listItemsHtml = `<div class="p-4 text-center text-xs text-slate-400">No items loaded or DB error</div>`;
+            } else {
                 inventoryList.forEach(i => {
                     listItemsHtml += `
                         <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
@@ -357,17 +363,15 @@
                         </div>
                     `;
                 });
-            } else {
-                listItemsHtml = '<div class="p-4 text-center text-xs text-slate-400">Loading inventory or Offline...</div>';
             }
 
             // Pre-selection Logic
             let initialDisplay = `
-                <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3">
+                <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3 shrink-0">
                     <i class="fas fa-search"></i>
                 </div>
-                <div class="flex-1 text-left">
-                    <span class="block text-xs font-bold text-slate-400">Select Item...</span>
+                <div class="flex-1 text-left overflow-hidden">
+                    <span class="block text-xs font-bold text-slate-400 truncate">Select Item...</span>
                     <span class="block text-[10px] text-slate-300">Tap to search inventory</span>
                 </div>
             `;
@@ -404,8 +408,11 @@
 
                             <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-slate-200 shadow-floating rounded-xl z-[60] mt-2 flex flex-col max-h-[250px] overflow-hidden">
                                 <div class="p-2 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
-                                    <input type="text" class="w-full text-xs pl-3 pr-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-accent-500 bg-white" 
-                                           placeholder="Search name..." onkeyup="filterDropdown(this)">
+                                    <input type="text" 
+                                           class="w-full text-xs pl-3 pr-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-accent-500 bg-white" 
+                                           placeholder="Search name..." 
+                                           onkeyup="filterDropdown(this)"
+                                           onkeydown="if(event.key === 'Enter') event.preventDefault()">
                                 </div>
                                 <div class="overflow-y-auto flex-1 custom-scrollbar">
                                     ${listItemsHtml}
@@ -445,11 +452,7 @@
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
             
-            // Reload dropdown content if inventory arrived late
-            if(inventoryList.length > 0) {
-                 // Logic simplified for static display, in real app might want to re-render dropdown content here
-            }
-
+            // Reset others
             $('.item-row').removeClass('z-50').addClass('z-10');
             $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
 
@@ -458,7 +461,7 @@
             
             if ($targetDropdown.hasClass('hidden')) {
                 $targetDropdown.removeClass('hidden');
-                $row.removeClass('z-10').addClass('z-50');
+                $row.removeClass('z-10').addClass('z-50'); // Bring parent to front
                 setTimeout(() => $targetDropdown.find('input').focus(), 100);
             } else {
                 $targetDropdown.addClass('hidden');
@@ -475,10 +478,24 @@
 
         function filterDropdown(input) {
             const term = $(input).val().toLowerCase();
-            $(input).closest('.custom-dropdown').find('.dropdown-item').each(function() {
+            const $container = $(input).closest('.custom-dropdown');
+            let found = 0;
+            
+            $container.find('.dropdown-item').each(function() {
                 const name = $(this).data('name');
-                $(this).toggle(name.includes(term));
+                if(name.includes(term)) {
+                    $(this).removeClass('hidden');
+                    found++;
+                } else {
+                    $(this).addClass('hidden');
+                }
             });
+
+            // Handle no results
+            $container.find('.no-results').remove();
+            if(found === 0) {
+                $container.find('.custom-scrollbar').append('<div class="no-results p-4 text-center text-xs text-slate-400">No items found</div>');
+            }
         }
 
         function selectItem(rowId, itemId) {
@@ -515,6 +532,11 @@
             let val = parseInt($input.val()) || 0;
             let newVal = val + step;
             if(newVal < 1) newVal = 1;
+            
+            // Limit check handled by validateQty, but we can clamp here too
+            const max = parseInt($input.attr('max')) || 9999;
+            // if(newVal > max) newVal = max; // Optional: Force clamp
+
             $input.val(newVal);
             validateQty($input[0]);
             updateTotal();
@@ -523,22 +545,21 @@
         function validateQty(el) {
             const $el = $(el);
             const $row = $el.closest('.item-row');
-            const max = parseInt($el.attr('max')) || 999;
-            const val = parseInt($el.val()) || 0;
+            const max = parseInt($el.attr('max')) || 9999;
+            let val = parseInt($el.val()) || 0;
 
             if(val > max) {
                 $el.addClass('text-red-600');
-                $row.find('.qty-error').removeClass('hidden');
-                $('#submit-btn').prop('disabled', true);
+                $row.find('.qty-error').removeClass('hidden').text(`Max: ${max}`);
             } else {
                 $el.removeClass('text-red-600');
                 $row.find('.qty-error').addClass('hidden');
-                checkGlobalValidity();
             }
+            checkGlobalValidity();
         }
 
         function checkGlobalValidity() {
-            const hasError = $('.qty-error:visible').length > 0;
+            const hasError = $('.qty-error').not('.hidden').length > 0;
             $('#submit-btn').prop('disabled', hasError);
         }
 
@@ -580,9 +601,18 @@
             $('.item-row').each(function() {
                 const id = $(this).find('.item-select-value').val();
                 const qty = parseInt($(this).find('.qty-input').val());
+                
                 if(id && qty > 0) {
                     const itemObj = inventoryList.find(i => i.id == id);
-                    if(itemObj) items.push({ id: id, name: itemObj.name, qty: qty, unit: itemObj.unit });
+                    if(itemObj) {
+                        items.push({ 
+                            id: itemObj.id, 
+                            name: itemObj.name, 
+                            qty: qty, 
+                            unit: itemObj.unit,
+                            category: itemObj.category || 'General' 
+                        });
+                    }
                 }
             });
 
@@ -594,10 +624,10 @@
                 const payload = {
                     requester: $('#req-name').val(),
                     department: $('#req-dept').val(),
-                    reason: $('#req-reason').val() + " [Mobile App]",
-                    items: items,
+                    reason: $('#req-reason').val() + " [Web App]",
+                    items: items, // Sent as JSONB
                     status: 'Pending',
-                    date: new Date().toLocaleDateString(),
+                    date: new Date().toISOString(),
                     metadata: collectedDeviceData
                 };
 
@@ -607,6 +637,7 @@
                 $btn.html('<i class="fas fa-check"></i> Success!').addClass('bg-emerald-600');
                 showToast("Request Sent Successfully!", "success");
                 
+                // Confetti Effect
                 var duration = 2 * 1000;
                 var animationEnd = Date.now() + duration;
                 var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
@@ -623,7 +654,7 @@
 
             } catch (err) {
                 console.error(err);
-                showToast("Error: " + (err.message || "Network/DB issue"), "error");
+                showToast("Error: " + (err.message || "Network issue"), "error");
                 $btn.html('Confirm Withdrawal <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false).removeClass('bg-emerald-600');
             }
         });
