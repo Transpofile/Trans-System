@@ -3,50 +3,22 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Withdrawal Portal | TRANS-SYSTEM</title>
+    <title>Withdrawal Portal</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                    },
                     colors: {
-                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
-                        accent: { 500: '#6366f1', 600: '#4f46e5' },
-                        surface: '#ffffff',
-                        background: '#f8fafc'
-                    },
-                    boxShadow: {
-                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-                        'floating': '0 20px 40px -10px rgba(0,0,0,0.15)',
-                    },
-                    animation: {
-                        'blob': 'blob 7s infinite',
-                        'slide-in': 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                    },
-                    keyframes: {
-                        blob: {
-                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
-                        },
-                        slideIn: {
-                            '0%': { opacity: 0, transform: 'translateY(15px)' },
-                            '100%': { opacity: 1, transform: 'translateY(0)' },
-                        }
+                        primary: '#2563eb', // Standard Blue
+                        primaryHover: '#1d4ed8',
+                        danger: '#dc2626',
                     }
                 }
             }
@@ -54,190 +26,146 @@
     </script>
     
     <style>
-        body { background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-        }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        /* Clean Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
 
+        /* Loader */
         #loader-overlay {
             position: fixed; inset: 0; z-index: 100;
             background: #ffffff;
-            display: flex; justify-content: center; align-items: center;
-            transition: opacity 0.5s ease;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
-        .loader-dot {
-            width: 15px; height: 15px; background: #4f46e5; border-radius: 50%;
-            margin: 0 5px; animation: loaderBounce 1.4s infinite ease-in-out both;
+        .spinner {
+            border: 3px solid #f3f3f3; border-top: 3px solid #2563eb;
+            border-radius: 50%; width: 30px; height: 30px;
+            animation: spin 1s linear infinite;
         }
-        .loader-dot:nth-child(1) { animation-delay: -0.32s; }
-        .loader-dot:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes loaderBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-        
-        .input-animated { transition: all 0.3s ease; }
-        .input-animated:focus { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15); }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="text-slate-800 pb-32" onclick="closeAllDropdowns(event)">
+<body class="text-gray-800 pb-24" onclick="closeAllDropdowns(event)">
 
-    <!-- Loader -->
+    <!-- Simple Loader -->
     <div id="loader-overlay">
-        <div class="flex flex-col items-center">
-            <div class="flex mb-4">
-                <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
-            </div>
-            <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase">System Loading</p>
-        </div>
+        <div class="spinner mb-3"></div>
+        <p class="text-sm font-medium text-gray-500">Loading...</p>
     </div>
 
-    <!-- Background -->
-    <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div class="absolute top-0 left-0 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div class="absolute top-0 right-0 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-    </div>
-
-    <!-- Header -->
-    <header class="glass-panel sticky top-0 z-40 shadow-sm">
-        <div class="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent-600 to-purple-600 flex items-center justify-center shadow-lg text-white">
-                    <i class="fas fa-cubes text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight text-slate-800">Trans-System Withdrawal</h1>
-                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Record Monitoring System</p>
-                </div>
+    <!-- Simple Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-box text-primary text-xl"></i>
+                <h1 class="font-semibold text-lg text-gray-800">Withdrawal Form</h1>
             </div>
-            <div id="gps-badge" class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-slate-400" id="gps-dot"></div>
-                <span class="text-[10px] font-bold text-slate-500" id="gps-text">LOCATING...</span>
+            <div id="gps-badge" class="px-2 py-1 rounded bg-gray-100 text-xs font-medium text-gray-500 border border-gray-200">
+                <i class="fas fa-location-arrow mr-1"></i> <span id="gps-text">Locating...</span>
             </div>
         </div>
     </header>
 
-    <main class="max-w-3xl mx-auto px-4 mt-6 space-y-6 relative">
+    <main class="max-w-2xl mx-auto px-4 mt-6 space-y-6">
 
         <!-- Scanner Alert -->
-        <div id="scan-alert" class="hidden transform transition-all duration-500">
-            <div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-4 text-white shadow-xl flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <i class="fas fa-qrcode text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold opacity-75 uppercase">Auto-Added Item</p>
-                        <p class="font-bold text-lg leading-none" id="scan-msg">...</p>
-                    </div>
+        <div id="scan-alert" class="hidden bg-blue-50 border border-blue-200 rounded-md p-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-qrcode text-blue-600"></i>
+                <div>
+                    <p class="text-xs text-blue-600 uppercase font-bold">Scanned Item</p>
+                    <p class="font-medium text-sm text-gray-800" id="scan-msg">...</p>
                 </div>
-                <button onclick="$('#scan-alert').slideUp()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
-                    <i class="fas fa-times"></i>
-                </button>
             </div>
+            <button onclick="$('#scan-alert').hide()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
         <form id="withdrawal-form" class="space-y-6">
             
-            <!-- Items Section -->
-            <section class="glass-panel rounded-3xl p-1 shadow-glass relative z-20 overflow-visible">
-                <div class="bg-white/50 rounded-[20px] p-5 overflow-visible">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                            <i class="fas fa-shopping-basket text-accent-500"></i> Selected Items
-                        </h2>
-                        <button type="button" onclick="addItemRow()" 
-                            class="group bg-slate-100 hover:bg-accent-50 text-slate-600 hover:text-accent-600 text-xs font-bold py-2 px-4 rounded-xl transition-all border border-slate-200 flex items-center gap-2">
-                            <i class="fas fa-plus transform group-hover:rotate-180 transition-transform duration-300"></i> 
-                            Add Row
-                        </button>
-                    </div>
-                    
-                    <div id="items-container" class="space-y-3 min-h-[100px] overflow-visible">
-                        <!-- Dynamic Rows go here -->
-                    </div>
-
-                    <div id="empty-state" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl mt-4">
-                        <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300">
-                            <i class="fas fa-box-open text-2xl"></i>
-                        </div>
-                        <p class="text-slate-400 text-sm font-medium">Cart is empty</p>
-                    </div>
+            <!-- Requester Details Card -->
+            <section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-sm font-bold text-gray-700 uppercase">Requester Information</h2>
                 </div>
-            </section>
-
-            <!-- Requester Details -->
-            <section class="glass-panel rounded-3xl p-6 shadow-glass relative z-10">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-500">
-                        <i class="fas fa-id-card"></i>
-                    </div>
-                    <h2 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider">Requester Info</h2>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="p-5 grid gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Your Name</label>
-                        <div class="relative">
-                            <i class="fas fa-user absolute left-4 top-4 text-slate-300"></i>
-                            <input type="text" id="req-name" required placeholder="Full Name" 
-                                class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none">
-                        </div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" id="req-name" required placeholder="Enter your name" 
+                            class="w-full rounded-md border-gray-300 border px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors">
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department/Agency</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
                         <div class="relative">
-                            <i class="fas fa-building absolute left-4 top-4 text-slate-300"></i>
                             <select id="req-dept" required 
-                                class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none appearance-none cursor-pointer">
-                                <option value="" disabled selected>Select Department / Agency</option>
+                                class="w-full rounded-md border-gray-300 border px-3 py-2 text-sm bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none">
+                                <option value="" disabled selected>Select Department...</option>
                             </select>
-                            <i class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-300 pointer-events-none"></i>
+                            <i class="fas fa-chevron-down absolute right-3 top-3 text-xs text-gray-400 pointer-events-none"></i>
                         </div>
                     </div>
 
-                    <div class="md:col-span-2">
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Purpose / Work Order</label>
-                        <textarea id="req-reason" rows="2" placeholder="Briefly describe the usage..." 
-                            class="input-animated w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none resize-none"></textarea>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Purpose / Note</label>
+                        <textarea id="req-reason" rows="2" placeholder="Describe usage..." 
+                            class="w-full rounded-md border-gray-300 border px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"></textarea>
                     </div>
                 </div>
             </section>
-            
-            <div class="h-6"></div>
+
+            <!-- Items Section -->
+            <section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
+                <div class="px-5 py-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-gray-700 uppercase">Items to Withdraw</h2>
+                    <button type="button" onclick="addItemRow()" 
+                        class="text-xs font-semibold text-primary hover:text-primaryHover flex items-center gap-1">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+                </div>
+                
+                <div class="p-5">
+                    <div id="items-container" class="space-y-3">
+                        <!-- Dynamic Rows -->
+                    </div>
+
+                    <div id="empty-state" class="text-center py-8">
+                        <p class="text-gray-400 text-sm">No items selected yet.</p>
+                        <button type="button" onclick="addItemRow()" class="mt-2 text-sm text-primary underline">Add your first item</button>
+                    </div>
+                </div>
+            </section>
         </form>
     </main>
 
-    <!-- Bottom Sticky Action Bar -->
-    <div class="fixed bottom-0 left-0 w-full glass-panel border-t border-slate-200/50 pb-6 pt-4 px-6 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
+    <!-- Bottom Action Bar -->
+    <div class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 z-50">
+        <div class="max-w-2xl mx-auto flex items-center justify-between gap-4">
             <div class="hidden sm:block">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">Total Items</p>
-                <p class="text-xl font-bold text-slate-800" id="total-count-display">0</p>
+                <span class="text-xs text-gray-500 uppercase font-bold">Total Qty:</span>
+                <span class="text-lg font-bold text-gray-800 ml-1" id="total-count-display">0</span>
             </div>
             <button onclick="$('#withdrawal-form').submit()" id="submit-btn" 
-                class="flex-1 bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-500/30 hover:bg-slate-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-sm group disabled:opacity-70 disabled:cursor-not-allowed">
-                <span>Confirm Withdrawal</span>
-                <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                class="flex-1 bg-primary hover:bg-primaryHover text-white font-medium py-3 rounded-md shadow-sm transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span>Confirm Request</span>
+                <i class="fas fa-arrow-right"></i>
             </button>
         </div>
     </div>
 
-    <!-- Toast -->
-    <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-4">
-        <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 min-w-[280px]">
-            <i id="toast-icon" class="text-lg text-emerald-400"></i>
-            <span id="toast-msg" class="text-sm font-medium">Notification</span>
+    <!-- Simple Toast -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] hidden">
+        <div class="bg-gray-800 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 text-sm">
+            <i id="toast-icon"></i>
+            <span id="toast-msg">Notification</span>
         </div>
     </div>
 
     <script>
+        // --- Same Logic, Simplified Display ---
         const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -246,171 +174,124 @@
         let collectedDeviceData = {};
         let loaderRemoved = false;
 
-        // FIXED: Force loader removal logic
         function removeLoader() {
             if (loaderRemoved) return;
             loaderRemoved = true;
-            $('#loader-overlay').fadeOut(400);
+            $('#loader-overlay').fadeOut(200);
         }
 
         $(document).ready(async () => {
-            // FIXED: Safety timer. If data takes longer than 1.5s, remove loader anyway
             setTimeout(removeLoader, 1500);
-
-            // Run initialization in background (don't await them to block UI)
             initGPS();
-            
             await loadInitialData();
             
-            // Check for scanned ID
+            // Scanner Logic
             const urlParams = new URLSearchParams(window.location.search);
             const scannedId = urlParams.get('id');
-            
             if(scannedId && inventoryList.length > 0) {
                 const item = inventoryList.find(i => i.id == scannedId);
                 if(item) {
                     addItemRow(item.id);
                     $('#scan-msg').text(item.name);
                     $('#scan-alert').removeClass('hidden');
-                    setTimeout(() => $('#scan-alert').slideUp(), 5000);
                 } else {
                     addItemRow();
                 }
             } else {
                 addItemRow();
             }
-
-            // If data loaded fast, remove loader now
             removeLoader();
         });
 
         async function initGPS() {
-            // Non-blocking GeoLocation
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
                         collectedDeviceData.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                        $('#gps-dot').removeClass('bg-slate-400').addClass('bg-emerald-500 animate-pulse');
-                        $('#gps-text').text('SECURED').addClass('text-emerald-600');
-                        $('#gps-badge').addClass('border-emerald-200 bg-emerald-50');
+                        $('#gps-text').text('Location Secured').addClass('text-green-600');
+                        $('#gps-badge').addClass('bg-green-50 border-green-200');
                     },
                     (err) => { 
-                        // Do nothing if failed, just keep "Locating..." or set to Off
-                        $('#gps-dot').addClass('bg-red-500'); 
-                        $('#gps-text').text('GPS OFF').addClass('text-red-500'); 
+                        $('#gps-text').text('Location Off'); 
                     }
                 );
             }
-
-            // FIXED: Added try/catch and timeout for IP fetch to prevent hanging
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second max for IP
-
-                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                clearTimeout(timeoutId);
+                const res = await fetch('https://api.ipify.org?format=json');
                 const data = await res.json();
                 collectedDeviceData.ip = data.ip;
                 collectedDeviceData.ua = navigator.userAgent;
             } catch(e) {
-                console.log("IP Fetch skipped or blocked (Adblocker likely)");
-                collectedDeviceData.ip = "Hidden/Blocked";
+                collectedDeviceData.ip = "Unknown";
             }
         }
 
         async function loadInitialData() {
             try {
-                // Fetch Departments
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
                 const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics'];
                 depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
 
-                // Fetch Inventory
-                const { data: inv, error } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
-                if(error) throw error;
+                const { data: inv } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
                 inventoryList = inv || [];
-            } catch (err) {
-                console.error("Data Load Error:", err);
-                // Fallback dummy data if database connection fails entirely
-                if(inventoryList.length === 0) {
-                   // inventoryList = [{id: 1, name: "System Offline Mode", stock: 0, unit: "N/A", image: ""}];
-                }
-            }
+            } catch (err) { console.error(err); }
         }
-
-        // --- Core UI Logic ---
 
         function addItemRow(preId = null) {
             $('#empty-state').hide();
             const rowId = 'row-' + Date.now();
             
-            // Build Dropdown
+            // Simplified Dropdown List
             let listItemsHtml = '';
             inventoryList.forEach(i => {
-                const imgSrc = i.image && i.image.length > 5 ? i.image : `https://ui-avatars.com/api/?name=${i.name}&background=random&color=fff&size=100`;
                 listItemsHtml += `
-                    <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
+                    <div class="dropdown-item p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0 flex items-center gap-3" 
                          onclick="selectItem('${rowId}', ${i.id})"
                          data-name="${i.name.toLowerCase()}">
-                        <img src="${imgSrc}" class="w-10 h-10 rounded-lg object-cover bg-white shadow-sm group-hover:scale-110 transition-transform">
+                        <div class="w-8 h-8 rounded bg-gray-200 overflow-hidden flex-shrink-0">
+                             ${i.image ? `<img src="${i.image}" class="w-full h-full object-cover">` : '<div class="w-full h-full flex items-center justify-center text-gray-400 text-xs"><i class="fas fa-image"></i></div>'}
+                        </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit || 'pcs'}</span>
-                                <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
-                            </div>
+                            <p class="text-xs font-bold text-gray-700 truncate">${i.name}</p>
+                            <p class="text-[10px] text-gray-500">Stock: ${i.stock} ${i.unit || 'pcs'}</p>
                         </div>
                     </div>
                 `;
             });
 
-            // Pre-selection Logic
-            let initialDisplay = `
-                <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3">
-                    <i class="fas fa-search"></i>
-                </div>
-                <div class="flex-1 text-left">
-                    <span class="block text-xs font-bold text-slate-400">Select Item...</span>
-                    <span class="block text-[10px] text-slate-300">Tap to search inventory</span>
-                </div>
-            `;
+            // Initial Button State
+            let initialDisplay = '<span class="text-gray-400">Select Item...</span>';
             let hiddenVal = "";
 
             if(preId) {
                 const item = inventoryList.find(i => i.id == preId);
                 if(item) {
-                    const imgSrc = item.image && item.image.length > 5 ? item.image : `https://ui-avatars.com/api/?name=${item.name}&background=random&color=fff`;
                     hiddenVal = item.id;
-                    initialDisplay = `
-                        <img src="${imgSrc}" class="w-9 h-9 rounded-lg object-cover shadow-sm mr-3 border border-slate-100">
-                        <div class="flex-1 min-w-0 text-left">
-                            <span class="block text-xs font-bold text-slate-700 truncate">${item.name}</span>
-                            <span class="block text-[10px] text-accent-500 font-medium">${item.stock} ${item.unit} available</span>
-                        </div>
-                    `;
+                    initialDisplay = `<span class="font-medium text-gray-800">${item.name}</span> <span class="text-xs text-gray-500 ml-2">(${item.stock} left)</span>`;
                 }
             }
 
             const html = `
-                <div id="${rowId}" class="item-row animate-slide-in bg-white border border-slate-100 p-4 rounded-2xl relative shadow-sm group hover:border-accent-200 transition-colors z-10">
+                <div id="${rowId}" class="item-row bg-white border border-gray-200 p-3 rounded-md relative group">
                     <button type="button" onclick="removeRow('${rowId}')" 
-                        class="absolute -top-2 -right-2 bg-white text-slate-300 hover:text-red-500 w-7 h-7 rounded-full shadow-md flex items-center justify-center border border-slate-100 transition-all z-10 hover:scale-110">
-                        <i class="fas fa-times text-xs"></i>
+                        class="absolute top-2 right-2 text-gray-300 hover:text-danger p-1">
+                        <i class="fas fa-times"></i>
                     </button>
                     
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <div class="flex-1 relative">
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
+                        <div class="relative">
                             <input type="hidden" class="item-select-value" value="${hiddenVal}">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Item Name</label>
                             
-                            <button type="button" class="dropdown-trigger w-full bg-slate-50 border border-slate-200 rounded-xl p-2 flex items-center transition-all hover:bg-white focus:ring-2 focus:ring-accent-500/20" onclick="toggleDropdown('${rowId}', event)">
-                                ${initialDisplay}
-                                <i class="fas fa-chevron-down text-xs text-slate-300 ml-2"></i>
+                            <button type="button" class="dropdown-trigger w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm text-left flex justify-between items-center" onclick="toggleDropdown('${rowId}', event)">
+                                <div class="truncate mr-2">${initialDisplay}</div>
+                                <i class="fas fa-caret-down text-gray-400"></i>
                             </button>
 
-                            <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-slate-200 shadow-floating rounded-xl z-[60] mt-2 flex flex-col max-h-[250px] overflow-hidden">
-                                <div class="p-2 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
-                                    <input type="text" class="w-full text-xs pl-3 pr-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-accent-500 bg-white" 
-                                           placeholder="Search name..." onkeyup="filterDropdown(this)">
+                            <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-gray-200 shadow-lg rounded mt-1 z-50 max-h-[200px] flex flex-col">
+                                <div class="p-2 border-b border-gray-100 bg-gray-50">
+                                    <input type="text" class="w-full text-xs p-1.5 rounded border border-gray-300 focus:outline-none focus:border-primary" 
+                                           placeholder="Search..." onkeyup="filterDropdown(this)">
                                 </div>
                                 <div class="overflow-y-auto flex-1 custom-scrollbar">
                                     ${listItemsHtml}
@@ -418,18 +299,15 @@
                             </div>
                         </div>
 
-                        <div class="w-full sm:w-32 flex flex-col justify-center">
-                            <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 p-1">
-                                <button type="button" onclick="stepQty('${rowId}', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600 active:scale-90 transition-all">
-                                    <i class="fas fa-minus text-[10px]"></i>
-                                </button>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Quantity</label>
+                            <div class="flex items-center h-[38px]">
+                                <button type="button" onclick="stepQty('${rowId}', -1)" class="w-8 h-full bg-gray-100 border border-gray-200 rounded-l hover:bg-gray-200 text-gray-600 font-bold">-</button>
                                 <input type="number" min="1" value="1" oninput="validateQty(this); updateTotal()" 
-                                    class="qty-input w-full bg-transparent text-center text-sm font-bold text-slate-700 outline-none p-0 appearance-none mx-1" required>
-                                <button type="button" onclick="stepQty('${rowId}', 1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600 active:scale-90 transition-all">
-                                    <i class="fas fa-plus text-[10px]"></i>
-                                </button>
+                                    class="qty-input w-full h-full text-center border-y border-gray-200 text-sm font-semibold outline-none appearance-none" required>
+                                <button type="button" onclick="stepQty('${rowId}', 1)" class="w-8 h-full bg-gray-100 border border-gray-200 rounded-r hover:bg-gray-200 text-gray-600 font-bold">+</button>
                             </div>
-                            <p class="qty-error text-[10px] text-red-500 font-bold mt-1 text-center hidden">Over Limit!</p>
+                            <p class="qty-error text-[10px] text-danger mt-1 hidden">Max exceeded</p>
                         </div>
                     </div>
                 </div>
@@ -445,39 +323,27 @@
             updateTotal();
         }
 
-        // --- Dropdown Management ---
+        // --- Standard Logic Functions ---
 
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
-            
-            $('.item-row').removeClass('z-50').addClass('z-10');
             $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
-
-            const $targetDropdown = $(`#dropdown-${rowId}`);
-            const $row = $(`#${rowId}`);
-            
-            if ($targetDropdown.hasClass('hidden')) {
-                $targetDropdown.removeClass('hidden');
-                $row.removeClass('z-10').addClass('z-50');
-                setTimeout(() => $targetDropdown.find('input').focus(), 100);
-            } else {
-                $targetDropdown.addClass('hidden');
-                $row.removeClass('z-50').addClass('z-10');
+            $(`#dropdown-${rowId}`).toggleClass('hidden');
+            if(!$(`#dropdown-${rowId}`).hasClass('hidden')) {
+                $(`#dropdown-${rowId}`).find('input').focus();
             }
         }
 
         function closeAllDropdowns(event) {
             if (!$(event.target).closest('.custom-dropdown, .dropdown-trigger').length) {
                 $('.custom-dropdown').addClass('hidden');
-                $('.item-row').removeClass('z-50').addClass('z-10');
             }
         }
 
         function filterDropdown(input) {
             const term = $(input).val().toLowerCase();
             $(input).closest('.custom-dropdown').find('.dropdown-item').each(function() {
-                const name = $(this).data('name');
-                $(this).toggle(name.includes(term));
+                $(this).toggle($(this).data('name').includes(term));
             });
         }
 
@@ -487,24 +353,12 @@
 
             const $row = $(`#${rowId}`);
             $row.find('.item-select-value').val(item.id);
-
-            const imgSrc = item.image && item.image.length > 5 ? item.image : `https://ui-avatars.com/api/?name=${item.name}&background=random&color=fff`;
-            const triggerHtml = `
-                <img src="${imgSrc}" class="w-9 h-9 rounded-lg object-cover shadow-sm mr-3 border border-slate-100">
-                <div class="flex-1 min-w-0 text-left">
-                    <span class="block text-xs font-bold text-slate-700 truncate">${item.name}</span>
-                    <span class="block text-[10px] text-accent-500 font-medium">${item.stock} ${item.unit} available</span>
-                </div>
-            `;
-            $row.find('.dropdown-trigger').html(triggerHtml + '<i class="fas fa-check text-emerald-500 text-xs ml-2"></i>');
             
+            $row.find('.dropdown-trigger div').html(`<span class="font-medium text-gray-800">${item.name}</span> <span class="text-xs text-gray-500">(${item.stock})</span>`);
             $row.find('.custom-dropdown').addClass('hidden');
-            $row.removeClass('z-50').addClass('z-10');
-
             updateRowLimit($row, item);
         }
 
-        // --- Qty & Submit Logic ---
         function updateRowLimit($row, item) {
             const $input = $row.find('.qty-input');
             $input.attr('max', item.stock).val(1);
@@ -529,27 +383,24 @@
             const val = parseInt($el.val()) || 0;
 
             if(val > max) {
-                $el.addClass('text-red-600');
+                $el.addClass('text-danger');
                 $row.find('.qty-error').removeClass('hidden');
                 $('#submit-btn').prop('disabled', true);
             } else {
-                $el.removeClass('text-red-600');
+                $el.removeClass('text-danger');
                 $row.find('.qty-error').addClass('hidden');
                 checkGlobalValidity();
             }
         }
 
         function checkGlobalValidity() {
-            const hasError = $('.qty-error:visible').length > 0;
-            $('#submit-btn').prop('disabled', hasError);
+            $('#submit-btn').prop('disabled', $('.qty-error:visible').length > 0);
         }
 
         function removeRow(id) {
-            $(`#${id}`).slideUp(200, function() { 
-                $(this).remove(); 
-                if($('#items-container').children().length === 0) $('#empty-state').fadeIn();
-                updateTotal();
-            });
+            $(`#${id}`).remove();
+            if($('#items-container').children().length === 0) $('#empty-state').show();
+            updateTotal();
         }
 
         function updateTotal() {
@@ -562,16 +413,11 @@
             const $toast = $('#toast');
             $('#toast-msg').text(msg);
             
-            if(type === 'success') {
-                $('#toast-icon').attr('class', 'fas fa-check-circle text-lg text-emerald-400');
-            } else {
-                $('#toast-icon').attr('class', 'fas fa-exclamation-triangle text-lg text-red-400');
-            }
+            const iconClass = type === 'success' ? 'fas fa-check-circle text-green-400' : 'fas fa-exclamation-circle text-red-400';
+            $('#toast-icon').attr('class', iconClass);
 
-            $toast.removeClass('opacity-0 -translate-y-4').addClass('opacity-100 translate-y-0');
-            setTimeout(() => {
-                $toast.addClass('opacity-0 -translate-y-4').removeClass('opacity-100 translate-y-0');
-            }, 3000);
+            $toast.removeClass('hidden').fadeIn();
+            setTimeout(() => $toast.fadeOut(), 3000);
         }
 
         $('#withdrawal-form').on('submit', async function(e) {
@@ -588,15 +434,15 @@
                 }
             });
 
-            if(items.length === 0) return showToast("Please select at least one item", "error");
+            if(items.length === 0) return showToast("Please add items first", "error");
 
-            $btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...').prop('disabled', true);
+            $btn.html('<i class="fas fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
 
             try {
                 const payload = {
                     requester: $('#req-name').val(),
                     department: $('#req-dept').val(),
-                    reason: $('#req-reason').val() + " [Mobile App]",
+                    reason: $('#req-reason').val() + " [Web]",
                     items: items,
                     status: 'Pending',
                     date: new Date().toLocaleDateString(),
@@ -606,27 +452,14 @@
                 const { error } = await supabase.from('requests').insert(payload);
                 if(error) throw error;
 
-                $btn.html('<i class="fas fa-check"></i> Success!').addClass('bg-emerald-600');
-                showToast("Request Sent Successfully!", "success");
-                
-                var duration = 2 * 1000;
-                var animationEnd = Date.now() + duration;
-                var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
-                var random = (min, max) => Math.random() * (max - min) + min;
-                var interval = setInterval(function() {
-                    var timeLeft = animationEnd - Date.now();
-                    if (timeLeft <= 0) return clearInterval(interval);
-                    var particleCount = 50 * (timeLeft / duration);
-                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } }));
-                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } }));
-                }, 250);
-
-                setTimeout(() => window.location.reload(), 2500);
+                $btn.html('<i class="fas fa-check"></i> Sent').addClass('bg-green-600');
+                showToast("Request Submitted!", "success");
+                setTimeout(() => window.location.reload(), 1500);
 
             } catch (err) {
                 console.error(err);
-                showToast("Error: " + (err.message || "Network issue"), "error");
-                $btn.html('Confirm Withdrawal <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false).removeClass('bg-emerald-600');
+                showToast("Submission Failed", "error");
+                $btn.html('Confirm Request <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false).removeClass('bg-green-600');
             }
         });
     </script>
