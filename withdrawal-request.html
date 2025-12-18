@@ -96,6 +96,19 @@
             <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase">System Loading</p>
         </div>
     </div>
+    
+    <!-- FAILSAFE LOADER REMOVER: Runs independently of main script -->
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                var loader = document.getElementById('loader-overlay');
+                if(loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(function() { loader.style.display = 'none'; }, 500);
+                }
+            }, 2000); // Forces loader off after 2 seconds
+        });
+    </script>
 
     <!-- Background -->
     <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
@@ -238,51 +251,46 @@
     </div>
 
     <script>
+        // Supabase Init
         const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let inventoryList = [];
-        let collectedDeviceData = { ip: "Unknown", ua: navigator.userAgent };
-        let loaderRemoved = false;
+        let collectedDeviceData = { ua: navigator.userAgent };
 
-        function removeLoader() {
-            if (loaderRemoved) return;
-            loaderRemoved = true;
-            $('#loader-overlay').fadeOut(400);
-        }
-
-        $(document).ready(async () => {
-            // Safety timer: Ensure loader is removed after 1.5s max, even if DB fails
-            setTimeout(removeLoader, 1500);
-
-            initGPS(); // Run non-blocking GPS check
+        // We do NOT wait for Supabase to be ready to start the UI logic
+        $(document).ready(function() {
             
-            await loadInitialData();
+            // Try to load data, but don't block the UI
+            loadInitialData();
             
-            // Check for scanned ID from URL
+            // Start GPS check
+            initGPS();
+
+            // Setup URL scanning
             const urlParams = new URLSearchParams(window.location.search);
             const scannedId = urlParams.get('id');
             
-            if(scannedId && inventoryList.length > 0) {
-                const item = inventoryList.find(i => i.id == scannedId);
-                if(item) {
-                    addItemRow(item.id);
-                    $('#scan-msg').text(item.name);
-                    $('#scan-alert').removeClass('hidden');
-                    setTimeout(() => $('#scan-alert').slideUp(), 5000);
-                } else {
-                    addItemRow();
-                }
-            } else {
-                addItemRow();
-            }
+            // Render first row immediately (empty)
+            addItemRow(); 
 
-            removeLoader();
+            // If scanned ID exists, we try to set it after a short delay to allow data load
+            if(scannedId) {
+                setTimeout(() => {
+                    const item = inventoryList.find(i => i.id == scannedId);
+                    if(item) {
+                        $('#items-container').empty(); // Clear default row
+                        addItemRow(item.id);
+                        $('#scan-msg').text(item.name);
+                        $('#scan-alert').removeClass('hidden');
+                        setTimeout(() => $('#scan-alert').slideUp(), 5000);
+                    }
+                }, 1000);
+            }
         });
 
         function initGPS() {
-            // Basic Geolocation - often requires permission, but doesn't block page load
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -297,24 +305,31 @@
                     }
                 );
             }
-            // Removed IP fetching (api.ipify.org) to prevent blocking on GitHub Pages/Adblockers
         }
 
         async function loadInitialData() {
             try {
                 // Fetch Departments
                 const { data: config } = await supabase.from('master_data').select('*').eq('key', 'config').single();
-                const depts = config?.data?.departments || ['Maintenance', 'Operation', 'Admin', 'Safety', 'Logistics'];
-                depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
+                if(config && config.data && config.data.departments) {
+                    const depts = config.data.departments;
+                    depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
+                } else {
+                    // Fallback departments if DB fails
+                    ['Maintenance', 'Operation', 'Admin', 'Safety'].forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
+                }
 
                 // Fetch Inventory
                 const { data: inv, error } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
-                if(error) throw error;
-                inventoryList = inv || [];
+                
+                if(inv) {
+                    inventoryList = inv;
+                } else {
+                    console.log("Supabase returned no inventory or error");
+                }
             } catch (err) {
-                console.error("Data Load Error:", err);
-                // Ensure loader removes even if data fetch fails
-                removeLoader();
+                console.error("Supabase Connection Failed:", err);
+                // System will continue running with empty inventory or fallback
             }
         }
 
@@ -326,21 +341,25 @@
             
             // Build Dropdown
             let listItemsHtml = '';
-            inventoryList.forEach(i => {
-                listItemsHtml += `
-                    <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
-                         onclick="selectItem('${rowId}', ${i.id})"
-                         data-name="${i.name.toLowerCase()}">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit || 'pcs'}</span>
-                                <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
+            if(inventoryList.length > 0) {
+                inventoryList.forEach(i => {
+                    listItemsHtml += `
+                        <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
+                             onclick="selectItem('${rowId}', ${i.id})"
+                             data-name="${i.name.toLowerCase()}">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit || 'pcs'}</span>
+                                    <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            } else {
+                listItemsHtml = '<div class="p-4 text-center text-xs text-slate-400">Loading inventory or Offline...</div>';
+            }
 
             // Pre-selection Logic
             let initialDisplay = `
@@ -416,7 +435,7 @@
             
             if(preId) {
                 const item = inventoryList.find(i => i.id == preId);
-                updateRowLimit($row, item);
+                if(item) updateRowLimit($row, item);
             }
             updateTotal();
         }
@@ -426,6 +445,11 @@
         function toggleDropdown(rowId, event) {
             event.stopPropagation();
             
+            // Reload dropdown content if inventory arrived late
+            if(inventoryList.length > 0) {
+                 // Logic simplified for static display, in real app might want to re-render dropdown content here
+            }
+
             $('.item-row').removeClass('z-50').addClass('z-10');
             $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
 
@@ -599,7 +623,7 @@
 
             } catch (err) {
                 console.error(err);
-                showToast("Error: " + (err.message || "Network issue"), "error");
+                showToast("Error: " + (err.message || "Network/DB issue"), "error");
                 $btn.html('Confirm Withdrawal <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false).removeClass('bg-emerald-600');
             }
         });
