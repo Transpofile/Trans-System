@@ -10,14 +10,419 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Custom Assets -->
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            /* Brand & Accent Colors */
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #e0e7ff;
+            
+            /* Semantic Colors */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+
+            /* Backgrounds & Surfaces */
+            --bg: #f8fafc;
+            --sidebar-bg: #0f172a;
+            --sidebar-hover: rgba(255, 255, 255, 0.1);
+            --card-bg: #ffffff;
+            --surface-hover: #f1f5f9;
+
+            /* Text */
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --text-on-dark: #f1f5f9;
+
+            /* Borders & Shadows */
+            --border: #e2e8f0;
+            --focus-ring: 0 0 0 4px rgba(79, 70, 229, 0.15);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-glow: 0 0 15px rgba(79, 70, 229, 0.3);
+
+            /* Transitions */
+            --trans-fast: 0.15s ease;
+            --trans-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- Base --- */
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--bg); 
+            color: var(--text-main); 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* --- Sidebar --- */
+        .sidebar { 
+            width: 260px; 
+            background: var(--sidebar-bg); 
+            color: var(--text-on-dark); 
+            display: flex; 
+            flex-direction: column; 
+            z-index: 50; 
+            transition: var(--trans-smooth);
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .brand { 
+            padding: 24px; 
+            font-size: 1.25rem; 
+            font-weight: 700; 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px;
+            letter-spacing: -0.025em;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .brand-icon { 
+            width: 36px; 
+            height: 36px; 
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover)); 
+            border-radius: 10px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: white; 
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .nav-container { padding: 16px; flex: 1; overflow-y: auto; }
+
+        .nav-section { 
+            font-size: 0.7rem; 
+            text-transform: uppercase; 
+            color: var(--text-muted); 
+            font-weight: 700; 
+            margin: 24px 12px 12px; 
+            letter-spacing: 0.05em; 
+        }
+
+        .nav-btn { 
+            background: transparent; 
+            border: none; 
+            color: #94a3b8; 
+            padding: 12px 16px; 
+            width: 100%; 
+            text-align: left; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            margin-bottom: 4px; 
+            font-size: 0.9rem; 
+            font-weight: 500; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            transition: var(--trans-fast); 
+        }
+
+        .nav-btn:hover { background: var(--sidebar-hover); color: white; }
+
+        .nav-btn.active { 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: var(--shadow-glow);
+        }
+
+        .sidebar-footer { 
+            padding: 20px; 
+            text-align: center; 
+            color: var(--text-muted); 
+            font-size: 0.8rem; 
+            border-top: 1px solid rgba(255,255,255,0.05); 
+            background: rgba(0,0,0,0.1);
+        }
+
+        /* --- Main Content --- */
+        .main { 
+            flex: 1; 
+            padding: 32px; 
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            position: relative; 
+            scroll-behavior: smooth;
+        }
+
+        .page { display: none; animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .page.active { display: block; }
+
+        @keyframes fadeInUp { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        .page-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 32px; 
+            flex-wrap: wrap; 
+            gap: 20px; 
+        }
+        
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        h1 { 
+            margin: 0; 
+            font-size: 1.875rem; 
+            font-weight: 800; 
+            color: var(--text-main); 
+            letter-spacing: -0.025em; 
+        }
+        
+        .text-muted { color: var(--text-muted); }
+
+        /* --- Components: Buttons --- */
+        .btn { 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            border: 1px solid transparent; 
+            cursor: pointer; 
+            font-size: 0.9rem; 
+            font-weight: 600; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+            transition: var(--trans-fast); 
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:active { transform: scale(0.97); }
+
+        .btn-primary { 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.25); 
+        }
+        .btn-primary:hover { 
+            background: var(--primary-hover); 
+            box-shadow: 0 6px 12px rgba(79, 70, 229, 0.3); 
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary { 
+            background: white; 
+            border-color: var(--border); 
+            color: var(--text-main); 
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-secondary:hover { 
+            background: var(--surface-hover); 
+            border-color: #cbd5e1; 
+            color: #0f172a;
+        }
+
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
+
+        .btn-icon { width: 42px; height: 42px; padding: 0; border-radius: 12px; }
+        .full-width { width: 100%; }
+
+        /* --- Components: Inputs --- */
+        .form-control { 
+            width: 100%; 
+            padding: 11px 16px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            font-size: 0.95rem; 
+            background: #fff; 
+            color: var(--text-main);
+            transition: var(--trans-fast);
+        }
+        .form-control:focus { 
+            outline: none; 
+            border-color: var(--primary); 
+            box-shadow: var(--focus-ring); 
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; color: var(--text-main); }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
+
+        /* --- Components: Cards --- */
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 16px; 
+            box-shadow: var(--shadow-sm); 
+            border: 1px solid var(--border); 
+            overflow: hidden; 
+            margin-bottom: 24px; 
+            transition: var(--trans-smooth); 
+            position: relative;
+        }
+        .card:hover { 
+            box-shadow: var(--shadow-lg); 
+            border-color: #cbd5e1;
+        }
+        .card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); background: #fcfcfc; }
+        .card-header h3 { margin: 0; font-size: 1.1rem; }
+        
+        /* Stat Cards */
+        .stat-card { padding: 28px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .stat-val { font-size: 2rem; font-weight: 800; margin-top: 8px; letter-spacing: -0.03em; color: var(--text-main); }
+        .stat-label { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; }
+        
+        .border-l-blue { border-left: 4px solid var(--info); }
+        .border-l-red { border-left: 4px solid var(--danger); }
+        .border-l-green { border-left: 4px solid var(--success); }
+
+        .icon-box { 
+            width: 52px; height: 52px; border-radius: 12px; 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 1.4rem; transition: 0.3s;
+        }
+        .bg-blue-soft { background: #eff6ff; color: var(--info); }
+        .bg-red-soft { background: #fef2f2; color: var(--danger); }
+        .bg-green-soft { background: #ecfdf5; color: var(--success); }
+        .bg-danger-soft { background: #fee2e2; }
+        .text-danger { color: var(--danger); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .two-col-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; }
+        
+        /* Charts */
+        .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
+        .chart-container { height: 400px; padding: 0; }
+        .chart-wrapper { padding: 20px; position: relative; height: 320px; }
+        .analytics-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .analytics-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: var(--shadow-sm); }
+        .analytics-card h4 { margin: 0 0 10px 0; font-size: 0.85rem; color: var(--text-muted); }
+        .mini-chart { height: 60px; }
+
+        /* --- Tables --- */
+        .table-responsive { overflow-x: auto; border-radius: 0 0 16px 16px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { 
+            background: #f8fafc; text-align: left; padding: 16px 24px; 
+            font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); 
+            font-weight: 700; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); 
+        }
+        .sticky-header th { position: sticky; top: 0; z-index: 10; background: rgba(248, 250, 252, 0.95); backdrop-filter: blur(8px); }
+        td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 0.9rem; color: var(--text-main); vertical-align: middle; }
+        tr:hover { background: #f8fafc; }
+        .text-right { text-align: right; }
+
+        /* --- Tabs (Settings) --- */
+        .tabs { display: flex; gap: 10px; border-bottom: 1px solid var(--border); padding: 0 24px; margin-top: 10px; }
+        .tab-btn { 
+            background: none; border: none; padding: 15px 10px; 
+            cursor: pointer; color: var(--text-muted); font-weight: 600; 
+            border-bottom: 2px solid transparent; transition: 0.2s;
+        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { padding: 24px; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; animation: fadeIn 0.3s; }
+        .tab-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+        
+        .master-list { list-style: none; padding: 0; margin: 0; border: 1px solid var(--border); border-radius: 8px; }
+        .master-list li { display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); background: white; }
+        .master-list li:last-child { border-bottom: none; border-radius: 0 0 8px 8px; }
+        .master-list li:first-child { border-radius: 8px 8px 0 0; }
+
+        /* --- Modals --- */
+        .modal { 
+            display: none; position: fixed; inset: 0; 
+            background: rgba(15, 23, 42, 0.6); z-index: 1000; 
+            justify-content: center; align-items: center; 
+            backdrop-filter: blur(4px); 
+        }
+        .modal-content { 
+            background: white; width: 90%; max-width: 550px; 
+            border-radius: 16px; padding: 30px; 
+            box-shadow: var(--shadow-lg); 
+            animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+            display: flex; flex-direction: column; gap: 15px;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-content.sm-content { max-width: 400px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .modal-header h3 { margin: 0; font-size: 1.4rem; }
+        .close-btn { font-size: 1.5rem; cursor: pointer; color: #cbd5e1; transition: 0.2s; }
+        .close-btn:hover { color: var(--danger); transform: rotate(90deg); }
+        
+        @keyframes popIn { from { transform: scale(0.95) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+        /* --- Drop Zone --- */
+        .drop-zone { 
+            border: 2px dashed #cbd5e1; border-radius: 12px; 
+            padding: 30px; text-align: center; position: relative; 
+            cursor: pointer; transition: 0.2s; background: #f8fafc; 
+        }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+        .drop-zone-input { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; top: 0; left: 0; }
+        .drop-zone-preview { max-width: 100%; max-height: 200px; margin-top: 10px; border-radius: 8px; box-shadow: var(--shadow-md); }
+
+        /* --- Filter Panel --- */
+        .filter-panel { 
+            background: white; padding: 15px; border-radius: 12px; 
+            margin-bottom: 20px; box-shadow: var(--shadow-sm); 
+            display: flex; gap: 10px; border: 1px solid var(--border);
+        }
+        #search-inv { flex: 2; }
+        
+        /* --- Toasts --- */
+        #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 2000; display: flex; flex-direction: column; gap: 12px; }
+        .toast { 
+            background: white; padding: 16px 20px; border-radius: 10px; 
+            box-shadow: var(--shadow-lg); border-left: 5px solid var(--primary); 
+            font-size: 0.95rem; font-weight: 500; animation: slideIn 0.3s; 
+            display: flex; align-items: center; gap: 12px; 
+        }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        /* --- Mobile --- */
+        .mobile-toggle { 
+            display: none; position: fixed; top: 15px; right: 15px; 
+            z-index: 100; background: var(--primary); color: white; 
+            border: none; padding: 10px 14px; border-radius: 8px; 
+            box-shadow: var(--shadow-md); cursor: pointer;
+        }
+
+        @media (max-width: 900px) {
+            .two-col-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; height: 100%; transform: translateX(-100%); width: 280px; box-shadow: var(--shadow-lg); }
+            .sidebar.open { transform: translateX(0); }
+            .mobile-toggle { display: block; }
+            .main { padding: 20px 16px 80px 16px; }
+            .stat-card { padding: 20px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 1.5rem; }
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .header-actions { width: 100%; display: flex; gap: 10px; }
+            .header-actions button { flex: 1; }
+        }
+    </style>
+    
+    <!-- Assuming js/script.js exists for Supabase logic, but UI logic is added below for immediate display -->
     <script src="js/script.js" defer></script>
 </head>
 <body>
 
     <!-- Mobile Menu Toggle -->
-    <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+    <button class="mobile-toggle"><i class="fas fa-bars"></i></button>
 
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
@@ -28,26 +433,26 @@
         
         <div class="nav-container">
             <div class="nav-section">MAIN</div>
-            <button class="nav-btn active" onclick="nav('dashboard')">
+            <button class="nav-btn active" data-target="dashboard">
                 <i class="fas fa-chart-pie"></i> <span>Dashboard</span>
             </button>
-            <button class="nav-btn" onclick="nav('inventory')">
+            <button class="nav-btn" data-target="inventory">
                 <i class="fas fa-boxes"></i> <span>Inventory</span>
             </button>
             
             <div class="nav-section">OPERATIONS</div>
-            <button class="nav-btn" onclick="nav('purchase')">
+            <button class="nav-btn" data-target="purchase">
                 <i class="fas fa-truck-loading"></i> <span>Inbound (PR)</span>
             </button>
-            <button class="nav-btn" onclick="nav('withdrawal')">
+            <button class="nav-btn" data-target="withdrawal">
                 <i class="fas fa-dolly"></i> <span>Outbound (WR)</span>
             </button>
-            <button class="nav-btn" onclick="nav('disposal')">
+            <button class="nav-btn" data-target="disposal">
                 <i class="fas fa-trash-alt"></i> <span>Disposal</span>
             </button>
 
             <div class="nav-section">ADMIN</div>
-            <button class="nav-btn" onclick="nav('settings')">
+            <button class="nav-btn" data-target="settings">
                 <i class="fas fa-cogs"></i> <span>Master Data</span>
             </button>
         </div>
@@ -143,13 +548,14 @@
             
             <!-- Filter -->
             <div id="inv-filter" class="filter-panel" style="display:none;">
-                <input type="text" id="search-inv" placeholder="Search Code, Name or Desc..." onkeyup="filterInventory()">
-                <select id="filter-cat" onchange="filterInventory()">
+                <input type="text" id="search-inv" class="form-control" placeholder="Search Code, Name or Desc..." onkeyup="filterInventory()">
+                <select id="filter-cat" class="form-control" onchange="filterInventory()">
                     <option value="">All Categories</option>
                 </select>
             </div>
 
-            <div class="card table-card">
+            <!-- Wrapped in table-container for correct styling -->
+            <div class="card">
                 <div class="table-responsive">
                     <table class="table-hover sticky-header">
                         <thead>
@@ -174,7 +580,7 @@
                 <h1>Inbound Orders (PR)</h1>
                 <button class="btn btn-primary" onclick="openModal('m-create-pr')"><i class="fas fa-plus"></i> Create PR</button>
             </div>
-            <div class="card table-card">
+            <div class="card">
                 <div class="table-responsive">
                     <table>
                         <thead><tr><th>PR Ref</th><th>Requester</th><th>Status</th><th>Date</th><th class="text-right">Actions</th></tr></thead>
@@ -190,7 +596,7 @@
                 <h1>Outbound Orders (WR)</h1>
                 <button class="btn btn-primary" onclick="openModal('m-create-wr')"><i class="fas fa-plus"></i> Create WR</button>
             </div>
-            <div class="card table-card">
+            <div class="card">
                 <div class="table-responsive">
                     <table>
                         <thead><tr><th>WR Ref</th><th>Requester</th><th>Dept</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
@@ -210,7 +616,7 @@
                     <div class="card-header bg-danger-soft">
                         <h3 class="text-danger"><i class="fas fa-exclamation-triangle"></i> Record Disposal</h3>
                     </div>
-                    <form onsubmit="handleDisposal(event)" class="p-20">
+                    <form onsubmit="handleDisposal(event)" class="p-20" style="padding: 24px;">
                         <div class="form-group">
                             <label>Select Material</label>
                             <select id="disp-mat" required class="form-control select-search"></select>
@@ -259,9 +665,9 @@
             </div>
             <div class="card">
                 <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('tab-cat')">Categories</button>
-                    <button class="tab-btn" onclick="switchTab('tab-uom')">Units (UoM)</button>
-                    <button class="tab-btn" onclick="switchTab('tab-dept')">Departments</button>
+                    <button class="tab-btn active" data-tab="tab-cat">Categories</button>
+                    <button class="tab-btn" data-tab="tab-uom">Units (UoM)</button>
+                    <button class="tab-btn" data-tab="tab-dept">Departments</button>
                 </div>
                 <div class="tab-content">
                     <div id="tab-cat" class="tab-pane active">
@@ -318,7 +724,7 @@
                      <small class="text-muted">Only for new items.</small>
                 </div>
                 
-                <!-- Improved Drop Zone -->
+                <!-- Drop Zone -->
                 <div class="form-group">
                     <label>Item Image</label>
                     <div class="drop-zone" id="drop-zone">
@@ -347,10 +753,10 @@
             </div>
             <form onsubmit="submitAdjustment(event)">
                 <input type="hidden" id="adj-code">
-                <div class="info-box">
-                    <div class="info-label">Current Stock</div>
-                    <div class="info-val" id="adj-current">0</div>
-                    <div class="info-name" id="adj-name">...</div>
+                <div class="info-box" style="background:#f1f5f9; padding:15px; border-radius:8px; margin-bottom:15px; text-align:center;">
+                    <div class="info-label" style="font-size:0.8rem; color:var(--text-muted)">Current Stock</div>
+                    <div class="info-val" id="adj-current" style="font-size:1.5rem; font-weight:800; color:var(--primary)">0</div>
+                    <div class="info-name" id="adj-name" style="font-weight:600;">...</div>
                 </div>
                 <div class="form-group">
                     <label>Qty Change (+/-)</label>
@@ -366,18 +772,169 @@
     </div>
 
     <!-- Universal Transaction Modals (PR/WR) -->
-    <div id="m-create-pr" class="modal"><div class="modal-content"><div class="modal-header"><h3>New Purchase Request</h3><span class="close-btn" onclick="closeModal('m-create-pr')">&times;</span></div><form onsubmit="createPR(event)"><div class="form-group"><label>PR Number</label><input id="pr-num" required class="form-control"></div><div class="form-group"><label>Requester</label><input id="pr-name" required class="form-control"></div><div class="divider"></div><div class="form-group"><label>Item</label><select id="pr-mat" required class="form-control"></select></div><div class="form-row"><div class="form-group"><label>Qty</label><input type="number" id="pr-qty" required min="1" class="form-control"></div><div class="form-group"><label>Est. Price</label><input type="number" id="pr-price" required step="0.01" class="form-control"></div></div><button class="btn btn-primary full-width">Submit</button></form></div></div>
+    <div id="m-create-pr" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>New Purchase Request</h3><span class="close-btn" onclick="closeModal('m-create-pr')">&times;</span></div>
+            <form onsubmit="createPR(event)">
+                <div class="form-group"><label>PR Number</label><input id="pr-num" required class="form-control"></div>
+                <div class="form-group"><label>Requester</label><input id="pr-name" required class="form-control"></div>
+                <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+                <div class="form-group"><label>Item</label><select id="pr-mat" required class="form-control"></select></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Qty</label><input type="number" id="pr-qty" required min="1" class="form-control"></div>
+                    <div class="form-group"><label>Est. Price</label><input type="number" id="pr-price" required step="0.01" class="form-control"></div>
+                </div>
+                <button class="btn btn-primary full-width">Submit</button>
+            </form>
+        </div>
+    </div>
 
-    <div id="m-create-wr" class="modal"><div class="modal-content"><div class="modal-header"><h3>New Withdrawal</h3><span class="close-btn" onclick="closeModal('m-create-wr')">&times;</span></div><form onsubmit="createWR(event)"><div class="form-group"><label>WR Number</label><input id="wr-num" required class="form-control"></div><div class="form-row"><div class="form-group"><label>Requester</label><input id="wr-name" required class="form-control"></div><div class="form-group"><label>Dept</label><select id="wr-dept" required class="form-control"></select></div></div><div class="divider"></div><div class="form-group"><label>Item</label><select id="wr-mat" required class="form-control"></select></div><div class="form-group"><label>Qty</label><input type="number" id="wr-qty" required min="1" class="form-control"></div><button class="btn btn-primary full-width">Submit</button></form></div></div>
+    <div id="m-create-wr" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>New Withdrawal</h3><span class="close-btn" onclick="closeModal('m-create-wr')">&times;</span></div>
+            <form onsubmit="createWR(event)">
+                <div class="form-group"><label>WR Number</label><input id="wr-num" required class="form-control"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Requester</label><input id="wr-name" required class="form-control"></div>
+                    <div class="form-group"><label>Dept</label><select id="wr-dept" required class="form-control"></select></div>
+                </div>
+                <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+                <div class="form-group"><label>Item</label><select id="wr-mat" required class="form-control"></select></div>
+                <div class="form-group"><label>Qty</label><input type="number" id="wr-qty" required min="1" class="form-control"></div>
+                <button class="btn btn-primary full-width">Submit</button>
+            </form>
+        </div>
+    </div>
 
-    <div id="m-view-details" class="modal"><div class="modal-content"><div class="modal-header"><h3 id="view-title">Details</h3><span class="close-btn" onclick="closeModal('m-view-details')">&times;</span></div><div id="view-content" class="detail-content"></div></div></div>
+    <div id="m-view-details" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="view-title">Details</h3><span class="close-btn" onclick="closeModal('m-view-details')">&times;</span></div>
+            <div id="view-content" class="detail-content"></div>
+        </div>
+    </div>
 
     <!-- Image Lightbox Modal -->
     <div id="m-lightbox" class="modal lightbox-modal" onclick="closeModal('m-lightbox')">
-        <span class="close-btn lightbox-close">&times;</span>
-        <img id="lightbox-img" src="" alt="Full View">
+        <span class="close-btn lightbox-close" style="position:absolute; top:20px; right:30px; color:white;">&times;</span>
+        <img id="lightbox-img" src="" alt="Full View" style="max-width:90%; max-height:80vh; border-radius:8px;">
     </div>
 
     <div id="toast-container"></div>
+
+    <!-- UI Logic Script -->
+    <script>
+        // --- 1. Mobile Sidebar Toggle ---
+        const sidebar = document.querySelector('.sidebar');
+        const mobileToggle = document.querySelector('.mobile-toggle');
+
+        mobileToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(e.target) && 
+                !mobileToggle.contains(e.target) && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // --- 2. Main Navigation Tabs ---
+        const navBtns = document.querySelectorAll('.nav-btn');
+        const pages = document.querySelectorAll('.page');
+
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                if(!targetId) { 
+                    // Fallback for onclick="nav()" logic existing in your main js
+                    return; 
+                }
+
+                // Update UI state
+                navBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                pages.forEach(p => p.classList.remove('active'));
+                const targetPage = document.getElementById(targetId);
+                if(targetPage) targetPage.classList.add('active');
+
+                // Close mobile sidebar on selection
+                if(window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                }
+            });
+        });
+
+        // Compatibility wrapper for your existing onclick="nav('id')" calls
+        function nav(id) {
+            // Find button with this data-target and trigger click
+            const btn = document.querySelector(`.nav-btn[data-target="${id}"]`);
+            if(btn) btn.click();
+        }
+
+        // --- 3. Settings Page Tabs ---
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-tab');
+
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                tabPanes.forEach(p => p.classList.remove('active'));
+                document.getElementById(targetId).classList.add('active');
+            });
+        });
+
+        // Compatibility wrapper for your existing onclick="switchTab('id')"
+        function switchTab(id) {
+            const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+            if(btn) btn.click();
+        }
+
+        // --- 4. Modal Logic (UI Only) ---
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if(modal) {
+                modal.style.display = "flex";
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if(modal) {
+                modal.style.display = "none";
+            }
+        }
+        
+        // Helper for specific inventory modal
+        function openInventoryModal(mode) {
+            document.getElementById('inv-mode').value = mode;
+            document.getElementById('inv-modal-title').innerText = mode === 'add' ? 'New Item' : 'Edit Item';
+            openModal('m-inventory');
+        }
+
+        // Close modal when clicking outside content
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = "none";
+            }
+        });
+
+        // Toggle Filter Panel
+        function toggleFilter() {
+            const panel = document.getElementById('inv-filter');
+            panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+        }
+    </script>
+
+
+    <script src="js/script.js">
+        
+    </script>
 </body>
 </html>
