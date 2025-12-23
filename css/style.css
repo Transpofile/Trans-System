@@ -71,6 +71,7 @@ body {
     font-size: 0.9rem;
 }
 .btn-primary:hover { background-color: var(--primary-hover); }
+.btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .btn-secondary {
     background-color: white;
@@ -110,6 +111,7 @@ body {
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 .form-input[readonly] { background-color: #f1f5f9; color: #94a3b8; }
+.form-select:disabled, .form-input:disabled { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
 
 /* TABS */
 .active-tab {
