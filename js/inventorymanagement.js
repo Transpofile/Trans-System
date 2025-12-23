@@ -1,562 +1,753 @@
-// --- START OF FILE inventorymanagement.js ---
+// --- CONFIGURATION ---
+const SB_URL = 'https://agggkqvbnotpborqcitx.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZ2drcXZibm90cGJvcnFjaXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwODYxNjgsImV4cCI6MjA4MTY2MjE2OH0.XJHmLfRRJHVhsrImqnRpdwt7eN4eiO1VGk6B68uG5oo';
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Attach form handlers safely
-    const addItemForm = document.getElementById('form-add-item');
-    if (addItemForm) addItemForm.onsubmit = submitAddItemForm;
+// State
+let supabaseClient;
+let invCache = [], movementCache = [];
+let masterData = { cats: [], uoms: [], depts: [] };
+let charts = { cat: null, trend: null };
+let appSettings = { showArchived: false, sortCol: 'created_at', sortAsc: false };
 
-    const editInvForm = document.getElementById('form-inv-edit');
-    if (editInvForm) editInvForm.onsubmit = submitInvEdit;
-    
-    const adjustForm = document.getElementById('form-stock-adjust');
-    if (adjustForm) adjustForm.onsubmit = submitStockAdjustment;
+// Utilities
+const escapeHTML = (str) => String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+const formatNum = (num) => new Intl.NumberFormat('en-US').format(num);
 
-    // Attach Export Button Listener
-    const exportBtn = document.getElementById('btn-export-csv');
-    if (exportBtn) exportBtn.onclick = downloadInventoryCSV;
+// --- INITIALIZATION ---
+$(document).ready(async () => {
+    try {
+        if (typeof supabase === 'undefined') throw new Error("Supabase library missing");
+        supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        
+        setupUI();
+        await refreshAll();
+        
+    } catch (e) {
+        Swal.fire('Initialization Error', e.message, 'error');
+    }
 });
 
-// --- STATE MANAGEMENT ---
+function setupUI() {
+    // Mobile Menu
+    $('#mobile-menu-btn').click(() => $('#sidebar').toggleClass('-translate-x-full translate-x-0'));
 
-/**
- * Sets the active category filter for inventory rendering.
- * @param {string} cat - The category name or 'All'.
- */
-function filterCat(cat) { 
-    window.activeCategory = cat; 
-    renderInventory(); 
-}
+    // ID Generators
+    $('#pr-num').val('PR-' + Date.now().toString().slice(-6));
+    $('#wr-num').val('WR-' + Date.now().toString().slice(-6));
 
-/**
- * Filters inventory to show items and navigates to the view.
- * Called from Dashboard "Low Stock" widget.
- */
-function filterInventoryByLowStock() { 
-    // Reset search
-    const searchInput = document.getElementById('inv-search');
-    if(searchInput) searchInput.value = ""; 
-    
-    // Set Category to All to ensure we scan everything
-    window.activeCategory = 'All';
-    
-    // Set Global Filter Flag (This variable is assumed to be in main scope)
-    window.activeInventoryFilter = 'LowStock';
+    // --- Enhanced Drag & Drop Logic ---
+    const dropZone = $('#drop-zone');
+    const fileInput = $('#i-file');
 
-    // Navigate to view
-    if(typeof navTo === 'function') navTo('view-inventory'); 
-    
-    // Render with new filter
-    renderInventory();
-    
-    if(typeof showToast === 'function') showToast("Filtered by Low Stock Items", "info");
-}
+    // Prevent default browser behavior for all drag events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.on(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
 
-/**
- * Clears specific filters like 'LowStock' and resets to default view.
- */
-function clearInventoryFilter() {
-    window.activeInventoryFilter = 'All';
-    const searchInput = document.getElementById('inv-search');
-    if(searchInput) searchInput.value = ""; 
-    renderInventory();
-}
+    // Visual feedback
+    dropZone.on('dragenter dragover', () => {
+        dropZone.addClass('bg-blue-50 border-brand-400');
+    });
 
-// --- RENDERING ---
+    dropZone.on('dragleave drop', () => {
+        dropZone.removeClass('bg-blue-50 border-brand-400');
+    });
 
-/**
- * Fetches, filters, and renders the inventory table and category filters.
- */
-async function renderInventory() {
-    // Fetch Data
-    const items = await dbAction('inventory', 'readonly', store => store.getAll());
-    const tbody = document.getElementById('inventory-body');
-    const searchInput = document.getElementById('inv-search');
-    const filter = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    
-    // Update Category Buttons UI
-    renderCategoryButtons();
-
-    // Toggle Filter Badge UI if it exists in HTML
-    const filterBadge = document.getElementById('active-filter-badge');
-    if(filterBadge) {
-        if(window.activeInventoryFilter === 'LowStock') filterBadge.classList.remove('hidden');
-        else filterBadge.classList.add('hidden');
-    }
-
-    if(!tbody) return;
-    tbody.innerHTML = ''; 
-
-    // Use Fragment to minimize reflows
-    const fragment = document.createDocumentFragment();
-    let count = 0;
-
-    // Sort: ID Descending (Newest first)
-    items.sort((a, b) => b.id - a.id);
-
-    items.forEach(item => {
-        const code = (item.code || `ID-${item.id}`).toLowerCase();
-        const name = item.name.toLowerCase();
-        const isLow = item.stock <= (item.threshold || 5);
+    // Handle File Drop
+    dropZone.on('drop', (e) => {
+        const dt = e.originalEvent.dataTransfer;
+        const files = dt.files;
         
-        // 1. Search Filter
-        const matchesSearch = code.includes(filter) || name.includes(filter);
-        
-        // 2. Category Filter
-        const matchesCat = (window.activeCategory || 'All') === 'All' || item.category === window.activeCategory;
-
-        // 3. Global State Filter (e.g., from Dashboard)
-        let passesGlobalFilter = true;
-        if (window.activeInventoryFilter === 'LowStock' && !isLow) {
-            passesGlobalFilter = false;
-        }
-
-        if (matchesSearch && matchesCat && passesGlobalFilter) {
-            fragment.appendChild(createInventoryRow(item, isLow));
-            count++;
+        if (files && files.length) {
+            fileInput[0].files = files; // Sync file to input element
+            handleImageFile(fileInput[0]); // Trigger processing
         }
     });
-    
-    tbody.appendChild(fragment);
 
-    // Reset Scroll Position
-    const scrollContainer = tbody.closest('.table-scroll-container') || tbody.parentElement;
-    if (scrollContainer) scrollContainer.scrollTop = 0;
-    
-    const emptyMsg = document.getElementById('inventory-empty');
-    if(emptyMsg) emptyMsg.classList.toggle('hidden', count > 0);
+    // Handle Click to Browse
+    dropZone.on('click', () => fileInput.click());
 }
 
-/**
- * Helper: Renders the Category Filter Buttons
- */
-function renderCategoryButtons() {
-    const catContainer = document.getElementById('inventory-categories');
-    if (!catContainer) return;
-
-    // Ensure masterData exists
-    const cats = window.masterData?.categories || ['Spare Parts', 'Tools', 'Fluids'];
-    const categories = ['All', ...cats];
+// --- DATA FETCHING ---
+async function refreshAll() {
+    const isFirstLoad = invCache.length === 0;
+    if(isFirstLoad) $('#loader-overlay').fadeIn(200);
     
-    const baseClass = "px-3 py-1 rounded-full text-xs font-bold border transition whitespace-nowrap cursor-pointer select-none";
-    const activeClass = "bg-brand-600 text-white border-brand-600 shadow-md";
-    const inactiveClass = "bg-white dark:bg-slate-700 dark:text-white dark:border-slate-500 text-slate-600 border-slate-300 hover:bg-slate-50 hover:border-slate-400";
-
-    catContainer.innerHTML = categories.map(c => {
-        const isActive = (window.activeCategory || 'All') === c;
-        return `<button onclick="filterCat('${c}')" class="${baseClass} ${isActive ? activeClass : inactiveClass}">${c}</button>`;
-    }).join('');
-}
-
-/**
- * Helper: Creates a TR element for the inventory table.
- */
-function createInventoryRow(item, isLow) {
-    const tr = document.createElement('tr');
-    const code = item.code || `ID-${item.id}`;
-    
-    // Row Styling
-    tr.className = `hover:bg-slate-50 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-700 ${isLow ? 'bg-red-50 dark:bg-red-900/10' : ''}`;
-
-    // Optional Image Logic (if image exists in DB)
-    const imgHtml = item.image 
-        ? `<img src="${item.image}" alt="Img" class="w-8 h-8 rounded object-cover border border-slate-200 dark:border-slate-600 mr-2 inline-block bg-white shrink-0">` 
-        : ``;
-
-    tr.innerHTML = `
-        <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">${code}</td>
-        <td class="px-6 py-3 text-slate-800 dark:text-white flex items-center min-w-[200px]">
-            ${imgHtml}
-            <div class="flex flex-col overflow-hidden">
-                <span class="font-medium leading-tight truncate" title="${item.name}">${item.name}</span>
-                ${isLow ? '<span class="text-[10px] text-red-600 dark:text-red-400 font-bold mt-0.5">⚠️ LOW STOCK</span>' : ''}
-            </div>
-        </td>
-        <td class="px-6 py-3">
-            <span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap">${item.category}</span>
-        </td>
-        <td class="px-6 py-3 text-center">
-            <div class="font-bold ${isLow ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}">${item.stock}</div>
-            <div class="text-[10px] text-slate-500 uppercase">${item.unit}</div>
-        </td>
-        <td class="px-6 py-3 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">${item.location || '-'}</td>
-        <td class="px-6 py-3 text-right">
-            <div class="flex justify-end gap-2">
-                <button onclick="openStockAdjustment(${item.id}, 'In')" class="p-1.5 rounded text-green-600 hover:bg-green-100 dark:hover:bg-green-900" title="Stock In"><i class="fas fa-arrow-up"></i></button>
-                <button onclick="openStockAdjustment(${item.id}, 'Out')" class="p-1.5 rounded text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900" title="Stock Out"><i class="fas fa-arrow-down"></i></button>
-                <button onclick="viewInventory(${item.id})" class="p-1.5 rounded text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900" title="View Details"><i class="fas fa-eye"></i></button>
-                <button onclick="editInventory(${item.id})" class="p-1.5 rounded text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900" title="Edit Metadata"><i class="fas fa-pencil-alt"></i></button>
-                <button onclick="deleteItem(${item.id})" class="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900" title="Delete Item"><i class="fas fa-trash"></i></button>
-            </div>
-        </td>
-    `;
-    return tr;
-}
-
-// --- CRUD & FORM SUBMISSIONS ---
-
-/**
- * Uploads a file to Supabase Storage and returns the Public URL.
- * Requires a bucket named 'inventory-images' to exist in Supabase.
- */
-async function uploadImageToSupabase(file) {
-    if (!file) return null;
     try {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        const { error } = await supabase.storage.from('inventory-images').upload(filePath, file);
-
-        if (error) {
-            console.warn('Supabase Upload Error (Bucket might not exist):', error);
-            return null; // Fail gracefully
-        }
-
-        const { data: urlData } = supabase.storage.from('inventory-images').getPublicUrl(filePath);
-        return urlData.publicUrl;
-    } catch (err) {
-        console.error("Upload process failed:", err);
-        return null;
-    }
-}
-
-/**
- * Handles the submission of the Add New Item form.
- */
-async function submitAddItemForm(e) {
-    e.preventDefault();
-    const btn = e.target.querySelector('button[type="submit"]');
-    if(btn) btn.disabled = true;
-
-    try {
-        let imageUrl = '';
-        // Check if file input exists in HTML (optional feature)
-        const fileInput = document.getElementById('add-image-file');
-        const urlInput = document.getElementById('add-image-url');
-
-        if (fileInput && fileInput.files && fileInput.files[0]) {
-            showToast('Uploading image...', 'info');
-            imageUrl = await uploadImageToSupabase(fileInput.files[0]);
-        } else if (urlInput && urlInput.value.trim()) {
-            imageUrl = urlInput.value.trim();
-        }
-
-        const newItem = {
-            code: document.getElementById('add-code').value.trim(), 
-            name: document.getElementById('add-name').value.trim(),
-            category: document.getElementById('add-category').value, 
-            stock: parseInt(document.getElementById('add-stock').value) || 0,
-            unit: document.getElementById('add-unit').value, 
-            threshold: parseInt(document.getElementById('add-threshold').value) || 5,
-            location: document.getElementById('add-location').value.trim(), 
-            sds: document.getElementById('add-sds').value.trim(),
-            image: imageUrl || '' 
-        };
-
-        // Duplicate Check
-        const allItems = await dbAction('inventory', 'readonly', store => store.getAll());
-        const isDuplicate = allItems.some(i => i.code.toLowerCase() === newItem.code.toLowerCase());
-
-        if (isDuplicate) throw new Error(`Material Code "${newItem.code}" already exists.`);
-
-        // DB Insert
-        await dbAction('inventory', 'readwrite', store => store.add(newItem));
-        await logAction('ADD_ITEM', `Added new material: ${newItem.code} - ${newItem.name}`);
+        await loadMasterData();
+        const [inv, pr, wr, mov] = await Promise.all([
+            getInventoryData(),
+            getPRs(),
+            getWRs(),
+            getMovements()
+        ]);
         
-        showToast('Item Added Successfully', 'success'); 
-        e.target.reset(); 
-        
-        renderInventory();
-        if(typeof renderDashboard === 'function') renderDashboard();
-    } catch (error) {
-        console.error("Error adding item:", error);
-        showToast(error.message || 'Error adding item.', 'error');
+        renderInventoryTable();
+        updateDashboard();
+        updateItemSelects();
+    } catch (e) {
+        console.error(e);
+        Swal.fire('Sync Error', 'Failed to load data. Check network connection.', 'error');
     } finally {
-        if(btn) btn.disabled = false;
+        $('#loader-overlay').fadeOut(300);
     }
 }
 
-/**
- * Opens the Inventory Metadata Edit Modal.
- */
-async function editInventory(id) {
-    const item = await dbAction('inventory', 'readonly', store => store.get(id));
-    if(!item) return showToast("Item not found", "error");
-
-    setVal('inv-edit-id', item.id);
-    setVal('inv-edit-code', item.code || `ID-${item.id}`);
-    setVal('inv-edit-name', item.name);
-    setVal('inv-edit-loc', item.location || '');
+async function loadMasterData() {
+    const [c, u, d] = await Promise.all([
+        supabaseClient.from('categories').select('*').order('name'),
+        supabaseClient.from('uoms').select('*').order('name'),
+        supabaseClient.from('departments').select('*').order('name')
+    ]);
+    masterData = { cats: c.data || [], uoms: u.data || [], depts: d.data || [] };
     
-    const stockInput = document.getElementById('inv-edit-stock');
-    if(stockInput) {
-        stockInput.value = item.stock; 
-        // We usually don't allow direct stock edit in metadata to enforce audit trails
-        stockInput.setAttribute('readonly', true); 
-        stockInput.classList.add('bg-slate-200', 'cursor-not-allowed');
+    renderMasterList(masterData.cats, 'list-categories', 'categories');
+    renderMasterList(masterData.uoms, 'list-uoms', 'uoms', true);
+    renderMasterList(masterData.depts, 'list-departments', 'departments');
+    
+    const fill = (id, data, fn) => {
+        const el = $(`#${id}`);
+        const current = el.val();
+        let html = id.includes('filter') ? '<option value="">All Categories</option>' : '';
+        html += data.map(fn).join('');
+        el.html(html);
+        if(current) el.val(current);
+    };
+    
+    fill('i-cat', masterData.cats, c => `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`);
+    fill('filter-cat', masterData.cats, c => `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`);
+    fill('i-uom', masterData.uoms, u => `<option value="${escapeHTML(u.code)}">${escapeHTML(u.name)} (${escapeHTML(u.code)})</option>`);
+    fill('wr-dept', masterData.depts, d => `<option value="${escapeHTML(d.name)}">${escapeHTML(d.name)}</option>`);
+}
+
+function renderMasterList(data, listId, table, isUom = false) {
+    const html = data.length ? data.map(item => `
+        <li class="flex justify-between items-center py-3 px-2 hover:bg-slate-50 rounded transition">
+            <span class="font-medium text-slate-700">${isUom ? `<b>${escapeHTML(item.code)}</b> - ${escapeHTML(item.name)}` : escapeHTML(item.name)}</span>
+            <button class="text-slate-400 hover:text-red-500 transition" onclick="deleteMaster('${table}', ${item.id})"><i class="fas fa-trash-alt"></i></button>
+        </li>
+    `).join('') : '<li class="text-center py-4 text-slate-400 italic">No records found</li>';
+    $(`#${listId}`).html(html);
+}
+
+// --- CORE LOGIC ---
+async function getInventoryData() {
+    const { data } = await supabaseClient.from('inventory').select('*');
+    invCache = data || [];
+}
+
+async function getMovements() {
+    const { data } = await supabaseClient.from('stock_movements').select('*').order('created_at', {ascending: true});
+    movementCache = data || [];
+}
+
+function updateDashboard() {
+    const active = invCache.filter(i => i.status !== 'ARCHIVED');
+    
+    $('#d-items').text(formatNum(active.length));
+    $('#d-low').text(formatNum(active.filter(i => i.current_stock <= i.low_stock_threshold).length));
+    $('#d-depts').text(masterData.depts.length);
+
+    const totalOut = movementCache
+        .filter(m => m.change_amount < 0 && !m.reason.toLowerCase().includes('disposal'))
+        .reduce((acc, curr) => acc + Math.abs(curr.change_amount), 0);
+    $('#d-withdrawn').text(formatNum(totalOut));
+
+    // Charts
+    const catMap = {}; 
+    active.forEach(i => { catMap[i.category||'Other'] = (catMap[i.category||'Other']||0) + i.current_stock; });
+
+    if(charts.cat) charts.cat.destroy();
+    const catCtx = document.getElementById('catChart');
+    if(catCtx) {
+        charts.cat = new Chart(catCtx, {
+            type: 'doughnut',
+            data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6', '#6366f1'] }] },
+            options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right' } } }
+        });
     }
 
-    document.getElementById('inv-edit-modal').classList.add('open');
-}
-
-function setVal(id, val) {
-    const el = document.getElementById(id);
-    if(el) el.value = val;
-}
-
-/**
- * Handles submission of Inventory Metadata Updates.
- */
-async function submitInvEdit(e) {
-    e.preventDefault(); 
-    const id = parseInt(document.getElementById('inv-edit-id').value);
-    
-    try {
-        const item = await dbAction('inventory', 'readonly', store => store.get(id));
-        if(!item) throw new Error("Item no longer exists");
-
-        const oldName = item.name;
-        item.name = document.getElementById('inv-edit-name').value.trim(); 
-        
-        const locInput = document.getElementById('inv-edit-loc');
-        if(locInput) item.location = locInput.value.trim();
-
-        await dbAction('inventory', 'readwrite', store => store.put(item));
-        await logAction('UPDATE_META', `Updated metadata for ${item.code}. Old Name: ${oldName}`);
-        
-        showToast('Inventory Updated', 'success'); 
-        if(typeof closeModal === 'function') closeModal('inv-edit-modal'); 
-        renderInventory();
-    } catch (error) {
-        console.error("Error updating inventory:", error);
-        showToast(error.message, 'error');
+    const days = 14;
+    const dateMap = {};
+    const now = new Date();
+    for(let i=days-1; i>=0; i--) {
+        const d = new Date(); d.setDate(now.getDate() - i);
+        dateMap[d.toLocaleDateString('en-US',{month:'short',day:'numeric'})] = {in:0, out:0};
     }
-}
 
-/**
- * Views detailed information about an inventory item.
- */
-async function viewInventory(id) {
-    const item = await dbAction('inventory', 'readonly', store => store.get(id));
-    if (!item) return;
-
-    const isLow = item.stock <= (item.threshold || 5);
-    const stockColor = (item.stock === 0) ? 'text-red-800' : (isLow ? 'text-red-600' : 'text-green-600');
-    
-    const imgSrc = item.image && item.image.length > 5 
-        ? item.image 
-        : 'https://placehold.co/400x400/e2e8f0/475569?text=No+Image';
-
-    const contentDiv = document.getElementById('inv-view-content');
-    if(!contentDiv) return;
-
-    // View Template
-    contentDiv.innerHTML = `
-        <div class="flex flex-col md:flex-row gap-6">
-            <div class="w-full md:w-auto flex flex-col items-center justify-start shrink-0">
-                <div class="w-40 h-40 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-sm relative group">
-                    <img src="${imgSrc}" alt="${item.name}" class="max-w-full max-h-full object-contain">
-                </div>
-                <div class="mt-2 text-center w-40">
-                    <span class="text-xs font-mono text-slate-400 cursor-pointer" onclick="navigator.clipboard.writeText('${item.code}')">
-                        ${item.code || 'ID-'+item.id} <i class="fas fa-copy ml-1"></i>
-                    </span>
-                </div>
-            </div>
-
-            <div class="w-full md:flex-1 min-w-0">
-                <div class="border-b border-slate-100 dark:border-slate-700 pb-3 mb-3">
-                    <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Description</label>
-                    <div class="text-xl font-bold text-slate-800 dark:text-white leading-tight">${item.name}</div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Category</label>
-                        <span class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-sm font-bold">${item.category}</span>
-                    </div>
-                    <div>
-                         <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Location</label>
-                         <div class="text-sm font-medium text-slate-700 dark:text-slate-300"><i class="fas fa-map-marker-alt text-slate-400 mr-1"></i> ${item.location || 'N/A'}</div>
-                    </div>
-                </div>
-
-                <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700 mt-4">
-                    <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Current Stock</label>
-                    <div class="text-2xl font-bold ${stockColor} dark:text-opacity-90">
-                        ${item.stock} <span class="text-sm font-normal text-slate-500">${item.unit}</span>
-                    </div>
-                    ${isLow ? `<div class="mt-1 text-xs font-bold text-red-500"><i class="fas fa-exclamation-triangle"></i> Low Stock Warning</div>` : ''}
-                </div>
-                
-                <div class="mt-4">
-                    <label class="block text-xs uppercase font-bold text-slate-400 tracking-wider mb-1">Safety Data Sheet</label>
-                    ${item.sds ? `<a href="${item.sds}" target="_blank" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"><i class="fas fa-file-pdf"></i> View PDF</a>` : '<span class="text-sm text-slate-400 italic">No SDS</span>'}
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('inv-view-modal').classList.add('open');
-}
-
-/**
- * Deletes an inventory item.
- */
-async function deleteItem(id) { 
-    if(!confirm('Are you sure you want to permanently delete this item?')) return;
-    
-    try {
-        const item = await dbAction('inventory', 'readonly', s=>s.get(id));
-        if (item) {
-            await dbAction('inventory', 'readwrite', store => store.delete(id)); 
-            await logAction('DELETE_ITEM', `Permanently deleted: ${item.code} (${item.name})`);
-            
-            renderInventory(); 
-            showToast('Item Deleted', 'success');
-            if(typeof renderDashboard === 'function') renderDashboard();
+    movementCache.forEach(m => {
+        const d = new Date(m.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        if(dateMap[d]) {
+            if(m.change_amount > 0) dateMap[d].in += m.change_amount;
+            else dateMap[d].out += Math.abs(m.change_amount);
         }
-    } catch(err) {
-        console.error(err);
-        showToast('Failed to delete item', 'error');
+    });
+
+    if(charts.trend) charts.trend.destroy();
+    const trendCtx = document.getElementById('trendChart');
+    if(trendCtx) {
+        charts.trend = new Chart(trendCtx, {
+            type: 'bar',
+            data: { 
+                labels: Object.keys(dateMap), 
+                datasets: [
+                    { label: 'In (PR)', data: Object.values(dateMap).map(x=>x.in), backgroundColor: '#10b981', borderRadius:4 },
+                    { label: 'Out (WR/Disp)', data: Object.values(dateMap).map(x=>x.out), backgroundColor: '#3b82f6', borderRadius:4 }
+                ] 
+            },
+            options: { maintainAspectRatio: false, scales: { x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{borderDash:[4,4]}} }, plugins:{legend:{position:'top'}} }
+        });
     }
 }
 
-// --- Stock Adjustment Logic (Requires Extra Modal in HTML) ---
+function renderInventoryTable() {
+    const search = $('#search-inv').val().toLowerCase();
+    const cat = $('#filter-cat').val();
+    const tb = $('#tbl-inv').empty();
+    
+    let filtered = invCache.filter(i => {
+        if(!appSettings.showArchived && i.status === 'ARCHIVED') return false;
+        const txt = (i.material_code + ' ' + i.description).toLowerCase();
+        return txt.includes(search) && (!cat || i.category === cat);
+    });
 
-let currentInventoryItem = null;
+    filtered.sort((a,b) => {
+        const va = a[appSettings.sortCol], vb = b[appSettings.sortCol];
+        if (typeof va === 'string') return appSettings.sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+        return appSettings.sortAsc ? (va>vb?1:-1) : (va<vb?1:-1);
+    });
 
-async function openStockAdjustment(id, type) {
-    currentInventoryItem = await dbAction('inventory', 'readonly', store => store.get(id));
-    if (!currentInventoryItem) return showToast('Item not found.', 'error');
-
-    // Check if the modal exists in the HTML, if not warn the developer
-    const modal = document.getElementById('stock-adjust-modal');
-    if(!modal) {
-        console.error("Missing HTML Element: #stock-adjust-modal");
-        alert("Stock Adjustment Modal not found in HTML.");
+    if(filtered.length === 0) {
+        tb.html('<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">No matching items found.</td></tr>');
         return;
     }
 
-    const title = type === 'In' ? 'Stock In (Receive)' : 'Stock Out (Deduct)';
-    const btnSubmit = document.getElementById('btn-adjust-submit');
+    filtered.forEach(i => {
+        let status;
+        if(i.status === 'ARCHIVED') status = '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-full text-xs font-bold">Archived</span>';
+        else if(i.current_stock <= 0) status = '<span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold">Out of Stock</span>';
+        else if(i.current_stock <= i.low_stock_threshold) status = '<span class="bg-amber-100 text-amber-700 px-2 py-1 rounded-full text-xs font-bold">Low Stock</span>';
+        else status = '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-xs font-bold">Available</span>';
+
+        const img = i.image_link ? `<img src="${i.image_link}" class="w-10 h-10 rounded object-cover cursor-pointer hover:scale-150 transition border border-slate-200 bg-white" onclick="openLightbox('${i.image_link}')">` : 
+                                   `<div class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center text-slate-300"><i class="fas fa-image"></i></div>`;
+
+        tb.append(`
+            <tr class="border-b border-slate-50 hover:bg-slate-50 transition group ${i.status==='ARCHIVED'?'opacity-60':''}">
+                <td class="p-4">${img}</td>
+                <td class="p-4">
+                    <div class="font-bold text-brand-700 font-mono text-xs">${i.material_code}</div>
+                    <div class="text-slate-700 font-medium">${escapeHTML(i.description)}</div>
+                </td>
+                <td class="p-4"><span class="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">${escapeHTML(i.category)}</span></td>
+                <td class="p-4">
+                    <div class="flex items-center">
+                        <span class="font-bold text-lg text-slate-700">${formatNum(i.current_stock)}</span>
+                        <span class="text-xs text-slate-400 ml-1">${escapeHTML(i.uom)}</span>
+                    </div>
+                </td>
+                <td class="p-4 text-center font-bold text-slate-600">${formatNum(i.total_withdrawn || 0)}</td>
+                <td class="p-4 text-center">${status}</td>
+                <td class="p-4 text-right">
+                    <div class="flex justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        ${i.status !== 'ARCHIVED' ? `
+                        <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-blue-600 hover:border-blue-500 transition flex items-center justify-center" onclick="viewItemHistory('${i.material_code}')" title="History"><i class="fas fa-history"></i></button>
+                        <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-brand-600 hover:border-brand-500 transition flex items-center justify-center" onclick="openStockAdjustModal('${i.material_code}')" title="Adjust"><i class="fas fa-sliders-h"></i></button>
+                        <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-brand-600 hover:border-brand-500 transition flex items-center justify-center" onclick="openInventoryModal('edit', '${i.material_code}')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-red-600 hover:border-red-500 transition flex items-center justify-center" onclick="delItem('${i.material_code}')" title="Archive"><i class="fas fa-trash-alt"></i></button>
+                        ` : `
+                        <button class="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded border border-emerald-200 hover:bg-emerald-100" onclick="restoreItem('${i.material_code}')">Restore</button>
+                        `}
+                    </div>
+                </td>
+            </tr>
+        `);
+    });
+}
+
+function sortInv(col) {
+    if(appSettings.sortCol === col) appSettings.sortAsc = !appSettings.sortAsc;
+    else { appSettings.sortCol = col; appSettings.sortAsc = true; }
+    renderInventoryTable();
+}
+
+// --- CRUD ACTIONS ---
+
+async function saveInventory(e) {
+    e.preventDefault();
+    const btn = $('#btn-save-inv').prop('disabled', true).addClass('opacity-75');
     
-    // Set Modal Values
-    document.getElementById('adjust-modal-title').innerText = title;
-    document.getElementById('adjust-type').value = type;
-    document.getElementById('adjust-item-id').value = id;
+    try {
+        const mode = $('#inv-mode').val();
+        const code = $('#i-code').val().trim().toUpperCase();
+        // Uses the hidden field populated by handleImageFile or handleUrlInput
+        const imgVal = $('#i-img-data').val();
+
+        const payload = {
+            material_code: code,
+            description: $('#i-desc').val().trim(),
+            category: $('#i-cat').val(),
+            uom: $('#i-uom').val(),
+            low_stock_threshold: Number($('#i-low').val()),
+            image_link: imgVal // Compressed Base64 or URL
+        };
+
+        if(mode === 'add') {
+            if(invCache.some(i => i.material_code === code)) throw new Error("SKU/Code already exists!");
+            payload.current_stock = Number($('#i-stock').val());
+            payload.initial_stock = payload.current_stock;
+            payload.status = 'ACTIVE';
+            const { error } = await supabaseClient.from('inventory').insert([payload]);
+            if(error) throw error;
+        } else {
+            const { error } = await supabaseClient.from('inventory').update(payload).eq('material_code', code);
+            if(error) throw error;
+        }
+
+        closeModal('m-inventory');
+        await refreshAll();
+        Swal.fire({icon: 'success', title: 'Saved successfully', showConfirmButton: false, timer: 1500});
+        
+    } catch(err) {
+        console.error(err);
+        Swal.fire('Error', err.message || 'Failed to save', 'error');
+    } finally {
+        btn.prop('disabled', false).removeClass('opacity-75');
+    }
+}
+
+async function createPR(e) {
+    e.preventDefault();
+    const btn = $('#btn-save-pr').prop('disabled', true).addClass('opacity-75');
     
-    const nameDisplay = document.getElementById('adjust-item-name-display');
-    if(nameDisplay) nameDisplay.innerText = currentInventoryItem.name;
+    try {
+        const prNum = $('#pr-num').val();
+        const { data, error } = await supabaseClient.from('purchase_requests').insert([
+            { pr_number: prNum, requester_name: $('#pr-name').val(), status: 'PENDING' }
+        ]).select();
+        
+        if(error) throw error;
+        
+        await supabaseClient.from('pr_items').insert([{ 
+            pr_id: data[0].pr_id, 
+            material_code: $('#pr-mat').val(), 
+            quantity_requested: Number($('#pr-qty').val()),
+            unit_price: Number($('#pr-price').val())
+        }]);
+
+        closeModal('m-create-pr');
+        await refreshAll();
+        Swal.fire('Success', 'Purchase Request Created', 'success');
+        $('#pr-num').val('PR-'+Date.now().toString().slice(-6));
+
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally {
+        btn.prop('disabled', false).removeClass('opacity-75');
+    }
+}
+
+async function createWR(e) {
+    e.preventDefault();
+    const btn = $('#btn-submit-wr').prop('disabled', true).addClass('opacity-75');
+
+    try {
+        const mat = $('#wr-mat').val();
+        const qty = Number($('#wr-qty').val());
+        const item = invCache.find(i => i.material_code === mat);
+        
+        if(!item) throw new Error("Invalid Item Selection");
+        if(item.current_stock < qty) throw new Error(`Insufficient stock. Only ${item.current_stock} available.`);
+
+        const { data, error } = await supabaseClient.from('withdrawal_requests').insert([
+            { wr_number: $('#wr-num').val(), requester_name: $('#wr-name').val(), department: $('#wr-dept').val(), status: 'PENDING' }
+        ]).select();
+
+        if(error) throw error;
+
+        await supabaseClient.from('wr_items').insert([{
+            wr_id: data[0].wr_id, material_code: mat, quantity_requested: qty
+        }]);
+
+        closeModal('m-create-wr');
+        await refreshAll();
+        Swal.fire('Success', 'Withdrawal Request Submitted', 'success');
+        $('#wr-num').val('WR-'+Date.now().toString().slice(-6));
+
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally {
+        btn.prop('disabled', false).removeClass('opacity-75');
+    }
+}
+
+async function processPR(id) {
+    const res = await Swal.fire({ title: 'Receive Items?', text: "This will add to your current inventory stock.", icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Receive', confirmButtonColor: '#10b981' });
+    if(!res.isConfirmed) return;
+
+    $('#loader-overlay').show();
+    try {
+        const { data: items } = await supabaseClient.from('pr_items').select('*').eq('pr_id', id);
+        for(let item of items) {
+            const curr = invCache.find(i => i.material_code === item.material_code);
+            if(curr) {
+                await supabaseClient.from('inventory').update({current_stock: curr.current_stock + item.quantity_requested}).eq('material_code', item.material_code);
+                await supabaseClient.from('stock_movements').insert({ material_code: item.material_code, change_amount: item.quantity_requested, reason: `PR Received: ${id}` });
+            }
+        }
+        await supabaseClient.from('purchase_requests').update({status: 'COMPLETED'}).eq('pr_id', id);
+        await refreshAll();
+        Swal.fire('Received', 'Stock updated successfully', 'success');
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally { $('#loader-overlay').hide(); }
+}
+
+async function processWR(id) {
+    const res = await Swal.fire({ title: 'Approve Withdrawal?', text: "Stock will be deducted immediately.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Approve', confirmButtonColor: '#3b82f6' });
+    if(!res.isConfirmed) return;
+
+    $('#loader-overlay').show();
+    try {
+        const { data: items } = await supabaseClient.from('wr_items').select('*').eq('wr_id', id);
+        for(let item of items) {
+            const curr = invCache.find(i => i.material_code === item.material_code);
+            if(curr.current_stock < item.quantity_requested) throw new Error(`Insufficient stock for ${item.material_code}`);
+            
+            await supabaseClient.from('inventory').update({
+                current_stock: curr.current_stock - item.quantity_requested,
+                total_withdrawn: (curr.total_withdrawn || 0) + item.quantity_requested
+            }).eq('material_code', item.material_code);
+
+            await supabaseClient.from('stock_movements').insert({ material_code: item.material_code, change_amount: -item.quantity_requested, reason: `WR Approved: ${id}` });
+        }
+        await supabaseClient.from('withdrawal_requests').update({status: 'APPROVED'}).eq('wr_id', id);
+        await refreshAll();
+        Swal.fire('Approved', 'Stock released to fleet', 'success');
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally { $('#loader-overlay').hide(); }
+}
+
+async function handleDisposal(e) {
+    e.preventDefault();
+    const res = await Swal.fire({ title: 'Confirm Disposal', text: "This action cannot be undone. Stock will be reduced.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444' });
+    if(!res.isConfirmed) return;
+
+    $('#btn-disp-submit').prop('disabled', true);
+    try {
+        const mat = $('#disp-mat').val();
+        const qty = Number($('#disp-qty').val());
+        const reason = $('#disp-reason').val();
+        const curr = invCache.find(i => i.material_code === mat);
+        
+        if(curr.current_stock < qty) throw new Error('Insufficient stock for disposal');
+
+        const { data } = await supabaseClient.from('withdrawal_requests').insert([{
+            wr_number: 'DISP-'+Date.now(),
+            requester_name: `${$('#disp-auth').val()} (Disposal)`,
+            department: 'DISPOSAL',
+            status: 'APPROVED'
+        }]).select();
+
+        await supabaseClient.from('wr_items').insert([{ wr_id: data[0].wr_id, material_code: mat, quantity_requested: qty }]);
+        
+        await supabaseClient.from('inventory').update({ current_stock: curr.current_stock - qty }).eq('material_code', mat);
+        await supabaseClient.from('stock_movements').insert({ material_code: mat, change_amount: -qty, reason: `Disposal: ${reason}` });
+
+        e.target.reset();
+        await refreshAll();
+        Swal.fire('Recorded', 'Disposal logged successfully', 'success');
+
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally { $('#btn-disp-submit').prop('disabled', false); }
+}
+
+// --- MASTER DATA ---
+async function addMaster(table, idVal, idName) {
+    const v1 = $(`#${idVal}`).val().trim();
+    const v2 = idName ? $(`#${idName}`).val().trim() : null;
+    if(!v1) return;
     
-    const stockDisplay = document.getElementById('adjust-current-stock');
-    if(stockDisplay) stockDisplay.innerText = `${currentInventoryItem.stock} ${currentInventoryItem.unit}`;
+    try {
+        const payload = table === 'uoms' ? {code: v1, name: v2} : {name: v1};
+        const { error } = await supabaseClient.from(table).insert([payload]);
+        if(error) throw error;
+        
+        $(`#${idVal}, #${idName ? idName : idVal}`).val('');
+        loadMasterData();
+        const Toast = Swal.mixin({toast: true, position: 'top-end', showConfirmButton: false, timer: 3000});
+        Toast.fire({icon: 'success', title: 'Added successfully'});
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    }
+}
+
+async function deleteMaster(table, id) {
+    if(!(await Swal.fire({title:'Delete?', icon:'warning', showCancelButton:true})).isConfirmed) return;
+    const { error } = await supabaseClient.from(table).delete().eq('id', id);
+    if(error) Swal.fire('Error', 'Record likely in use. Cannot delete.', 'error');
+    else loadMasterData();
+}
+
+// --- NAVIGATION & HELPERS ---
+function nav(id) {
+    $('.nav-link').removeClass('active bg-slate-800 text-white').addClass('text-slate-400');
+    $('.nav-link i').removeClass('text-brand-400');
+    const btn = $(`.nav-link[onclick="nav('${id}')"]`);
+    btn.addClass('active bg-slate-800 text-white').removeClass('text-slate-400');
+    btn.find('i').addClass('text-brand-400');
+
+    $('#sidebar').addClass('-translate-x-full').removeClass('translate-x-0');
+
+    $('.page-section').fadeOut(150, function() {
+        if(this.id === id) {
+            $(this).fadeIn(200);
+            if(id === 'dashboard') setTimeout(() => Object.values(charts).forEach(c => c?.resize()), 50);
+        }
+    });
+}
+
+async function getPRs() {
+    const { data } = await supabaseClient.from('purchase_requests').select(`*, pr_items(*)`).order('created_at', {ascending:false}).limit(20);
+    $('#tbl-pr').html((data||[]).map(pr => `
+        <tr class="hover:bg-slate-50 border-b border-slate-100 text-sm">
+            <td class="p-4 font-mono font-bold text-brand-700">${pr.pr_number}</td>
+            <td class="p-4">${escapeHTML(pr.requester_name)}</td>
+            <td class="p-4 text-xs text-slate-500">${pr.pr_items.length} Items</td>
+            <td class="p-4 text-xs">${new Date(pr.created_at).toLocaleDateString()}</td>
+            <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${pr.status==='COMPLETED'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${pr.status}</span></td>
+            <td class="p-4 text-right">${pr.status==='PENDING' ? `<button onclick="processPR(${pr.pr_id})" class="text-emerald-600 font-bold hover:underline">Receive</button>` : '<i class="fas fa-check text-emerald-500"></i>'}</td>
+        </tr>
+    `).join(''));
+}
+
+async function getWRs() {
+    const { data } = await supabaseClient.from('withdrawal_requests').select(`*, wr_items(*)`).order('created_at', {ascending:false}).limit(20);
+    const disposals = (data||[]).filter(w => w.wr_number.startsWith('DISP'));
+    $('#tbl-disp-hist').html(disposals.map(d => `<tr><td class="p-4 font-mono font-bold">${d.wr_number}</td><td class="p-4 text-slate-600">${escapeHTML(d.requester_name)}</td><td class="p-4 text-xs text-slate-400">${new Date(d.created_at).toLocaleDateString()}</td></tr>`).join(''));
+
+    $('#tbl-wr').html((data||[]).filter(w => !w.wr_number.startsWith('DISP')).map(wr => `
+        <tr class="hover:bg-slate-50 border-b border-slate-100 text-sm">
+            <td class="p-4 font-mono font-bold text-brand-700">${wr.wr_number}</td>
+            <td class="p-4">${escapeHTML(wr.requester_name)} <div class="text-xs text-slate-400">${escapeHTML(wr.department)}</div></td>
+            <td class="p-4 text-xs text-slate-500">${wr.wr_items[0]?.material_code || '-'}</td>
+            <td class="p-4 text-xs">${new Date(wr.created_at).toLocaleDateString()}</td>
+            <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${wr.status==='APPROVED'?'bg-blue-100 text-brand-700':'bg-amber-100 text-amber-700'}">${wr.status}</span></td>
+            <td class="p-4 text-right">${wr.status==='PENDING' ? `<button onclick="processWR(${wr.wr_id})" class="text-brand-600 font-bold hover:underline">Approve</button>` : '<i class="fas fa-check text-brand-500"></i>'}</td>
+        </tr>
+    `).join(''));
+}
+
+// Modal & Form Helpers
+function openInventoryModal(mode, code) {
+    $('#inv-mode').val(mode);
+    $('#inv-modal-title').text(mode==='add'?'Add Part':'Edit Part');
+    $('#form-inventory')[0].reset();
+    clearImage();
     
-    const qtyInput = document.getElementById('adjust-qty');
-    qtyInput.value = '';
-    document.getElementById('adjust-reason').value = '';
-    
-    // Dynamic UI based on type
-    if (type === 'Out') {
-        qtyInput.max = currentInventoryItem.stock;
-        qtyInput.placeholder = `Max: ${currentInventoryItem.stock}`;
-        if(btnSubmit) {
-            btnSubmit.innerText = 'Confirm Deduction';
-            btnSubmit.className = "px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded font-bold transition shadow-lg w-full sm:w-auto";
+    // Default UI State: Upload Tab
+    toggleImgInput('upload');
+    $('input[name="img-src-type"][value="upload"]').prop('checked', true);
+
+    if(mode === 'edit') {
+        const item = invCache.find(i => i.material_code === code);
+        $('#i-code').val(item.material_code).prop('readonly', true).addClass('bg-slate-100');
+        $('#i-desc').val(item.description);
+        $('#i-cat').val(item.category);
+        $('#i-uom').val(item.uom);
+        $('#i-low').val(item.low_stock_threshold);
+        $('#div-init-stock').hide();
+        
+        // Handle Existing Image
+        if(item.image_link) {
+            $('#i-preview').attr('src', item.image_link);
+            $('#preview-container').removeClass('hidden');
+            $('#i-img-data').val(item.image_link);
+            
+            // Check if it's a URL or Base64
+            if(item.image_link.startsWith('http')) {
+                // Switch to URL tab
+                $('input[name="img-src-type"][value="url"]').prop('checked', true);
+                toggleImgInput('url');
+                $('#i-url-input').val(item.image_link);
+            }
         }
     } else {
-         qtyInput.removeAttribute('max');
-         qtyInput.placeholder = `Qty to add`;
-         if(btnSubmit) {
-             btnSubmit.innerText = 'Confirm Addition';
-             btnSubmit.className = "px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold transition shadow-lg w-full sm:w-auto";
-         }
+        $('#i-code').prop('readonly', false).removeClass('bg-slate-100');
+        $('#div-init-stock').show();
     }
-
-    modal.classList.add('open');
-    setTimeout(() => qtyInput.focus(), 100);
+    openModal('m-inventory');
 }
 
-async function submitStockAdjustment(e) {
+function openStockAdjustModal(code) {
+    const item = invCache.find(i => i.material_code === code);
+    $('#adj-code').val(code);
+    $('#adj-name').text(item.description);
+    $('#adj-current').text(formatNum(item.current_stock));
+    $('#adj-qty, #adj-reason').val('');
+    openModal('m-stock-adjust');
+}
+
+async function submitAdjustment(e) {
     e.preventDefault();
-    const id = parseInt(document.getElementById('adjust-item-id').value);
-    const type = document.getElementById('adjust-type').value;
-    const qty = parseInt(document.getElementById('adjust-qty').value);
-    const reason = document.getElementById('adjust-reason').value.trim();
+    const code = $('#adj-code').val(), qty = parseInt($('#adj-qty').val());
+    if(!qty) return;
 
-    if (isNaN(qty) || qty <= 0) return showToast('Invalid quantity.', 'error');
-    if (!reason) return showToast('Reason is required.', 'error');
+    const item = invCache.find(i => i.material_code === code);
+    await supabaseClient.from('inventory').update({current_stock: item.current_stock + qty}).eq('material_code', code);
+    await supabaseClient.from('stock_movements').insert({material_code: code, change_amount: qty, reason: "Adj: "+$('#adj-reason').val()});
+    closeModal('m-stock-adjust');
+    await refreshAll();
+    Swal.fire('Updated', 'Stock adjusted manually', 'success');
+}
 
-    try {
-        let item = await dbAction('inventory', 'readonly', store => store.get(id));
-        let newStock = item.stock;
-        
-        if (type === 'Out') {
-            if (newStock < qty) return showToast('Insufficient stock.', 'error');
-            newStock -= qty;
-        } else {
-            newStock += qty;
-        }
+async function delItem(code) {
+    if((await Swal.fire({title:'Archive Item?', text:'Hides item from active lists.', icon:'warning', showCancelButton:true})).isConfirmed) {
+        await supabaseClient.from('inventory').update({status:'ARCHIVED'}).eq('material_code', code);
+        refreshAll();
+    }
+}
+async function restoreItem(code) {
+    await supabaseClient.from('inventory').update({status:'ACTIVE'}).eq('material_code', code);
+    refreshAll();
+}
 
-        item.stock = newStock;
-        await dbAction('inventory', 'readwrite', store => store.put(item));
-        
-        const actionStr = type === 'In' ? 'STOCK_IN' : 'STOCK_OUT';
-        const msg = `${type.toUpperCase()} ${qty} ${item.unit}. Ref: ${reason}. Bal: ${newStock}`;
-        await logAction(actionStr, `${item.code}: ${msg}`);
-        
-        showToast('Stock Adjusted.', 'success');
-        if(typeof closeModal === 'function') closeModal('stock-adjust-modal');
-        renderInventory();
-        if(typeof renderDashboard === 'function') renderDashboard();
-    } catch (error) {
-        console.error("Stock adjust error:", error);
-        showToast('System Error during adjustment.', 'error');
+// Misc Helpers
+function openModal(id) { $(`#${id}`).removeClass('hidden').css('display','flex').hide().fadeIn(200); setTimeout(()=> $(`#${id} > div`).removeClass('scale-95'), 10); }
+function closeModal(id) { $(`#${id} > div`).addClass('scale-95'); $(`#${id}`).fadeOut(200, function(){ $(this).addClass('hidden'); }); }
+function filterInventory() { renderInventoryTable(); }
+function toggleArchivedView() { appSettings.showArchived = !appSettings.showArchived; $('#btn-show-archived').toggleClass('bg-slate-200'); refreshAll(); }
+function updateItemSelects() {
+    const opts = '<option value="">-- Select Item --</option>' + invCache.filter(x=>x.status!=='ARCHIVED').map(i => `<option value="${i.material_code}">${i.material_code} - ${i.description}</option>`).join('');
+    $('#pr-mat, #wr-mat, #disp-mat').html(opts);
+}
+
+// --- IMAGE HANDLING V2 (ATTACHMENT LOGIC) ---
+
+// Toggle between Upload Dropzone and URL Input
+function toggleImgInput(type) {
+    if(type === 'upload') {
+        $('#img-input-upload').removeClass('hidden');
+        $('#img-input-url').addClass('hidden');
+    } else {
+        $('#img-input-upload').addClass('hidden');
+        $('#img-input-url').removeClass('hidden');
     }
 }
 
-// --- Export to CSV ---
-
-async function downloadInventoryCSV() {
-    try {
-        const items = await dbAction('inventory', 'readonly', store => store.getAll());
-        if(!items || items.length === 0) return showToast("No data to export", "info");
-
-        // Define Headers
-        const headers = ["ID", "Code", "Name", "Category", "Stock", "Unit", "Location"];
-        
-        // Convert Items to CSV rows
-        const csvRows = [headers.join(',')];
-        
-        items.forEach(item => {
-            const row = [
-                item.id,
-                `"${(item.code || '').replace(/"/g, '""')}"`,
-                `"${(item.name || '').replace(/"/g, '""')}"`,
-                `"${(item.category || '')}"`,
-                item.stock,
-                item.unit,
-                `"${(item.location || '')}"`
-            ];
-            csvRows.push(row.join(','));
-        });
-
-        const csvString = csvRows.join('\n');
-        const blob = new Blob([csvString], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        
-        const dateStr = new Date().toISOString().split('T')[0];
-        a.setAttribute('hidden', '');
-        a.setAttribute('href', url);
-        a.setAttribute('download', `inventory_export_${dateStr}.csv`);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        showToast("Inventory Exported", "success");
-    } catch (e) {
-        console.error("Export failed", e);
-        showToast("Failed to export data", "error");
+// Handle pasting an image URL
+function handleUrlInput(val) {
+    if(val && val.trim().length > 0) {
+        $('#i-preview').attr('src', val);
+        $('#preview-container').removeClass('hidden');
+        $('#i-img-data').val(val);
+    } else {
+        $('#preview-container').addClass('hidden');
+        $('#i-img-data').val('');
     }
+}
+
+// Handle File Selection (Input or Drop)
+async function handleImageFile(input) {
+    if (input.files && input.files[0]) {
+        try {
+            // Client-side compression
+            const compressedBase64 = await compressImage(input.files[0]);
+            
+            // Update Preview
+            $('#i-preview').attr('src', compressedBase64);
+            $('#preview-container').removeClass('hidden');
+            
+            // Populate hidden field for saving
+            $('#i-img-data').val(compressedBase64); 
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Error', 'Could not process image', 'error');
+            clearImage();
+        }
+    }
+}
+
+// Client-side Compression Utility
+function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800; // Resize to max 800px width
+                const scaleSize = MAX_WIDTH / img.width;
+                const finalWidth = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
+                const finalHeight = (img.width > MAX_WIDTH) ? (img.height * scaleSize) : img.height;
+                
+                canvas.width = finalWidth;
+                canvas.height = finalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
+                
+                // Export as JPEG quality 0.7
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+            };
+            img.onerror = reject;
+        };
+        reader.onerror = reject;
+    });
+}
+
+function clearImage() {
+    $('#i-file').val('');
+    $('#i-url-input').val('');
+    $('#i-img-data').val('');
+    $('#i-preview').attr('src', '');
+    $('#preview-container').addClass('hidden');
+}
+// --- END IMAGE HANDLING ---
+
+function switchTab(id) { $('.tab-btn').removeClass('active border-brand-600 text-brand-600').addClass('border-transparent text-slate-500'); $(event.target).removeClass('border-transparent text-slate-500').addClass('active border-brand-600 text-brand-600'); $('.tab-content').addClass('hidden'); $(`#${id}`).removeClass('hidden'); }
+function openLightbox(src) { $('#lightbox-img').attr('src', src); openModal('m-lightbox'); }
+
+function checkStockAvailability(code) {
+    const hint = $('#wr-stock-hint');
+    if(!code) { hint.css('opacity', 0); return; }
+    
+    const item = invCache.find(i => i.material_code === code);
+    if(item) {
+        let cls = 'stock-badge-good';
+        if(item.current_stock <= 0) cls = 'stock-badge-out';
+        else if(item.current_stock <= item.low_stock_threshold) cls = 'stock-badge-low';
+        
+        hint.html(`<span class="${cls}">Available Stock: ${formatNum(item.current_stock)} ${item.uom}</span>`);
+        hint.css('opacity', 1);
+        $('#wr-qty').attr('max', item.current_stock);
+    }
+}
+
+function viewItemHistory(code) {
+    const history = movementCache.filter(m => m.material_code === code).reverse();
+    const item = invCache.find(i => i.material_code === code);
+    
+    let html = '';
+    if(history.length === 0) html = '<tr><td colspan="3" class="p-4 text-center text-slate-400">No movements recorded.</td></tr>';
+    else {
+        html = history.map(h => `
+            <tr class="border-b border-slate-200">
+                <td class="p-3 text-slate-500">${new Date(h.created_at).toLocaleDateString()}</td>
+                <td class="p-3 text-slate-700 font-medium">${escapeHTML(h.reason)}</td>
+                <td class="p-3 text-right font-bold ${h.change_amount > 0 ? 'text-emerald-600' : 'text-red-600'}">
+                    ${h.change_amount > 0 ? '+' : ''}${h.change_amount}
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    $('#tbl-item-history').html(html);
+    openModal('m-item-history');
 }
