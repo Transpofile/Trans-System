@@ -1,638 +1,443 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Withdrawal Portal | TRANS-SYSTEM</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Withdrawal Portal</title>
     
-    <!-- Libraries -->
+    <!-- CDNs -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- Supabase JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Confetti -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Tailwind Config -->
+    <!-- Tailwind Config (Matches Main System) -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
                     colors: {
-                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
-                        accent: { 500: '#6366f1', 600: '#4f46e5' }
-                    },
-                    boxShadow: {
-                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-                        'floating': '0 20px 40px -10px rgba(0,0,0,0.15)',
-                    },
-                    animation: {
-                        'blob': 'blob 7s infinite',
-                        'slide-in': 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                    },
-                    keyframes: {
-                        blob: {
-                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        royal: { 
+                            50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 
+                            700:'#1d4ed8', 800:'#1e40af', 900:'#1e3a8a' 
                         },
-                        slideIn: {
-                            '0%': { opacity: 0, transform: 'translateY(15px)' },
-                            '100%': { opacity: 1, transform: 'translateY(0)' },
-                        }
-                    }
+                        slate: { 850: '#151e2e' }
+                    },
+                    fontFamily: { sans: ['"Roboto"', 'sans-serif'] }
                 }
             }
         }
     </script>
-    
+
     <style>
-        body { background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
-        
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
-        #loader-overlay {
-            position: fixed; inset: 0; z-index: 100;
-            background: #ffffff;
-            display: flex; justify-content: center; align-items: center;
-            transition: opacity 0.5s ease;
-        }
-        .loader-dot {
-            width: 15px; height: 15px; background: #4f46e5; border-radius: 50%;
-            margin: 0 5px; animation: loaderBounce 1.4s infinite ease-in-out both;
-        }
-        .loader-dot:nth-child(1) { animation-delay: -0.32s; }
-        .loader-dot:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes loaderBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-        
-        .input-animated { transition: all 0.3s ease; }
-        .input-animated:focus { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15); }
+        body { background-color: #f1f5f9; }
+        .glass-panel { background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-radius: 12px; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+        .scan-anim { animation: pulse-border 2s infinite; }
+        @keyframes pulse-border { 0% { border-color: #3b82f6; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); } 70% { border-color: #3b82f6; box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); } 100% { border-color: #3b82f6; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
     </style>
 </head>
-<body class="text-slate-800 pb-32" onclick="closeAllDropdowns(event)">
-
-    <!-- Loader -->
-    <div id="loader-overlay">
-        <div class="flex flex-col items-center">
-            <div class="flex mb-4">
-                <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
-            </div>
-            <p class="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase" id="loader-text">Initializing...</p>
-        </div>
-    </div>
-
-    <!-- Background -->
-    <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div class="absolute top-0 left-0 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div class="absolute top-0 right-0 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-    </div>
+<body class="text-slate-700 h-screen flex flex-col">
 
     <!-- Header -->
-    <header class="glass-panel sticky top-0 z-40 shadow-sm">
-        <div class="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
+    <header class="bg-slate-900 text-white shadow-lg z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent-600 to-purple-600 flex items-center justify-center shadow-lg text-white">
-                    <i class="fas fa-cubes text-lg"></i>
+                <div class="w-10 h-10 rounded bg-royal-600 flex items-center justify-center text-white shadow-lg">
+                    <i class="fas fa-dolly text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight text-slate-800">Trans-System</h1>
-                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Withdrawal Portal</p>
+                    <h1 class="text-xl font-bold tracking-wide">Withdrawal Portal</h1>
+                    <p class="text-xs text-slate-400 uppercase font-semibold tracking-wider">Direct Stock Issue</p>
                 </div>
             </div>
-            <div id="gps-badge" class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-slate-400" id="gps-dot"></div>
-                <span class="text-[10px] font-bold text-slate-500" id="gps-text">LOCATING...</span>
-            </div>
+           <!-- <a href="Trans-System.html" class="text-sm bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-full transition border border-slate-700">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard -->
+            </a>
         </div>
     </header>
 
-    <main class="max-w-3xl mx-auto px-4 mt-6 space-y-6 relative">
-
-        <!-- Offline/Demo Alert -->
-        <div id="offline-alert" class="hidden bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 rounded-r shadow-md mb-4" role="alert">
-            <p class="font-bold text-xs uppercase">Demo Mode Active</p>
-            <p class="text-sm">Database connection failed (check keys/permissions). Using local demo data.</p>
-        </div>
-
-        <!-- Scanner Alert -->
-        <div id="scan-alert" class="hidden transform transition-all duration-500">
-            <div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-4 text-white shadow-xl flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <i class="fas fa-qrcode text-xl"></i>
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT COLUMN: INPUT FORM -->
+        <div class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Requester Info -->
+            <div class="glass-panel p-6">
+                <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center">
+                    <span class="w-8 h-8 rounded-full bg-royal-100 text-royal-600 flex items-center justify-center mr-3 text-sm">1</span>
+                    Recipient Details
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Select Designation</label>
+                        <select id="w-dept" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-royal-500 focus:border-royal-500 bg-slate-50">
+                            <option value="">Loading Departments...</option>
+                        </select>
                     </div>
                     <div>
-                        <p class="text-[10px] font-bold opacity-75 uppercase">Auto-Added Item</p>
-                        <p class="font-bold text-lg leading-none" id="scan-msg">...</p>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Withdrawer Name</label>
+                        <input type="text" id="w-name" placeholder="e.g. John Doe" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-royal-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Transaction Refference Number</label>
+                        <input type="text" id="w-ref" readonly class="w-full p-3 bg-slate-100 text-slate-500 border border-slate-200 rounded-lg font-mono font-bold">
                     </div>
                 </div>
-                <button type="button" onclick="$('#scan-alert').slideUp()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
-                    <i class="fas fa-times"></i>
-                </button>
+            </div>
+
+            <!-- Item Selection -->
+            <div class="glass-panel p-6 flex-1">
+                <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center">
+                    <span class="w-8 h-8 rounded-full bg-royal-100 text-royal-600 flex items-center justify-center mr-3 text-sm">2</span>
+                    Select Items
+                </h3>
+                
+                <div class="relative mb-4">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Search Item</label>
+                    <select id="w-item-select" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-royal-500 bg-white" onchange="checkStock(this.value)">
+                        <option value="">-- Choose Material --</option>
+                    </select>
+                </div>
+
+                <!-- Live Stock Display -->
+                <div id="stock-display" class="hidden mb-4 p-4 rounded-lg bg-royal-50 border border-royal-100 flex justify-between items-center transition-all">
+                    <div>
+                        <p class="text-xs text-royal-600 font-bold uppercase">Available Stock</p>
+                        <p class="text-2xl font-bold text-royal-800" id="stock-qty-display">0</p>
+                        <p class="text-xs text-slate-500" id="stock-uom-display">PCS</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-slate-500 font-bold uppercase mb-1">Shelf Location</p>
+                        <span class="px-2 py-1 bg-white rounded text-xs border border-royal-200 font-mono">A-12</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 items-end">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantity to Issue</label>
+                        <input type="number" id="w-qty" min="1" value="1" class="w-full p-3 border border-slate-300 rounded-lg font-bold text-lg text-center">
+                    </div>
+                    <button onclick="addToCart()" class="h-[52px] px-6 bg-royal-600 hover:bg-royal-700 text-white font-bold rounded-lg shadow-md transition flex items-center">
+                        <i class="fas fa-plus mr-2"></i> Add
+                    </button>
+                </div>
+                <p id="error-msg" class="text-red-500 text-xs mt-2 font-bold h-4"></p>
             </div>
         </div>
 
-        <form id="withdrawal-form" class="space-y-6">
-            
-            <!-- Items Section -->
-            <section class="glass-panel rounded-3xl p-1 shadow-glass relative z-20 overflow-visible">
-                <div class="bg-white/50 rounded-[20px] p-5 overflow-visible">
+        <!-- RIGHT COLUMN: CART & SUMMARY -->
+        <div class="lg:col-span-7 flex flex-col h-full">
+            <div class="glass-panel flex flex-col h-full overflow-hidden">
+                <div class="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-list-alt text-slate-400 mr-2"></i> Items to Withdraw
+                    </h3>
+                   <!-- <button onclick="clearCart()" class="text-xs text-red-500 hover:text-red-700 font-medium">Clear All</button>-->
+                </div>
+
+                <!-- Table Header -->
+                <div class="grid grid-cols-12 bg-slate-100 text-xs font-bold text-slate-500 uppercase py-3 px-4 border-b border-slate-200">
+                    <div class="col-span-2">Code</div>
+                    <div class="col-span-5">Description</div>
+                    <div class="col-span-3 text-center">Qty</div>
+                    <div class="col-span-2 text-right">Action</div>
+                </div>
+
+                <!-- Table Body (Scrollable) -->
+                <div class="flex-1 overflow-y-auto bg-white" id="cart-container">
+                    <!-- Empty State -->
+                    <div id="empty-cart" class="h-full flex flex-col items-center justify-center text-slate-300 opacity-60">
+                        <i class="fas fa-box-open text-6xl mb-4"></i>
+                        <p class="font-medium">No items added yet</p>
+                    </div>
+                    <!-- Items will be injected here via JS -->
+                    <div id="cart-list"></div>
+                </div>
+
+                <!-- Footer / Action -->
+                <div class="p-6 bg-slate-50 border-t border-slate-200">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                            <i class="fas fa-shopping-basket text-accent-500"></i> Selected Items
-                        </h2>
-                        <button type="button" onclick="addItemRow()" 
-                            class="group bg-slate-100 hover:bg-accent-50 text-slate-600 hover:text-accent-600 text-xs font-bold py-2 px-4 rounded-xl transition-all border border-slate-200 flex items-center gap-2">
-                            <i class="fas fa-plus transform group-hover:rotate-180 transition-transform duration-300"></i> 
-                            Add Row
-                        </button>
+                        <span class="text-sm font-medium text-slate-500">Total Items:</span>
+                        <span id="total-items-count" class="text-xl font-bold text-royal-800">0</span>
                     </div>
-                    
-                    <div id="items-container" class="space-y-3 min-h-[100px] overflow-visible">
-                        <!-- Dynamic Rows -->
-                    </div>
-
-                    <div id="empty-state" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl mt-4">
-                        <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300">
-                            <i class="fas fa-box-open text-2xl"></i>
-                        </div>
-                        <p class="text-slate-400 text-sm font-medium">Cart is empty</p>
-                    </div>
+                    <button onclick="processTransaction()" id="btn-process" disabled class="w-full py-4 bg-slate-300 text-slate-500 font-bold rounded-lg shadow-sm text-lg transition cursor-not-allowed">
+                        Process Withdrawal
+                    </button>
                 </div>
-            </section>
-
-            <!-- Requester Info -->
-            <section class="glass-panel rounded-3xl p-6 shadow-glass relative z-10">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-500">
-                        <i class="fas fa-id-card"></i>
-                    </div>
-                    <h2 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider">Requester Info</h2>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Your Name</label>
-                        <div class="relative">
-                            <i class="fas fa-user absolute left-4 top-4 text-slate-300"></i>
-                            <input type="text" id="req-name" required placeholder="Full Name" 
-                                class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Department</label>
-                        <div class="relative">
-                            <i class="fas fa-building absolute left-4 top-4 text-slate-300"></i>
-                            <select id="req-dept" required 
-                                class="input-animated w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none appearance-none cursor-pointer">
-                                <option value="" disabled selected>Loading...</option>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-4 top-4 text-xs text-slate-300 pointer-events-none"></i>
-                        </div>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Reason / Work Order</label>
-                        <textarea id="req-reason" rows="2" placeholder="Briefly describe usage..." 
-                            class="input-animated w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 outline-none resize-none"></textarea>
-                    </div>
-                </div>
-            </section>
-            
-            <div class="h-6"></div>
-        </form>
+            </div>
+        </div>
     </main>
 
-    <!-- Bottom Bar -->
-    <div class="fixed bottom-0 left-0 w-full glass-panel border-t border-slate-200/50 pb-6 pt-4 px-6 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
-            <div class="hidden sm:block">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">Total Items</p>
-                <p class="text-xl font-bold text-slate-800" id="total-count-display">0</p>
-            </div>
-            <button onclick="$('#withdrawal-form').submit()" id="submit-btn" 
-                class="flex-1 bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-500/30 hover:bg-slate-900 active:scale-[0.98] transition-all flex items-center justify-center gap-3 text-sm group disabled:opacity-70 disabled:cursor-not-allowed">
-                <span>Confirm Withdrawal</span>
-                <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-4">
-        <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 min-w-[280px]">
-            <i id="toast-icon" class="text-lg text-emerald-400"></i>
-            <span id="toast-msg" class="text-sm font-medium">Notification</span>
-        </div>
-    </div>
-
+    <!-- LOGIC SCRIPT -->
     <script>
-        // ==========================================
-        // CONFIGURATION (UPDATE THESE KEYS!)
-        // ==========================================
-        const SUPABASE_URL = 'https://airrabkojxzzilgdcraz.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcnJhYmtvanh6emlsZ2RjcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjY4MjEsImV4cCI6MjA3NDQ0MjgyMX0._XUe8Mk7jjY4RGyzaJ44mN5slfIP8pPYLNjcJYQkg-g';
-        // ==========================================
+        // --- CONFIGURATION (MUST MATCH MAIN FILE) ---
+        const SB_URL = 'https://agggkqvbnotpborqcitx.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZ2drcXZibm90cGJvcnFjaXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwODYxNjgsImV4cCI6MjA4MTY2MjE2OH0.XJHmLfRRJHVhsrImqnRpdwt7eN4eiO1VGk6B68uG5oo';
+        
+        const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+        
+        // --- STATE ---
+        let inventory = [];
+        let cart = [];
 
-        let supabase;
-        let isOffline = false;
-        let inventoryList = [];
-        let collectedDeviceData = {};
-
-        // 1. Initialize Supabase
-        try {
-            if(SUPABASE_URL.includes('YOUR_PROJECT')) {
-                throw new Error("Missing Credentials");
-            }
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } catch(e) {
-            console.warn("Supabase Init Failed (Keys missing or invalid). Switching to Demo Mode.");
-            isOffline = true;
-        }
-
-        // 2. Remove Loader Helper
-        function removeLoader() {
-            $('#loader-overlay').fadeOut(400);
-        }
-
-        // 3. Main Start
         $(document).ready(async () => {
-            // Force remove loader after 2.5s to prevent getting stuck
-            setTimeout(removeLoader, 2500);
-
-            initGPS();
-            await loadDataSafe();
-
-            // Handle URL ID scanning
-            const urlParams = new URLSearchParams(window.location.search);
-            const scannedId = urlParams.get('id');
-            
-            if(scannedId && inventoryList.length > 0) {
-                const item = inventoryList.find(i => i.id == scannedId);
-                if(item) {
-                    addItemRow(item.id);
-                    $('#scan-msg').text(item.name);
-                    $('#scan-alert').removeClass('hidden');
-                    setTimeout(() => $('#scan-alert').slideUp(), 5000);
-                } else {
-                    addItemRow(); 
-                }
-            } else {
-                addItemRow(); 
-            }
-            
-            // Ensure loader is gone
-            removeLoader();
+            initSystem();
         });
 
-        // 4. Data Loading (Robust with Fallback)
-        async function loadDataSafe() {
+        async function initSystem() {
+            generateRef();
+            await loadData();
+        }
+
+        function generateRef() {
+            $('#w-ref').val('WR-' + Date.now().toString().slice(-6));
+        }
+
+        async function loadData() {
             try {
-                if(isOffline) throw new Error("Offline Mode forced");
+                // 1. Load Departments
+                const { data: depts } = await supabaseClient.from('departments').select('*').order('name');
+                if(depts) {
+                    $('#w-dept').html('<option value="">Select Designation</option>' + 
+                        depts.map(d => `<option value="${d.name}">${d.name}</option>`).join(''));
+                }
 
-                // Fetch Departments
-                const { data: config, error: configError } = await supabase.from('master_data').select('*').eq('key', 'config').single();
-                if(configError) throw configError;
+                // 2. Load Active Inventory
+                const { data: inv } = await supabaseClient.from('inventory').select('*').neq('status', 'ARCHIVED').gt('current_stock', 0);
+                inventory = inv || [];
 
-                let depts = (config && config.data && config.data.departments) ? config.data.departments : ['General'];
-                
-                $('#req-dept').empty().append('<option value="" disabled selected>Select Department</option>');
-                depts.forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
+                populateItemSelect();
 
-                // Fetch Inventory
-                const { data: inv, error: invError } = await supabase.from('inventory').select('*').gt('stock', 0).order('name');
-                if(invError) throw invError;
-                
-                inventoryList = inv || [];
-
-            } catch (err) {
-                console.error("Data Load Error:", err);
-                activateDemoMode();
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Connection Error', 'Failed to load system data.', 'error');
             }
         }
 
-        function activateDemoMode() {
-            isOffline = true;
-            $('#offline-alert').removeClass('hidden');
-            $('#req-dept').empty().append('<option value="" disabled selected>Select Dept (Demo)</option>');
-            ['Maintenance', 'Operations', 'IT', 'Demo Dept'].forEach(d => $('#req-dept').append(`<option value="${d}">${d}</option>`));
-
-            // Dummy Inventory
-            inventoryList = [
-                { id: 1, name: 'Demo Hammer', stock: 10, unit: 'pcs' },
-                { id: 2, name: 'Safety Goggles', stock: 50, unit: 'pairs' },
-                { id: 3, name: 'Drill Battery', stock: 5, unit: 'pcs' },
-                { id: 4, name: 'Cat 6 Cable', stock: 100, unit: 'meters' }
-            ];
+        function populateItemSelect() {
+            let html = '<option value="">-- Choose Material --</option>';
+            inventory.forEach(item => {
+                html += `<option value="${item.material_code}">${item.material_code} - ${item.description}</option>`;
+            });
+            $('#w-item-select').html(html);
         }
 
-        // 5. GPS & Device Info
-        async function initGPS() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        collectedDeviceData.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                        $('#gps-dot').removeClass('bg-slate-400').addClass('bg-emerald-500 animate-pulse');
-                        $('#gps-text').text('SECURED').addClass('text-emerald-600');
-                        $('#gps-badge').addClass('border-emerald-200 bg-emerald-50');
-                    },
-                    (err) => { 
-                        $('#gps-dot').addClass('bg-orange-500'); 
-                        $('#gps-text').text('GPS OFF').addClass('text-orange-500'); 
-                    }
-                );
+        // --- UI LOGIC ---
+
+        function checkStock(code) {
+            $('#error-msg').text('');
+            if(!code) {
+                $('#stock-display').addClass('hidden');
+                return;
             }
-            try {
-                // Short timeout for IP fetch so it doesn't block
-                const controller = new AbortController();
-                setTimeout(() => controller.abort(), 1000); 
-                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                const data = await res.json();
-                collectedDeviceData.ip = data.ip;
-            } catch(e) { collectedDeviceData.ip = "Unknown"; }
+            const item = inventory.find(i => i.material_code === code);
+            if(item) {
+                $('#stock-qty-display').text(item.current_stock);
+                $('#stock-uom-display').text(item.uom);
+                $('#stock-display').removeClass('hidden');
+                
+                // Visual feedback if low
+                if(item.current_stock <= item.low_stock_threshold) {
+                    $('#stock-display').removeClass('bg-royal-50 border-royal-100').addClass('bg-amber-50 border-amber-200');
+                    $('#stock-qty-display').addClass('text-amber-600').removeClass('text-royal-800');
+                } else {
+                    $('#stock-display').addClass('bg-royal-50 border-royal-100').removeClass('bg-amber-50 border-amber-200');
+                    $('#stock-qty-display').removeClass('text-amber-600').addClass('text-royal-800');
+                }
+            }
         }
 
-        // 6. UI Logic (Dropdowns & Rows)
-        function addItemRow(preId = null) {
-            $('#empty-state').hide();
-            const rowId = 'row-' + Date.now() + Math.floor(Math.random() * 1000);
+        function addToCart() {
+            const code = $('#w-item-select').val();
+            const qty = parseInt($('#w-qty').val());
+
+            // Validation
+            $('#error-msg').text('');
+            if(!code) return $('#error-msg').text('Please select an item.');
+            if(isNaN(qty) || qty <= 0) return $('#error-msg').text('Invalid quantity.');
+
+            const item = inventory.find(i => i.material_code === code);
             
-            // Build Dropdown List
-            let listItemsHtml = '';
-            if(inventoryList.length === 0) {
-                listItemsHtml = `<div class="p-4 text-center text-xs text-slate-400">No items available</div>`;
+            // Check real stock
+            if(qty > item.current_stock) return $('#error-msg').text(`Only ${item.current_stock} available.`);
+
+            // Check if already in cart
+            const existing = cart.find(c => c.code === code);
+            if(existing) {
+                if(existing.qty + qty > item.current_stock) {
+                    return $('#error-msg').text(`Total cart quantity exceeds stock.`);
+                }
+                existing.qty += qty;
             } else {
-                inventoryList.forEach(i => {
-                    listItemsHtml += `
-                        <div class="dropdown-item p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex items-center gap-3 transition-colors last:border-0 group" 
-                             onclick="selectItem('${rowId}', ${i.id})"
-                             data-name="${i.name.toLowerCase()}">
-                            <div class="flex-1 min-w-0">
-                                <p class="text-xs font-bold text-slate-700 truncate">${i.name}</p>
-                                <div class="flex items-center gap-2 mt-0.5">
-                                    <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${i.unit}</span>
-                                    <span class="text-[10px] text-slate-400">Stock: ${i.stock}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                cart.push({
+                    code: item.material_code,
+                    name: item.description,
+                    qty: qty,
+                    uom: item.uom,
+                    max: item.current_stock
                 });
             }
 
-            // Pre-selection Logic
-            let initialDisplay = `
-                <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 mr-3 shrink-0">
-                    <i class="fas fa-search"></i>
-                </div>
-                <div class="flex-1 text-left overflow-hidden">
-                    <span class="block text-xs font-bold text-slate-400 truncate">Select Item...</span>
-                    <span class="block text-[10px] text-slate-300">Tap to search</span>
-                </div>
-            `;
-            let hiddenVal = "";
+            renderCart();
+            // Reset input
+            $('#w-qty').val(1);
+        }
 
-            if(preId) {
-                const item = inventoryList.find(i => i.id == preId);
-                if(item) {
-                    hiddenVal = item.id;
-                    initialDisplay = renderItemDisplay(item);
-                }
-            }
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
 
-            const html = `
-                <div id="${rowId}" class="item-row animate-slide-in bg-white border border-slate-100 p-4 rounded-2xl relative shadow-sm group hover:border-accent-200 transition-colors z-10">
-                    <button type="button" onclick="removeRow('${rowId}')" 
-                        class="absolute -top-2 -right-2 bg-white text-slate-300 hover:text-red-500 w-7 h-7 rounded-full shadow-md flex items-center justify-center border border-slate-100 transition-all z-10 hover:scale-110">
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
-                    
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <div class="flex-1 relative">
-                            <input type="hidden" class="item-select-value" value="${hiddenVal}">
-                            
-                            <button type="button" class="dropdown-trigger w-full bg-slate-50 border border-slate-200 rounded-xl p-2 flex items-center transition-all hover:bg-white focus:ring-2 focus:ring-accent-500/20" onclick="toggleDropdown('${rowId}', event)">
-                                ${initialDisplay}
-                                <i class="fas fa-chevron-down text-xs text-slate-300 ml-2"></i>
-                            </button>
+        function clearCart() {
+            cart = [];
+            renderCart();
+        }
 
-                            <div id="dropdown-${rowId}" class="custom-dropdown hidden absolute top-full left-0 w-full bg-white border border-slate-200 shadow-floating rounded-xl z-[60] mt-2 flex flex-col max-h-[250px] overflow-hidden">
-                                <div class="p-2 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
-                                    <input type="text" class="w-full text-xs pl-3 pr-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-accent-500 bg-white" 
-                                           placeholder="Search..." onkeyup="filterDropdown(this)">
-                                </div>
-                                <div class="overflow-y-auto flex-1 custom-scrollbar">
-                                    ${listItemsHtml}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="w-full sm:w-32 flex flex-col justify-center">
-                            <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 p-1">
-                                <button type="button" onclick="stepQty('${rowId}', -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600"><i class="fas fa-minus text-[10px]"></i></button>
-                                <input type="number" min="1" value="1" oninput="validateQty(this); updateTotal()" 
-                                    class="qty-input w-full bg-transparent text-center text-sm font-bold text-slate-700 outline-none mx-1" required>
-                                <button type="button" onclick="stepQty('${rowId}', 1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-lg text-slate-500 shadow-sm hover:text-accent-600"><i class="fas fa-plus text-[10px]"></i></button>
-                            </div>
-                            <p class="qty-error text-[10px] text-red-500 font-bold mt-1 text-center hidden">Limit Exceeded</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+        function renderCart() {
+            const container = $('#cart-list');
+            const empty = $('#empty-cart');
+            const btn = $('#btn-process');
             
-            const $row = $(html);
-            $('#items-container').append($row);
-            if(preId) {
-                const item = inventoryList.find(i => i.id == preId);
-                if(item) updateRowLimit($row, item);
-            }
-            updateTotal();
-        }
-
-        function renderItemDisplay(item) {
-            return `
-                <div class="flex-1 min-w-0 text-left">
-                    <span class="block text-xs font-bold text-slate-700 truncate">${item.name}</span>
-                    <span class="block text-[10px] text-accent-500 font-medium">${item.stock} ${item.unit} available</span>
-                </div>
-            `;
-        }
-
-        // Dropdown & Input Event Handlers
-        function toggleDropdown(rowId, event) {
-            event.stopPropagation();
-            $('.item-row').removeClass('z-50').addClass('z-10');
-            $('.custom-dropdown').not(`#dropdown-${rowId}`).addClass('hidden');
-            const $target = $(`#dropdown-${rowId}`);
-            if ($target.hasClass('hidden')) {
-                $target.removeClass('hidden');
-                $(`#${rowId}`).removeClass('z-10').addClass('z-50');
-                setTimeout(() => $target.find('input').focus(), 100);
-            } else {
-                $target.addClass('hidden');
-                $(`#${rowId}`).removeClass('z-50').addClass('z-10');
-            }
-        }
-
-        function closeAllDropdowns(event) {
-            if (!$(event.target).closest('.custom-dropdown, .dropdown-trigger').length) {
-                $('.custom-dropdown').addClass('hidden');
-                $('.item-row').removeClass('z-50').addClass('z-10');
-            }
-        }
-
-        function filterDropdown(input) {
-            const term = $(input).val().toLowerCase();
-            const $container = $(input).closest('.custom-dropdown');
-            let found = 0;
-            $container.find('.dropdown-item').each(function() {
-                const name = $(this).data('name');
-                if(name.includes(term)) { $(this).removeClass('hidden'); found++; } 
-                else { $(this).addClass('hidden'); }
-            });
-            $container.find('.no-results').remove();
-            if(found === 0) $container.find('.custom-scrollbar').append('<div class="no-results p-4 text-center text-xs text-slate-400">No items found</div>');
-        }
-
-        function selectItem(rowId, itemId) {
-            const item = inventoryList.find(i => i.id === itemId);
-            if (!item) return;
-            const $row = $(`#${rowId}`);
-            $row.find('.item-select-value').val(item.id);
-            $row.find('.dropdown-trigger').html(renderItemDisplay(item) + '<i class="fas fa-check text-emerald-500 text-xs ml-2"></i>');
-            $row.find('.custom-dropdown').addClass('hidden');
-            $row.removeClass('z-50').addClass('z-10');
-            updateRowLimit($row, item);
-        }
-
-        function updateRowLimit($row, item) {
-            const $input = $row.find('.qty-input');
-            $input.attr('max', item.stock).val(1);
-            validateQty($input[0]);
-            updateTotal();
-        }
-
-        function stepQty(rowId, step) {
-            const $input = $(`#${rowId} .qty-input`);
-            let val = parseInt($input.val()) || 0;
-            let newVal = val + step;
-            if(newVal < 1) newVal = 1;
-            $input.val(newVal);
-            validateQty($input[0]);
-            updateTotal();
-        }
-
-        function validateQty(el) {
-            const $el = $(el);
-            const max = parseInt($el.attr('max')) || 9999;
-            const val = parseInt($el.val()) || 0;
-            const $row = $el.closest('.item-row');
+            container.empty();
             
-            if(val > max) {
-                $el.addClass('text-red-600');
-                $row.find('.qty-error').removeClass('hidden').text(`Max: ${max}`);
-            } else {
-                $el.removeClass('text-red-600');
-                $row.find('.qty-error').addClass('hidden');
-            }
-            $('#submit-btn').prop('disabled', $('.qty-error').not('.hidden').length > 0);
-        }
-
-        function removeRow(id) {
-            $(`#${id}`).slideUp(200, function() { 
-                $(this).remove(); 
-                if($('#items-container').children().length === 0) $('#empty-state').fadeIn();
-                updateTotal();
-            });
-        }
-
-        function updateTotal() {
-            let total = 0;
-            $('.qty-input').each(function() { total += parseInt($(this).val()) || 0; });
-            $('#total-count-display').text(total);
-        }
-
-        function showToast(msg, type = 'success') {
-            const $toast = $('#toast');
-            $('#toast-msg').text(msg);
-            const iconClass = type === 'success' ? 'fas fa-check-circle text-emerald-400' : 'fas fa-exclamation-triangle text-red-400';
-            $('#toast-icon').attr('class', `${iconClass} text-lg`);
-            $toast.removeClass('opacity-0 -translate-y-4').addClass('opacity-100 translate-y-0');
-            setTimeout(() => $toast.addClass('opacity-0 -translate-y-4').removeClass('opacity-100 translate-y-0'), 3000);
-        }
-
-        // 7. Submit Handler
-        $('#withdrawal-form').on('submit', async function(e) {
-            e.preventDefault();
-            const $btn = $('#submit-btn');
-            
-            const items = [];
-            $('.item-row').each(function() {
-                const id = $(this).find('.item-select-value').val();
-                const qty = parseInt($(this).find('.qty-input').val());
-                if(id && qty > 0) {
-                    const itemObj = inventoryList.find(i => i.id == id);
-                    if(itemObj) {
-                        items.push({ id: itemObj.id, name: itemObj.name, qty: qty, unit: itemObj.unit, category: itemObj.category || 'General' });
-                    }
-                }
-            });
-
-            if(items.length === 0) return showToast("Please select items", "error");
-
-            $btn.html('<i class="fas fa-circle-notch fa-spin"></i> Sending...').prop('disabled', true);
-
-            // SIMULATE SUCCESS IN DEMO MODE
-            if(isOffline) {
-                setTimeout(() => {
-                    $btn.html('<i class="fas fa-check"></i> Demo Success!').addClass('bg-emerald-600');
-                    showToast("Demo Request Sent!", "success");
-                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                    setTimeout(() => window.location.reload(), 2000);
-                }, 1000);
+            if(cart.length === 0) {
+                empty.removeClass('hidden');
+                btn.prop('disabled', true).removeClass('bg-emerald-600 text-white hover:bg-emerald-700').addClass('bg-slate-300 text-slate-500 cursor-not-allowed');
+                $('#total-items-count').text('0');
                 return;
             }
 
-            // REAL SUBMISSION
+            empty.addClass('hidden');
+            btn.prop('disabled', false).addClass('bg-emerald-600 text-white hover:bg-emerald-700').removeClass('bg-slate-300 text-slate-500 cursor-not-allowed');
+
+            let totalItems = 0;
+
+            cart.forEach((item, idx) => {
+                totalItems += item.qty;
+                container.append(`
+                    <div class="grid grid-cols-12 items-center py-3 px-4 border-b border-slate-100 hover:bg-slate-50 transition">
+                        <div class="col-span-2 font-mono font-bold text-xs text-royal-700">${item.code}</div>
+                        <div class="col-span-5 text-sm truncate pr-2">${item.name}</div>
+                        <div class="col-span-3 text-center font-bold bg-slate-100 rounded py-1 text-sm">${item.qty}</div>
+                        <div class="col-span-2 text-right">
+                            <button onclick="removeFromCart(${idx})" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                `);
+            });
+
+            $('#total-items-count').text(totalItems);
+        }
+
+        // --- SUBMISSION LOGIC ---
+
+        async function processTransaction() {
+            const dept = $('#w-dept').val();
+            const name = $('#w-name').val();
+            const ref = $('#w-ref').val();
+
+            if(!dept) return Swal.fire('Missing Info', 'Please select a Department.', 'warning');
+            if(!name) return Swal.fire('Missing Info', 'Please enter Recipient Name.', 'warning');
+
+            // Confirm
+            const result = await Swal.fire({
+                title: 'Confirm Withdrawal',
+                text: `Issue ${cart.length} line items to ${name}? Stock will be deducted immediately.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'Yes, Issue Stock'
+            });
+
+            if(!result.isConfirmed) return;
+
+            // Show Loading
+            Swal.fire({
+                title: 'Processing...',
+                html: 'Updating Inventory Records',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
             try {
-                const payload = {
-                    requester: $('#req-name').val(),
-                    department: $('#req-dept').val(),
-                    reason: $('#req-reason').val() + " [Web App]",
-                    items: items, 
-                    status: 'Pending',
-                    metadata: collectedDeviceData
-                };
+                // 1. Create Header (Directly APPROVED because this is a direct issue portal)
+                const { data: wrData, error: wrError } = await supabaseClient
+                    .from('withdrawal_requests')
+                    .insert([{
+                        wr_number: ref,
+                        requester_name: name,
+                        department: dept,
+                        status: 'APPROVED', 
+                        remarks: 'Direct Issue via Portal'
+                    }])
+                    .select();
 
-                const { error } = await supabase.from('requests').insert(payload);
-                if(error) throw error;
+                if(wrError) throw wrError;
+                const wrId = wrData[0].wr_id;
 
-                $btn.html('<i class="fas fa-check"></i> Success!').addClass('bg-emerald-600');
-                showToast("Request Sent Successfully!", "success");
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                setTimeout(() => window.location.reload(), 2000);
+                // 2. Loop Items: Insert WR Item, Deduct Inventory, Log Movement
+                for (const item of cart) {
+                    
+                    // A. Insert WR Item
+                    await supabaseClient.from('wr_items').insert([{
+                        wr_id: wrId,
+                        material_code: item.code,
+                        quantity_requested: item.qty
+                    }]);
+
+                    // B. Deduct Stock (Get fresh data first to ensure atomic safety, ideally RPC but Client side for now)
+                    const { data: freshItem } = await supabaseClient.from('inventory').select('current_stock, total_withdrawn').eq('material_code', item.code).single();
+                    
+                    const newStock = freshItem.current_stock - item.qty;
+                    const newWithdrawn = (freshItem.total_withdrawn || 0) + item.qty;
+
+                    await supabaseClient.from('inventory')
+                        .update({ current_stock: newStock, total_withdrawn: newWithdrawn })
+                        .eq('material_code', item.code);
+
+                    // C. Log Movement
+                    await supabaseClient.from('stock_movements').insert([{
+                        material_code: item.code,
+                        change_amount: -item.qty, // Negative for withdrawal
+                        reason: `WR: ${wrId} (Direct Issue)`
+                    }]);
+                }
+
+                // Success
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Transaction Successful',
+                    text: `Stock has been deducted. Ref: ${ref}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                // Reset UI
+                cart = [];
+                renderCart();
+                generateRef();
+                $('#w-name').val('');
+                $('#w-item-select').val('').trigger('change');
+                $('#stock-display').addClass('hidden');
+                
+                // Reload data to get fresh stock counts for next transaction
+                await loadData();
 
             } catch (err) {
                 console.error(err);
-                showToast("Error: " + err.message, "error");
-                $btn.html('Confirm Withdrawal <i class="fas fa-arrow-right ml-2"></i>').prop('disabled', false).removeClass('bg-emerald-600');
+                Swal.fire('Transaction Failed', err.message, 'error');
             }
-        });
+        }
     </script>
+
+    <script scr="js/auth.js"></script>
+    
 </body>
 </html>
