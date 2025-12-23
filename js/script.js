@@ -1,97 +1,82 @@
 // --- CONFIGURATION ---
 const SB_URL = 'https://agggkqvbnotpborqcitx.supabase.co';
-// WARNING: In production, ensure Row Level Security (RLS) is enabled in Supabase
-// so this Anon key cannot be used to wipe your database.
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZ2drcXZibm90cGJvcnFjaXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwODYxNjgsImV4cCI6MjA4MTY2MjE2OH0.XJHmLfRRJHVhsrImqnRpdwt7eN4eiO1VGk6B68uG5oo';
 
-// Global State
+// State
 let supabaseClient;
-let invCache = [];
+let invCache = [], movementCache = [];
 let masterData = { cats: [], uoms: [], depts: [] };
-let charts = { move: null, cat: null, analytics: {} };
+let charts = { cat: null, trend: null };
 let appSettings = { showArchived: false, sortCol: 'created_at', sortAsc: false };
 
-// --- UTILITIES ---
-const escapeHTML = (str) => {
-    if (!str) return '';
-    return String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
-};
-
+// Utilities
+const escapeHTML = (str) => String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
 const formatNum = (num) => new Intl.NumberFormat('en-US').format(num);
 
-const setLoading = (state) => {
-    const loader = document.getElementById('global-loader'); // Assuming you add a loader div
-    if(loader) loader.style.display = state ? 'flex' : 'none';
-};
-
-// --- INIT ---
-window.onload = async () => {
+// --- INITIALIZATION ---
+$(document).ready(async () => {
     try {
         if (typeof supabase === 'undefined') throw new Error("Supabase library missing");
         supabaseClient = supabase.createClient(SB_URL, SB_KEY);
         
-        setupDragDrop();
-        setupTableSorting();
-        
-        // Initial Load
-        await loadMasterData();
+        setupUI();
         await refreshAll();
-    } catch (e) {
-        showToast("System Init Error: " + e.message, 'error');
-        console.error(e);
-    }
-};
-
-// --- NAVIGATION & UI ---
-function nav(id) {
-    document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    
-    const target = document.getElementById(id);
-    if(target) target.classList.add('active');
-    
-    // Highlight Nav Button
-    const btns = document.querySelectorAll('.nav-btn');
-    btns.forEach(btn => { 
-        if(btn.getAttribute('onclick')?.includes(`'${id}'`)) btn.classList.add('active'); 
-    });
-
-    if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
-    
-    // Resize charts if dashboard
-    if(id === 'dashboard') {
-        setTimeout(() => Object.values(charts).forEach(c => { 
-            if(c && typeof c.resize === 'function') c.resize(); 
-        }), 100);
-    }
-}
-
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-
-function showToast(msg, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
-    
-    toast.innerHTML = `
-        <div class="toast-content">
-            <i class="fas fa-${icon}"></i>
-            <span>${escapeHTML(msg)}</span>
-        </div>`;
         
-    container.appendChild(toast);
-    // Trigger reflow for animation
-    void toast.offsetWidth; 
-    
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-10px)';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    } catch (e) {
+        Swal.fire('Initialization Error', e.message, 'error');
+    }
+});
+
+function setupUI() {
+    // Mobile Menu
+    $('#mobile-menu-btn').click(() => $('#sidebar').toggleClass('-translate-x-full translate-x-0'));
+
+    // ID Generators
+    $('#pr-num').val('PR-' + Date.now().toString().slice(-6));
+    $('#wr-num').val('WR-' + Date.now().toString().slice(-6));
+
+    // Drag Drop for Image
+    const z = $('#drop-zone');
+    z.on('click', () => $('#i-file').click());
+    z.on('dragover', (e) => { e.preventDefault(); z.addClass('bg-blue-50 border-brand-400'); });
+    z.on('dragleave drop', (e) => { e.preventDefault(); z.removeClass('bg-blue-50 border-brand-400'); });
+    z.on('drop', (e) => {
+        e.preventDefault();
+        const f = e.originalEvent.dataTransfer.files;
+        if(f.length) { $('#i-file')[0].files = f; handleImageFile($('#i-file')[0]); }
+    });
 }
 
-// --- MASTER DATA MANAGEMENT (Enhanced) ---
+// --- DATA FETCHING ---
+async function refreshAll() {
+    // Only show loader if it's the first load or explicit refresh
+    const isFirstLoad = invCache.length === 0;
+    if(isFirstLoad) $('#loader-overlay').fadeIn(200);
+    
+    try {
+        // Load Master Data first to populate dropdowns
+        await loadMasterData();
+        
+        // Load Transaction Data
+        const [inv, pr, wr, mov] = await Promise.all([
+            getInventoryData(),
+            getPRs(),
+            getWRs(),
+            getMovements()
+        ]);
+        
+        // Update UI
+        renderInventoryTable();
+        updateDashboard();
+        updateItemSelects();
+    } catch (e) {
+        console.error(e);
+        Swal.fire('Sync Error', 'Failed to load data. Check network connection.', 'error');
+    } finally {
+        $('#loader-overlay').fadeOut(300);
+    }
+}
+
 async function loadMasterData() {
     const [c, u, d] = await Promise.all([
         supabaseClient.from('categories').select('*').order('name'),
@@ -99,98 +84,20 @@ async function loadMasterData() {
         supabaseClient.from('departments').select('*').order('name')
     ]);
     masterData = { cats: c.data || [], uoms: u.data || [], depts: d.data || [] };
-    renderMasterLists();
-    populateDropdowns();
-}
-
-function renderMasterLists() {
-    // Helper to calculate usage count from cached inventory
-    const getUsageCount = (type, value) => {
-        if (!invCache.length) return 0;
-        if (type === 'cat') return invCache.filter(i => i.category === value).length;
-        if (type === 'uom') return invCache.filter(i => i.uom === value).length;
-        return 0; // Depts tracked in WRs, harder to count from cache, skipping for now
-    };
-
-    const mkList = (list, id, table, type, fn) => {
-        const el = document.getElementById(id);
-        if(!el) return;
-        
-        if(list.length === 0) {
-            el.innerHTML = '<li class="text-muted text-center">No records found</li>';
-            return;
-        }
-
-        el.innerHTML = list.map(i => {
-            const count = getUsageCount(type, type==='uom'? i.code : i.name);
-            const badgeClass = count > 0 ? 'badge-info' : 'badge-secondary';
-            const countHtml = type !== 'dept' ? `<span class="badge ${badgeClass} ml-2" title="${count} items linked">${count}</span>` : '';
-
-            return `
-            <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                <div>
-                    <span class="font-weight-500">${fn(i)}</span>
-                    ${countHtml}
-                </div>
-                <button class="btn btn-outline-danger btn-sm p-1" 
-                    onclick="deleteMaster('${table}', ${i.id}, '${escapeHTML(type==='uom'?i.code:i.name)}', ${count})"
-                    title="Delete">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </li>
-        `}).join('');
-    };
-
-    mkList(masterData.cats, 'list-categories', 'categories', 'cat', i => escapeHTML(i.name));
-    mkList(masterData.uoms, 'list-uoms', 'uoms', 'uom', i => `<b>${escapeHTML(i.code)}</b> - ${escapeHTML(i.name)}`);
-    mkList(masterData.depts, 'list-departments', 'departments', 'dept', i => escapeHTML(i.name));
-}
-
-async function addMaster(table, ...ids) {
-    const vals = ids.map(id => document.getElementById(id).value.trim());
-    if(vals.some(v => !v)) return showToast("All fields are required", "error");
     
-    // Check for duplicates in local cache before network call
-    let exists = false;
-    if(table === 'categories' && masterData.cats.some(c => c.name.toLowerCase() === vals[0].toLowerCase())) exists = true;
-    if(table === 'uoms' && masterData.uoms.some(u => u.code.toLowerCase() === vals[0].toLowerCase())) exists = true;
+    // Render Settings Lists
+    renderMasterList(masterData.cats, 'list-categories', 'categories');
+    renderMasterList(masterData.uoms, 'list-uoms', 'uoms', true);
+    renderMasterList(masterData.depts, 'list-departments', 'departments');
     
-    if(exists) return showToast("Entry already exists", "error");
-
-    const payload = table === 'uoms' ? {code:vals[0], name:vals[1]} : {name:vals[0]};
-    const { error } = await supabaseClient.from(table).insert([payload]);
-    
-    if(error) showToast(error.message, "error");
-    else {
-        ids.forEach(id => document.getElementById(id).value = '');
-        await loadMasterData();
-        showToast("Added successfully", "success");
-    }
-}
-
-async function deleteMaster(table, id, name, usageCount) {
-    if(usageCount > 0) {
-        return showToast(`Cannot delete "${name}". It is used by ${usageCount} items.`, "warning");
-    }
-    if(!confirm(`Delete "${name}" permanently?`)) return;
-    
-    const { error } = await supabaseClient.from(table).delete().eq('id', id);
-    if(error) showToast("Delete failed: " + error.message, "error");
-    else { await loadMasterData(); showToast("Deleted", "success"); }
-}
-
-function populateDropdowns() {
+    // Populate Dropdowns
     const fill = (id, data, fn) => {
-        const el = document.getElementById(id);
-        if(!el) return;
-        const currentVal = el.value;
-        const isFilter = id.includes('filter');
-        
-        let html = isFilter ? '<option value="">All Categories</option>' : '';
+        const el = $(`#${id}`);
+        const current = el.val();
+        let html = id.includes('filter') ? '<option value="">All Categories</option>' : '';
         html += data.map(fn).join('');
-        
-        el.innerHTML = html;
-        if(currentVal && !isFilter) el.value = currentVal; // Preserve selection if possible
+        el.html(html);
+        if(current) el.val(current);
     };
     
     fill('i-cat', masterData.cats, c => `<option value="${escapeHTML(c.name)}">${escapeHTML(c.name)}</option>`);
@@ -199,707 +106,635 @@ function populateDropdowns() {
     fill('wr-dept', masterData.depts, d => `<option value="${escapeHTML(d.name)}">${escapeHTML(d.name)}</option>`);
 }
 
-// --- IMAGE HANDLING ---
-function setupDragDrop() {
-    const zone = document.getElementById('drop-zone');
-    const input = document.getElementById('i-file');
-    if(!zone || !input) return;
+function renderMasterList(data, listId, table, isUom = false) {
+    const html = data.length ? data.map(item => `
+        <li class="flex justify-between items-center py-3 px-2 hover:bg-slate-50 rounded transition">
+            <span class="font-medium text-slate-700">${isUom ? `<b>${escapeHTML(item.code)}</b> - ${escapeHTML(item.name)}` : escapeHTML(item.name)}</span>
+            <button class="text-slate-400 hover:text-red-500 transition" onclick="deleteMaster('${table}', ${item.id})"><i class="fas fa-trash-alt"></i></button>
+        </li>
+    `).join('') : '<li class="text-center py-4 text-slate-400 italic">No records found</li>';
+    $(`#${listId}`).html(html);
+}
+
+// --- CORE LOGIC ---
+async function getInventoryData() {
+    const { data } = await supabaseClient.from('inventory').select('*');
+    invCache = data || [];
+}
+
+async function getMovements() {
+    const { data } = await supabaseClient.from('stock_movements').select('*').order('created_at', {ascending: true});
+    movementCache = data || [];
+}
+
+function updateDashboard() {
+    const active = invCache.filter(i => i.status !== 'ARCHIVED');
     
-    zone.addEventListener('click', () => input.click());
-    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-    zone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        zone.classList.remove('dragover');
-        if (e.dataTransfer.files.length) {
-            input.files = e.dataTransfer.files;
-            handleImageFile(input);
+    $('#d-items').text(formatNum(active.length));
+    $('#d-low').text(formatNum(active.filter(i => i.current_stock <= i.low_stock_threshold).length));
+    $('#d-depts').text(masterData.depts.length);
+
+    // Calculate Total Withdrawn from Movement logs (Negative changes that aren't disposal)
+    const totalOut = movementCache
+        .filter(m => m.change_amount < 0 && !m.reason.toLowerCase().includes('disposal'))
+        .reduce((acc, curr) => acc + Math.abs(curr.change_amount), 0);
+    $('#d-withdrawn').text(formatNum(totalOut));
+
+    // Charts Logic
+    // 1. Categories
+    const catMap = {}; 
+    active.forEach(i => { catMap[i.category||'Other'] = (catMap[i.category||'Other']||0) + i.current_stock; });
+
+    if(charts.cat) charts.cat.destroy();
+    const catCtx = document.getElementById('catChart');
+    if(catCtx) {
+        charts.cat = new Chart(catCtx, {
+            type: 'doughnut',
+            data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6', '#6366f1'] }] },
+            options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right' } } }
+        });
+    }
+
+    // 2. Trend Chart (Last 14 Days)
+    const days = 14;
+    const dateMap = {};
+    const now = new Date();
+    for(let i=days-1; i>=0; i--) {
+        const d = new Date(); d.setDate(now.getDate() - i);
+        dateMap[d.toLocaleDateString('en-US',{month:'short',day:'numeric'})] = {in:0, out:0};
+    }
+
+    movementCache.forEach(m => {
+        const d = new Date(m.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        if(dateMap[d]) {
+            if(m.change_amount > 0) dateMap[d].in += m.change_amount;
+            else dateMap[d].out += Math.abs(m.change_amount);
         }
     });
-}
 
-function handleImageFile(input) {
-    const file = input.files[0];
-    if (!file) return;
-    if(file.size > 2 * 1024 * 1024) return showToast("Image too large (Max 2MB)", "error");
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const img = new Image();
-        img.src = e.target.result;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const maxW = 600; // Optimized size
-            const scale = maxW / img.width;
-            canvas.width = (scale < 1) ? maxW : img.width;
-            canvas.height = (scale < 1) ? img.height * scale : img.height;
-            
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
-            
-            document.getElementById('i-preview').src = dataUrl;
-            document.getElementById('i-preview').style.display = 'block';
-            document.querySelector('.drop-zone-content').style.display = 'none';
-            document.getElementById('i-img-data').value = dataUrl;
-        };
-    };
-    reader.readAsDataURL(file);
-}
-
-function clearImage() {
-    document.getElementById('i-file').value = '';
-    document.getElementById('i-img-data').value = '';
-    const prev = document.getElementById('i-preview');
-    prev.src = ''; prev.style.display = 'none';
-    const content = document.querySelector('.drop-zone-content');
-    if(content) content.style.display = 'block';
-}
-
-function openLightbox(src) {
-    const m = document.getElementById('m-lightbox');
-    document.getElementById('lightbox-img').src = src;
-    m.style.display = 'flex';
-}
-
-// --- INVENTORY LOGIC ---
-async function refreshAll() {
-    const btn = document.querySelector('.refresh-btn i');
-    if(btn) btn.classList.add('fa-spin');
-    
-    await Promise.all([getInventory(), getPRs(), getWRs()]);
-    renderAnalytics();
-    
-    if(btn) setTimeout(() => btn.classList.remove('fa-spin'), 500);
-}
-
-async function getInventory() {
-    let q = supabaseClient.from('inventory').select('*');
-    if(!appSettings.showArchived) q = q.neq('status', 'ARCHIVED');
-    
-    const { data, error } = await q;
-    if(error) return showToast("Load Failed: " + error.message, "error");
-    
-    invCache = data || [];
-    renderInventoryTable();
-    updateDashboard();
-    
-    // Update Item Selects for Transactions
-    const activeItems = invCache.filter(i => i.status !== 'ARCHIVED');
-    const opts = '<option value="">-- Select Material --</option>' + 
-                 activeItems.map(i => `<option value="${escapeHTML(i.material_code)}">${escapeHTML(i.material_code)} - ${escapeHTML(i.description)} (Stock: ${i.current_stock})</option>`).join('');
-    
-    ['pr-mat','wr-mat','disp-mat'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.innerHTML = opts;
-    });
-}
-
-// Table Sorting Setup
-function setupTableSorting() {
-    document.querySelectorAll('#tbl-inv-head th[data-sort]').forEach(th => {
-        th.style.cursor = 'pointer';
-        th.addEventListener('click', () => {
-            const field = th.dataset.sort;
-            if(appSettings.sortCol === field) appSettings.sortAsc = !appSettings.sortAsc;
-            else { appSettings.sortCol = field; appSettings.sortAsc = true; }
-            
-            // UI Arrow update
-            document.querySelectorAll('#tbl-inv-head th i').forEach(i => i.className = 'fas fa-sort text-muted');
-            const icon = th.querySelector('i');
-            if(icon) icon.className = `fas fa-sort-${appSettings.sortAsc ? 'up' : 'down'}`;
-            
-            renderInventoryTable();
+    if(charts.trend) charts.trend.destroy();
+    const trendCtx = document.getElementById('trendChart');
+    if(trendCtx) {
+        charts.trend = new Chart(trendCtx, {
+            type: 'bar',
+            data: { 
+                labels: Object.keys(dateMap), 
+                datasets: [
+                    { label: 'In (PR)', data: Object.values(dateMap).map(x=>x.in), backgroundColor: '#10b981', borderRadius:4 },
+                    { label: 'Out (WR/Disp)', data: Object.values(dateMap).map(x=>x.out), backgroundColor: '#3b82f6', borderRadius:4 }
+                ] 
+            },
+            options: { maintainAspectRatio: false, scales: { x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{borderDash:[4,4]}} }, plugins:{legend:{position:'top'}} }
         });
-    });
+    }
 }
 
 function renderInventoryTable() {
-    const search = document.getElementById('search-inv').value.toLowerCase();
-    const cat = document.getElementById('filter-cat').value;
+    const search = $('#search-inv').val().toLowerCase();
+    const cat = $('#filter-cat').val();
+    const tb = $('#tbl-inv').empty();
     
-    // Filter
     let filtered = invCache.filter(i => {
-        return (i.material_code.toLowerCase().includes(search) || i.description.toLowerCase().includes(search)) &&
-               (!cat || i.category === cat);
+        if(!appSettings.showArchived && i.status === 'ARCHIVED') return false;
+        const txt = (i.material_code + ' ' + i.description).toLowerCase();
+        return txt.includes(search) && (!cat || i.category === cat);
     });
 
     // Sort
-    filtered.sort((a, b) => {
-        let valA = a[appSettings.sortCol];
-        let valB = b[appSettings.sortCol];
-        if (typeof valA === 'string') { valA = valA.toLowerCase(); valB = valB.toLowerCase(); }
-        if (valA < valB) return appSettings.sortAsc ? -1 : 1;
-        if (valA > valB) return appSettings.sortAsc ? 1 : -1;
-        return 0;
+    filtered.sort((a,b) => {
+        const va = a[appSettings.sortCol], vb = b[appSettings.sortCol];
+        if (typeof va === 'string') return appSettings.sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+        return appSettings.sortAsc ? (va>vb?1:-1) : (va<vb?1:-1);
     });
 
-    const tb = document.getElementById('tbl-inv');
-    tb.innerHTML = '';
-    
-    if(!filtered.length) {
-        tb.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-muted">No items found matches your search.</td></tr>`;
+    if(filtered.length === 0) {
+        tb.html('<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">No matching items found.</td></tr>');
         return;
     }
 
     filtered.forEach(i => {
-        const isArchived = i.status === 'ARCHIVED';
-        let statusBadge;
-        
-        if (isArchived) statusBadge = '<span class="badge badge-archived">Archived</span>';
-        else if (i.current_stock <= 0) statusBadge = '<span class="badge badge-danger">Out of Stock</span>';
-        else if (i.current_stock <= i.low_stock_threshold) statusBadge = '<span class="badge badge-warning">Low Stock</span>';
-        else statusBadge = '<span class="badge badge-success">Good</span>';
+        let status;
+        if(i.status === 'ARCHIVED') status = '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded-full text-xs font-bold">Archived</span>';
+        else if(i.current_stock <= 0) status = '<span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold">Out of Stock</span>';
+        else if(i.current_stock <= i.low_stock_threshold) status = '<span class="bg-amber-100 text-amber-700 px-2 py-1 rounded-full text-xs font-bold">Low Stock</span>';
+        else status = '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-xs font-bold">Available</span>';
 
-        const imgHtml = i.image_link 
-            ? `<div class="img-thumb-container"><img src="${escapeHTML(i.image_link)}" class="img-thumb" onclick="openLightbox('${escapeHTML(i.image_link)}')"></div>` 
-            : `<div class="img-placeholder text-muted"><i class="fas fa-cube"></i></div>`;
+        const img = i.image_link ? `<img src="${i.image_link}" class="w-10 h-10 rounded object-cover cursor-pointer hover:scale-150 transition border border-slate-200 bg-white" onclick="openLightbox('${i.image_link}')">` : 
+                                   `<div class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center text-slate-300"><i class="fas fa-image"></i></div>`;
 
-        const row = `
-            <tr class="${isArchived ? 'row-archived' : ''}">
-                <td style="width:60px">${imgHtml}</td>
-                <td>
-                    <div class="font-weight-bold text-primary">${escapeHTML(i.material_code)}</div>
-                    <div class="text-muted small text-truncate" style="max-width: 200px;" title="${escapeHTML(i.description)}">${escapeHTML(i.description)}</div>
+        tb.append(`
+            <tr class="border-b border-slate-50 hover:bg-slate-50 transition group ${i.status==='ARCHIVED'?'opacity-60':''}">
+                <td class="p-4">${img}</td>
+                <td class="p-4">
+                    <div class="font-bold text-brand-700 font-mono text-xs">${i.material_code}</div>
+                    <div class="text-slate-700 font-medium">${escapeHTML(i.description)}</div>
                 </td>
-                <td><span class="badge badge-light border">${escapeHTML(i.category || 'Uncategorized')}</span></td>
-                <td>
-                    <div class="d-flex align-items-baseline">
-                        <span class="font-weight-bold h5 mb-0 mr-1">${formatNum(i.current_stock)}</span>
-                        <small class="text-muted">${escapeHTML(i.uom)}</small>
+                <td class="p-4"><span class="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">${escapeHTML(i.category)}</span></td>
+                <td class="p-4">
+                    <div class="flex items-center">
+                        <span class="font-bold text-lg text-slate-700">${formatNum(i.current_stock)}</span>
+                        <span class="text-xs text-slate-400 ml-1">${escapeHTML(i.uom)}</span>
                     </div>
                 </td>
-                <td>${statusBadge}</td>
-                <td class="text-right">
-                    <div class="btn-group">
-                        ${!isArchived ? `
-                            <button class="btn btn-outline-secondary btn-sm" onclick="openStockAdjustModal('${escapeHTML(i.material_code)}')"><i class="fas fa-sliders-h"></i></button>
-                            <button class="btn btn-outline-primary btn-sm" onclick="openInventoryModal('edit', '${escapeHTML(i.material_code)}')"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-outline-danger btn-sm" onclick="delItem('${escapeHTML(i.material_code)}')"><i class="fas fa-trash"></i></button>
+                <td class="p-4 text-center font-bold text-slate-600">${formatNum(i.total_withdrawn || 0)}</td>
+                <td class="p-4 text-center">${status}</td>
+                <td class="p-4 text-right">
+                    <div class="flex justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        ${i.status !== 'ARCHIVED' ? `
+                        <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-blue-600 hover:border-blue-500 transition flex items-center justify-center" onclick="viewItemHistory('${i.material_code}')" title="History"><i class="fas fa-history"></i></button>
+                        <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-brand-600 hover:border-brand-500 transition flex items-center justify-center" onclick="openStockAdjustModal('${i.material_code}')" title="Adjust"><i class="fas fa-sliders-h"></i></button>
+                        <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-brand-600 hover:border-brand-500 transition flex items-center justify-center" onclick="openInventoryModal('edit', '${i.material_code}')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:text-red-600 hover:border-red-500 transition flex items-center justify-center" onclick="delItem('${i.material_code}')" title="Archive"><i class="fas fa-trash-alt"></i></button>
                         ` : `
-                            <button class="btn btn-outline-success btn-sm" onclick="restoreItem('${escapeHTML(i.material_code)}')"><i class="fas fa-undo"></i> Restore</button>
+                        <button class="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded border border-emerald-200 hover:bg-emerald-100" onclick="restoreItem('${i.material_code}')">Restore</button>
                         `}
                     </div>
                 </td>
-            </tr>`;
-        tb.innerHTML += row;
+            </tr>
+        `);
     });
 }
 
-function toggleArchivedView() {
-    appSettings.showArchived = !appSettings.showArchived;
-    document.getElementById('btn-show-archived').innerHTML = appSettings.showArchived ? '<i class="fas fa-eye-slash"></i> Hide Archived' : '<i class="fas fa-archive"></i> Show Archived';
-    getInventory();
+function sortInv(col) {
+    if(appSettings.sortCol === col) appSettings.sortAsc = !appSettings.sortAsc;
+    else { appSettings.sortCol = col; appSettings.sortAsc = true; }
+    renderInventoryTable();
 }
 
-// --- ADD / EDIT / DELETE ---
-function openInventoryModal(mode, code) {
-    document.getElementById('inv-mode').value = mode;
-    const isEdit = mode === 'edit';
-    document.getElementById('inv-modal-title').innerText = isEdit ? 'Edit Material' : 'Add New Material';
-    
-    // Reset
-    clearImage();
-    document.getElementById('form-inventory').reset();
-    document.getElementById('i-code').disabled = isEdit;
-    document.getElementById('div-init-stock').style.display = isEdit ? 'none' : 'block';
-    
-    if(isEdit) {
-        const item = invCache.find(i => i.material_code === code);
-        if(item) {
-            document.getElementById('i-code').value = item.material_code;
-            document.getElementById('i-desc').value = item.description;
-            document.getElementById('i-cat').value = item.category;
-            document.getElementById('i-uom').value = item.uom;
-            document.getElementById('i-low').value = item.low_stock_threshold;
-            if(item.image_link) {
-                document.getElementById('i-preview').src = item.image_link;
-                document.getElementById('i-preview').style.display = 'block';
-                document.querySelector('.drop-zone-content').style.display = 'none';
-                document.getElementById('i-img-data').value = item.image_link;
-            }
-        }
-    }
-    openModal('m-inventory');
-}
+// --- CRUD ACTIONS ---
 
 async function saveInventory(e) {
     e.preventDefault();
-    const mode = document.getElementById('inv-mode').value;
-    const code = document.getElementById('i-code').value.trim();
+    const btn = $('#btn-save-inv').prop('disabled', true).addClass('opacity-75');
     
-    if(!code) return showToast("Material Code is required", "error");
+    try {
+        const mode = $('#inv-mode').val();
+        const code = $('#i-code').val().trim().toUpperCase();
+        // Priority to hidden field which contains the Base64 or URL
+        const imgVal = $('#i-img-data').val();
 
-    const payload = {
-        material_code: code,
-        description: document.getElementById('i-desc').value.trim(),
-        category: document.getElementById('i-cat').value,
-        uom: document.getElementById('i-uom').value,
-        low_stock_threshold: Number(document.getElementById('i-low').value),
-        image_link: document.getElementById('i-img-data').value
-    };
+        const payload = {
+            material_code: code,
+            description: $('#i-desc').val().trim(),
+            category: $('#i-cat').val(),
+            uom: $('#i-uom').val(),
+            low_stock_threshold: Number($('#i-low').val()),
+            image_link: imgVal // Correctly pass the image string (compressed base64 or url)
+        };
 
-    let error;
-    if(mode === 'add') {
-        // Check duplication
-        if(invCache.some(i => i.material_code === code)) return showToast("Material Code already exists", "error");
-        
-        payload.current_stock = Number(document.getElementById('i-stock').value);
-        payload.initial_stock = payload.current_stock;
-        payload.status = 'ACTIVE';
-        ({ error } = await supabaseClient.from('inventory').insert([payload]));
-    } else {
-        ({ error } = await supabaseClient.from('inventory').update(payload).eq('material_code', payload.material_code));
-    }
-    
-    if(error) showToast(error.message, "error");
-    else {
-        closeModal('m-inventory');
-        await getInventory();
-        // Force refresh analytics if stock changed
-        if(mode === 'add' && payload.current_stock > 0) renderAnalytics();
-        showToast(`Item ${mode === 'add' ? 'created' : 'updated'} successfully`, "success");
-    }
-}
-
-async function delItem(code) {
-    if(!confirm("Are you sure you want to delete this item?")) return;
-
-    // 1. Try Physical Delete
-    const { error } = await supabaseClient.from('inventory').delete().eq('material_code', code);
-    
-    if (error) {
-        // 2. If FK error, Offer Soft Delete
-        if (error.code === '23503' || error.message.includes('constraint')) {
-            if(confirm("Cannot delete permanently because this item has history.\nArchive it instead?")) {
-                const { error: archiveErr } = await supabaseClient.from('inventory').update({status: 'ARCHIVED'}).eq('material_code', code);
-                if(archiveErr) showToast("Archive failed: " + archiveErr.message, "error");
-                else {
-                    showToast("Item Archived", "success");
-                    getInventory();
-                }
-            }
+        if(mode === 'add') {
+            if(invCache.some(i => i.material_code === code)) throw new Error("SKU/Code already exists!");
+            payload.current_stock = Number($('#i-stock').val());
+            payload.initial_stock = payload.current_stock;
+            payload.status = 'ACTIVE';
+            const { error } = await supabaseClient.from('inventory').insert([payload]);
+            if(error) throw error;
         } else {
-            showToast("Delete Failed: " + error.message, "error");
+            const { error } = await supabaseClient.from('inventory').update(payload).eq('material_code', code);
+            if(error) throw error;
         }
-    } else {
-        showToast("Item Deleted Permanently", "success");
-        getInventory();
+
+        closeModal('m-inventory');
+        await refreshAll();
+        Swal.fire({icon: 'success', title: 'Saved successfully', showConfirmButton: false, timer: 1500});
+        
+    } catch(err) {
+        console.error(err);
+        Swal.fire('Error', err.message || 'Failed to save', 'error');
+    } finally {
+        btn.prop('disabled', false).removeClass('opacity-75');
     }
-}
-
-async function restoreItem(code) {
-    if(!confirm("Restore this item to active status?")) return;
-    const { error } = await supabaseClient.from('inventory').update({status:'ACTIVE'}).eq('material_code', code);
-    if(!error) { showToast("Item Restored", "success"); getInventory(); }
-}
-
-// --- MODALS ---
-function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-function switchTab(id) {
-    // Hide all contents
-    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
-    // Deactivate all buttons
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    
-    // Activate target
-    document.getElementById(id).classList.add('active');
-    // Find button that triggered this or matches id
-    const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.onclick.toString().includes(id));
-    if(btn) btn.classList.add('active');
-}
-
-// --- TRANSACTIONS (PR/WR) ---
-
-async function getPRs() {
-    // Limit to last 50 for performance
-    const { data } = await supabaseClient.from('purchase_requests').select('*').order('created_at', {ascending:false}).limit(50);
-    const tbl = document.getElementById('tbl-pr');
-    if(!tbl) return;
-
-    tbl.innerHTML = (data||[]).map(pr => `
-        <tr>
-            <td><span class="font-weight-bold text-dark">${escapeHTML(pr.pr_number)}</span></td>
-            <td>${escapeHTML(pr.requester_name)}</td>
-            <td>
-                <span class="badge ${pr.status==='COMPLETED'?'badge-success':'badge-warning'}">
-                    ${pr.status}
-                </span>
-            </td>
-            <td>${new Date(pr.created_at).toLocaleDateString()}</td>
-            <td class="text-right">
-                <button class="btn btn-outline-secondary btn-sm" onclick="viewDetails('pr','${pr.pr_id}')" title="View Items"><i class="fas fa-eye"></i></button>
-                ${pr.status==='PENDING' ? `<button class="btn btn-success btn-sm" onclick="processPR('${pr.pr_id}')" title="Receive Goods"><i class="fas fa-check"></i> Receive</button>` : ''}
-            </td>
-        </tr>`).join('');
 }
 
 async function createPR(e) {
     e.preventDefault();
+    const btn = $('#btn-save-pr').prop('disabled', true).addClass('opacity-75');
+    
     try {
-        const mat = document.getElementById('pr-mat').value;
-        const qty = Number(document.getElementById('pr-qty').value);
-        if(qty <= 0) throw new Error("Quantity must be greater than 0");
-        if(!mat) throw new Error("Select a material");
-
-        // Header
-        const { data:h, error:he } = await supabaseClient.from('purchase_requests').insert([{
-            pr_number: document.getElementById('pr-num').value.trim(),
-            requester_name: document.getElementById('pr-name').value.trim(),
-            status: 'PENDING'
-        }]).select();
+        const prNum = $('#pr-num').val();
+        const { data, error } = await supabaseClient.from('purchase_requests').insert([
+            { pr_number: prNum, requester_name: $('#pr-name').val(), status: 'PENDING' }
+        ]).select();
         
-        if(he) throw he;
+        if(error) throw error;
         
-        // Item
-        await supabaseClient.from('pr_items').insert([{
-            pr_id: h[0].pr_id,
-            material_code: mat,
-            quantity_requested: qty,
-            unit_price: document.getElementById('pr-price').value
+        await supabaseClient.from('pr_items').insert([{ 
+            pr_id: data[0].pr_id, 
+            material_code: $('#pr-mat').val(), 
+            quantity_requested: Number($('#pr-qty').val()),
+            unit_price: Number($('#pr-price').val())
         }]);
 
-        closeModal('m-create-pr'); 
-        document.getElementById('form-create-pr').reset();
-        refreshAll(); 
-        showToast("PR Created Successfully", "success");
-    } catch(err) { showToast(err.message, "error"); }
-}
+        closeModal('m-create-pr');
+        await refreshAll();
+        Swal.fire('Success', 'Purchase Request Created', 'success');
+        $('#pr-num').val('PR-'+Date.now().toString().slice(-6));
 
-async function processPR(id) {
-    if(!confirm("Receive goods into stock? This will update inventory counts.")) return;
-    
-    // Note: Ideally do this via RPC for atomicity. Doing client-side logic for demonstration.
-    // 1. Get items
-    const { data: items } = await supabaseClient.from('pr_items').select('*').eq('pr_id', id);
-    if(!items || !items.length) return showToast("No items in PR", "error");
-
-    // 2. Update stock for each
-    for(let item of items) {
-        // Fetch current to be safe
-        const { data: curr } = await supabaseClient.from('inventory').select('current_stock').eq('material_code', item.material_code).single();
-        if(curr) {
-            await supabaseClient.from('inventory').update({current_stock: curr.current_stock + item.quantity_requested}).eq('material_code', item.material_code);
-            // Log Movement
-            await supabaseClient.from('stock_movements').insert({
-                material_code: item.material_code,
-                change_amount: item.quantity_requested,
-                reason: `PR Receive: ${id}`
-            });
-        }
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally {
+        btn.prop('disabled', false).removeClass('opacity-75');
     }
-
-    // 3. Close PR
-    const { error } = await supabaseClient.from('purchase_requests').update({status:'COMPLETED'}).eq('pr_id', id);
-    
-    if(!error) { refreshAll(); showToast("Stock Updated & PR Closed", "success"); }
-    else showToast(error.message, "error");
-}
-
-async function getWRs() {
-    const { data } = await supabaseClient.from('withdrawal_requests').select('*').order('created_at', {ascending:false}).limit(50);
-    const tb = document.getElementById('tbl-wr'); 
-    const tbD = document.getElementById('tbl-disp-hist');
-    
-    tb.innerHTML=''; 
-    if(tbD) tbD.innerHTML='';
-
-    (data||[]).forEach(wr => {
-        if(wr.wr_number.startsWith('DISP')) {
-            if(tbD) {
-                const parts = wr.requester_name.split('(Disposal:');
-                const auth = parts[0];
-                const reason = parts[1] ? parts[1].replace(')', '') : 'N/A';
-                tbD.innerHTML += `
-                    <tr>
-                        <td><span class="font-weight-bold text-danger">${escapeHTML(wr.wr_number)}</span></td>
-                        <td>${escapeHTML(auth)}</td>
-                        <td>${escapeHTML(reason)}</td>
-                        <td>${new Date(wr.created_at).toLocaleDateString()}</td>
-                        <td class="text-right"><button class="btn btn-outline-secondary btn-sm" onclick="viewDetails('wr','${wr.wr_id}')"><i class="fas fa-eye"></i></button></td>
-                    </tr>`;
-            }
-        } else {
-            tb.innerHTML += `
-            <tr>
-                <td><b>${escapeHTML(wr.wr_number)}</b></td>
-                <td>${escapeHTML(wr.requester_name)}</td>
-                <td><span class="badge badge-info">${escapeHTML(wr.department)}</span></td>
-                <td><span class="badge ${wr.status==='APPROVED'?'badge-success':'badge-warning'}">${wr.status}</span></td>
-                <td class="text-right">
-                    <button class="btn btn-outline-secondary btn-sm" onclick="viewDetails('wr','${wr.wr_id}')" title="View"><i class="fas fa-eye"></i></button>
-                    ${wr.status==='PENDING' ? `<button class="btn btn-primary btn-sm" onclick="processWR('${wr.wr_id}')" title="Approve"><i class="fas fa-check"></i></button>` : ''}
-                </td>
-            </tr>`;
-        }
-    });
 }
 
 async function createWR(e) {
     e.preventDefault();
-    const btn = e.target.querySelector('button[type="submit"]');
-    btn.disabled = true;
-    
-    try {
-        const mat = document.getElementById('wr-mat').value;
-        const qty = Number(document.getElementById('wr-qty').value);
-        if(qty <= 0) throw new Error("Quantity must be valid");
-        
-        // **ACCURACY CHECK**: Fetch REAL DB stock, don't trust cache
-        const { data: dbItem, error: fetchErr } = await supabaseClient.from('inventory').select('current_stock').eq('material_code', mat).single();
-        if(fetchErr || !dbItem) throw new Error("Item not found in DB");
-        if(dbItem.current_stock < qty) throw new Error(`Insufficient Stock in DB! Available: ${dbItem.current_stock}`);
+    const btn = $('#btn-submit-wr').prop('disabled', true).addClass('opacity-75');
 
-        const { data:h, error:he } = await supabaseClient.from('withdrawal_requests').insert([{
-            wr_number: document.getElementById('wr-num').value.trim(),
-            requester_name: document.getElementById('wr-name').value.trim(),
-            department: document.getElementById('wr-dept').value,
-            status: 'PENDING' // Requires approval step
-        }]).select();
+    try {
+        const mat = $('#wr-mat').val();
+        const qty = Number($('#wr-qty').val());
+        const item = invCache.find(i => i.material_code === mat);
         
-        if(he) throw he;
-        await supabaseClient.from('wr_items').insert([{wr_id:h[0].wr_id, material_code:mat, quantity_requested:qty}]);
-        
-        closeModal('m-create-wr'); 
-        document.getElementById('form-create-wr').reset();
-        refreshAll(); 
-        showToast("WR Submitted for Approval", "success");
-    } catch(err) { showToast(err.message, "error"); }
-    finally { btn.disabled = false; }
+        if(!item) throw new Error("Invalid Item Selection");
+        if(item.current_stock < qty) throw new Error(`Insufficient stock. Only ${item.current_stock} available.`);
+
+        const { data, error } = await supabaseClient.from('withdrawal_requests').insert([
+            { wr_number: $('#wr-num').val(), requester_name: $('#wr-name').val(), department: $('#wr-dept').val(), status: 'PENDING' }
+        ]).select();
+
+        if(error) throw error;
+
+        await supabaseClient.from('wr_items').insert([{
+            wr_id: data[0].wr_id, material_code: mat, quantity_requested: qty
+        }]);
+
+        closeModal('m-create-wr');
+        await refreshAll();
+        Swal.fire('Success', 'Withdrawal Request Submitted', 'success');
+        $('#wr-num').val('WR-'+Date.now().toString().slice(-6));
+
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally {
+        btn.prop('disabled', false).removeClass('opacity-75');
+    }
+}
+
+async function processPR(id) {
+    const res = await Swal.fire({ title: 'Receive Items?', text: "This will add to your current inventory stock.", icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Receive', confirmButtonColor: '#10b981' });
+    if(!res.isConfirmed) return;
+
+    $('#loader-overlay').show();
+    try {
+        const { data: items } = await supabaseClient.from('pr_items').select('*').eq('pr_id', id);
+        for(let item of items) {
+            const curr = invCache.find(i => i.material_code === item.material_code);
+            if(curr) {
+                await supabaseClient.from('inventory').update({current_stock: curr.current_stock + item.quantity_requested}).eq('material_code', item.material_code);
+                await supabaseClient.from('stock_movements').insert({ material_code: item.material_code, change_amount: item.quantity_requested, reason: `PR Received: ${id}` });
+            }
+        }
+        await supabaseClient.from('purchase_requests').update({status: 'COMPLETED'}).eq('pr_id', id);
+        await refreshAll();
+        Swal.fire('Received', 'Stock updated successfully', 'success');
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally { $('#loader-overlay').hide(); }
 }
 
 async function processWR(id) {
-    if(!confirm("Approve withdrawal and deduct stock?")) return;
-    
-    // 1. Get Items
-    const { data: items } = await supabaseClient.from('wr_items').select('*').eq('wr_id', id);
-    
-    // 2. Deduct (Double check stock again in loop)
-    for(let item of items) {
-        const { data: curr } = await supabaseClient.from('inventory').select('current_stock').eq('material_code', item.material_code).single();
-        if(curr.current_stock < item.quantity_requested) {
-            return showToast(`Stock too low for ${item.material_code}. Cannot Approve.`, "error");
-        }
-        await supabaseClient.from('inventory').update({current_stock: curr.current_stock - item.quantity_requested}).eq('material_code', item.material_code);
-        await supabaseClient.from('stock_movements').insert({
-            material_code: item.material_code,
-            change_amount: -item.quantity_requested,
-            reason: `WR Approved: ${id}`
-        });
-    }
+    const res = await Swal.fire({ title: 'Approve Withdrawal?', text: "Stock will be deducted immediately.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Approve', confirmButtonColor: '#3b82f6' });
+    if(!res.isConfirmed) return;
 
-    const { error } = await supabaseClient.from('withdrawal_requests').update({status:'APPROVED'}).eq('wr_id', id);
-    if(!error) { refreshAll(); showToast("Approved & Stock Deducted", "success"); }
+    $('#loader-overlay').show();
+    try {
+        const { data: items } = await supabaseClient.from('wr_items').select('*').eq('wr_id', id);
+        for(let item of items) {
+            const curr = invCache.find(i => i.material_code === item.material_code);
+            // Re-check stock server-side ideally, but client side check for now
+            if(curr.current_stock < item.quantity_requested) throw new Error(`Insufficient stock for ${item.material_code}`);
+            
+            await supabaseClient.from('inventory').update({
+                current_stock: curr.current_stock - item.quantity_requested,
+                total_withdrawn: (curr.total_withdrawn || 0) + item.quantity_requested
+            }).eq('material_code', item.material_code);
+
+            await supabaseClient.from('stock_movements').insert({ material_code: item.material_code, change_amount: -item.quantity_requested, reason: `WR Approved: ${id}` });
+        }
+        await supabaseClient.from('withdrawal_requests').update({status: 'APPROVED'}).eq('wr_id', id);
+        await refreshAll();
+        Swal.fire('Approved', 'Stock released to fleet', 'success');
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally { $('#loader-overlay').hide(); }
 }
 
 async function handleDisposal(e) {
     e.preventDefault();
-    if(!confirm("Confirm Disposal? This permanently removes stock.")) return;
+    const res = await Swal.fire({ title: 'Confirm Disposal', text: "This action cannot be undone. Stock will be reduced.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444' });
+    if(!res.isConfirmed) return;
+
+    $('#btn-disp-submit').prop('disabled', true);
+    try {
+        const mat = $('#disp-mat').val();
+        const qty = Number($('#disp-qty').val());
+        const reason = $('#disp-reason').val();
+        const curr = invCache.find(i => i.material_code === mat);
+        
+        if(curr.current_stock < qty) throw new Error('Insufficient stock for disposal');
+
+        // Log as a special WR
+        const { data } = await supabaseClient.from('withdrawal_requests').insert([{
+            wr_number: 'DISP-'+Date.now(),
+            requester_name: `${$('#disp-auth').val()} (Disposal)`,
+            department: 'DISPOSAL',
+            status: 'APPROVED' // Auto approved
+        }]).select();
+
+        await supabaseClient.from('wr_items').insert([{ wr_id: data[0].wr_id, material_code: mat, quantity_requested: qty }]);
+        
+        // Deduct Inventory
+        await supabaseClient.from('inventory').update({ current_stock: curr.current_stock - qty }).eq('material_code', mat);
+        await supabaseClient.from('stock_movements').insert({ material_code: mat, change_amount: -qty, reason: `Disposal: ${reason}` });
+
+        e.target.reset();
+        await refreshAll();
+        Swal.fire('Recorded', 'Disposal logged successfully', 'success');
+
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    } finally { $('#btn-disp-submit').prop('disabled', false); }
+}
+
+// --- MASTER DATA ---
+async function addMaster(table, idVal, idName) {
+    const v1 = $(`#${idVal}`).val().trim();
+    const v2 = idName ? $(`#${idName}`).val().trim() : null;
+    if(!v1) return;
     
     try {
-        const mat = document.getElementById('disp-mat').value;
-        const qty = Number(document.getElementById('disp-qty').value);
+        const payload = table === 'uoms' ? {code: v1, name: v2} : {name: v1};
+        const { error } = await supabaseClient.from(table).insert([payload]);
+        if(error) throw error;
         
-        // Real-time check
-        const { data: dbItem } = await supabaseClient.from('inventory').select('current_stock').eq('material_code', mat).single();
-        if(dbItem.current_stock < qty) throw new Error("Insufficient Stock");
-        
-        // Create Logic Record (WR Type)
-        const { data:h } = await supabaseClient.from('withdrawal_requests').insert([{
-            wr_number: 'DISP-'+Date.now().toString().slice(-6),
-            requester_name: `${document.getElementById('disp-auth').value} (Disposal: ${document.getElementById('disp-reason').value})`,
-            status: 'APPROVED',
-            department: 'DISPOSAL'
-        }]).select();
-        
-        await supabaseClient.from('wr_items').insert([{wr_id:h[0].wr_id, material_code:mat, quantity_requested:qty}]);
-        
-        // Deduct
-        await supabaseClient.from('inventory').update({current_stock: dbItem.current_stock - qty}).eq('material_code', mat);
-        await supabaseClient.from('stock_movements').insert({
-            material_code: mat,
-            change_amount: -qty,
-            reason: `Disposal: ${document.getElementById('disp-reason').value}`
-        });
-
-        e.target.reset(); refreshAll(); showToast("Disposal Recorded", "success");
-    } catch(err) { showToast(err.message, "error"); }
+        $(`#${idVal}, #${idName ? idName : idVal}`).val('');
+        loadMasterData();
+        const Toast = Swal.mixin({toast: true, position: 'top-end', showConfirmButton: false, timer: 3000});
+        Toast.fire({icon: 'success', title: 'Added successfully'});
+    } catch(err) {
+        Swal.fire('Error', err.message, 'error');
+    }
 }
 
-async function viewDetails(type, id) {
-    const table = type === 'pr' ? 'pr_items' : 'wr_items';
-    const idCol = type === 'pr' ? 'pr_id' : 'wr_id';
-    
-    const { data } = await supabaseClient.from(table).select('*').eq(idCol, id);
-    
-    document.getElementById('view-content').innerHTML = `
-        <table class="table table-sm table-striped">
-            <thead class="thead-light">
-                <tr><th>Material</th><th class="text-right">Qty</th>${type==='pr'?'<th class="text-right">Unit Price</th>':''}</tr>
-            </thead>
-            <tbody>
-                ${data.map(d => {
-                    // Try to find description in cache for better UX
-                    const desc = invCache.find(i=>i.material_code===d.material_code)?.description || '';
-                    return `
-                    <tr>
-                        <td>
-                            <strong>${escapeHTML(d.material_code)}</strong><br>
-                            <small class="text-muted">${escapeHTML(desc)}</small>
-                        </td>
-                        <td class="text-right font-weight-bold">${formatNum(d.quantity_requested)}</td>
-                        ${type==='pr' ? `<td class="text-right">$${formatNum(d.unit_price)}</td>` : ''}
-                    </tr>`;
-                }).join('')}
-            </tbody>
-        </table>`;
-    openModal('m-view-details');
+async function deleteMaster(table, id) {
+    if(!(await Swal.fire({title:'Delete?', icon:'warning', showCancelButton:true})).isConfirmed) return;
+    const { error } = await supabaseClient.from(table).delete().eq('id', id);
+    if(error) Swal.fire('Error', 'Record likely in use. Cannot delete.', 'error');
+    else loadMasterData();
 }
 
-// --- STOCK ADJUSTMENT ---
+// --- NAVIGATION & HELPERS ---
+function nav(id) {
+    $('.nav-link').removeClass('active bg-slate-800 text-white').addClass('text-slate-400');
+    $('.nav-link i').removeClass('text-brand-400');
+    const btn = $(`.nav-link[onclick="nav('${id}')"]`);
+    btn.addClass('active bg-slate-800 text-white').removeClass('text-slate-400');
+    btn.find('i').addClass('text-brand-400');
+
+    // Mobile: Close menu
+    $('#sidebar').addClass('-translate-x-full').removeClass('translate-x-0');
+
+    $('.page-section').fadeOut(150, function() {
+        if(this.id === id) {
+            $(this).fadeIn(200);
+            if(id === 'dashboard') setTimeout(() => Object.values(charts).forEach(c => c?.resize()), 50);
+        }
+    });
+}
+
+async function getPRs() {
+    const { data } = await supabaseClient.from('purchase_requests').select(`*, pr_items(*)`).order('created_at', {ascending:false}).limit(20);
+    $('#tbl-pr').html((data||[]).map(pr => `
+        <tr class="hover:bg-slate-50 border-b border-slate-100 text-sm">
+            <td class="p-4 font-mono font-bold text-brand-700">${pr.pr_number}</td>
+            <td class="p-4">${escapeHTML(pr.requester_name)}</td>
+            <td class="p-4 text-xs text-slate-500">${pr.pr_items.length} Items</td>
+            <td class="p-4 text-xs">${new Date(pr.created_at).toLocaleDateString()}</td>
+            <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${pr.status==='COMPLETED'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${pr.status}</span></td>
+            <td class="p-4 text-right">${pr.status==='PENDING' ? `<button onclick="processPR(${pr.pr_id})" class="text-emerald-600 font-bold hover:underline">Receive</button>` : '<i class="fas fa-check text-emerald-500"></i>'}</td>
+        </tr>
+    `).join(''));
+}
+
+async function getWRs() {
+    const { data } = await supabaseClient.from('withdrawal_requests').select(`*, wr_items(*)`).order('created_at', {ascending:false}).limit(20);
+    // Separate Disposals
+    const disposals = (data||[]).filter(w => w.wr_number.startsWith('DISP'));
+    $('#tbl-disp-hist').html(disposals.map(d => `<tr><td class="p-4 font-mono font-bold">${d.wr_number}</td><td class="p-4 text-slate-600">${escapeHTML(d.requester_name)}</td><td class="p-4 text-xs text-slate-400">${new Date(d.created_at).toLocaleDateString()}</td></tr>`).join(''));
+
+    $('#tbl-wr').html((data||[]).filter(w => !w.wr_number.startsWith('DISP')).map(wr => `
+        <tr class="hover:bg-slate-50 border-b border-slate-100 text-sm">
+            <td class="p-4 font-mono font-bold text-brand-700">${wr.wr_number}</td>
+            <td class="p-4">${escapeHTML(wr.requester_name)} <div class="text-xs text-slate-400">${escapeHTML(wr.department)}</div></td>
+            <td class="p-4 text-xs text-slate-500">${wr.wr_items[0]?.material_code || '-'}</td>
+            <td class="p-4 text-xs">${new Date(wr.created_at).toLocaleDateString()}</td>
+            <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${wr.status==='APPROVED'?'bg-blue-100 text-brand-700':'bg-amber-100 text-amber-700'}">${wr.status}</span></td>
+            <td class="p-4 text-right">${wr.status==='PENDING' ? `<button onclick="processWR(${wr.wr_id})" class="text-brand-600 font-bold hover:underline">Approve</button>` : '<i class="fas fa-check text-brand-500"></i>'}</td>
+        </tr>
+    `).join(''));
+}
+
+// Modal & Form Helpers
+function openInventoryModal(mode, code) {
+    $('#inv-mode').val(mode);
+    $('#inv-modal-title').text(mode==='add'?'Add Part':'Edit Part');
+    $('#form-inventory')[0].reset();
+    clearImage();
+    
+    // Default to upload tab
+    toggleImgInput('upload');
+    $('input[name="img-src-type"][value="upload"]').prop('checked', true);
+
+    if(mode === 'edit') {
+        const item = invCache.find(i => i.material_code === code);
+        $('#i-code').val(item.material_code).prop('readonly', true).addClass('bg-slate-100');
+        $('#i-desc').val(item.description);
+        $('#i-cat').val(item.category);
+        $('#i-uom').val(item.uom);
+        $('#i-low').val(item.low_stock_threshold);
+        $('#div-init-stock').hide();
+        
+        // Handle Existing Image (Base64 or URL)
+        if(item.image_link) {
+            $('#i-preview').attr('src', item.image_link);
+            $('#preview-container').removeClass('hidden');
+            $('#i-img-data').val(item.image_link);
+            
+            // Auto switch tab if it looks like a URL
+            if(item.image_link.startsWith('http')) {
+                $('input[name="img-src-type"][value="url"]').prop('checked', true);
+                toggleImgInput('url');
+                $('#i-url-input').val(item.image_link);
+            }
+        }
+    } else {
+        $('#i-code').prop('readonly', false).removeClass('bg-slate-100');
+        $('#div-init-stock').show();
+    }
+    openModal('m-inventory');
+}
+
 function openStockAdjustModal(code) {
     const item = invCache.find(i => i.material_code === code);
-    document.getElementById('adj-code').value = code;
-    document.getElementById('adj-name').innerText = item.description;
-    document.getElementById('adj-current').innerText = formatNum(item.current_stock);
-    document.getElementById('adj-qty').value = '';
-    document.getElementById('adj-reason').value = '';
+    $('#adj-code').val(code);
+    $('#adj-name').text(item.description);
+    $('#adj-current').text(formatNum(item.current_stock));
+    $('#adj-qty, #adj-reason').val('');
     openModal('m-stock-adjust');
 }
 
 async function submitAdjustment(e) {
     e.preventDefault();
-    const code = document.getElementById('adj-code').value;
-    const qty = parseInt(document.getElementById('adj-qty').value);
-    const reason = document.getElementById('adj-reason').value.trim();
-    
-    if(!qty) return showToast("Enter a quantity", "warning");
-    if(!reason) return showToast("Reason is required", "warning");
+    const code = $('#adj-code').val(), qty = parseInt($('#adj-qty').val());
+    if(!qty) return;
 
     const item = invCache.find(i => i.material_code === code);
-    if(item.current_stock + qty < 0) return showToast("Resulting stock cannot be negative", "error");
-
-    const { error } = await supabaseClient.from('inventory').update({current_stock: item.current_stock + qty}).eq('material_code', code);
-    await supabaseClient.from('stock_movements').insert([{
-        material_code: code, 
-        change_amount: qty, 
-        reason: "Manual Adj: " + reason
-    }]);
-    
-    if(error) showToast(error.message, "error");
-    else { closeModal('m-stock-adjust'); refreshAll(); showToast("Stock Adjusted", "success"); }
+    await supabaseClient.from('inventory').update({current_stock: item.current_stock + qty}).eq('material_code', code);
+    await supabaseClient.from('stock_movements').insert({material_code: code, change_amount: qty, reason: "Adj: "+$('#adj-reason').val()});
+    closeModal('m-stock-adjust');
+    await refreshAll();
+    Swal.fire('Updated', 'Stock adjusted manually', 'success');
 }
 
-// --- DASHBOARD ANALYTICS ---
-function updateDashboard() {
-    const active = invCache.filter(i => i.status !== 'ARCHIVED');
-    
-    // Counters
-    document.getElementById('d-items').innerText = formatNum(active.length);
-    document.getElementById('d-low').innerText = formatNum(active.filter(i => i.current_stock <= i.low_stock_threshold).length);
-    document.getElementById('d-cats').innerText = formatNum([...new Set(active.map(i => i.category))].length);
-
-    // Chart 1: Stock by Category
-    const catMap = {}; 
-    active.forEach(i => { 
-        const c = i.category || 'Uncategorized'; 
-        catMap[c] = (catMap[c]||0) + i.current_stock; 
-    });
-    
-    const ctx1 = document.getElementById('catChart');
-    if(charts.cat) charts.cat.destroy();
-    
-    charts.cat = new Chart(ctx1, { 
-        type: 'doughnut', 
-        data: { 
-            labels: Object.keys(catMap), 
-            datasets: [{ 
-                data: Object.values(catMap), 
-                backgroundColor: ['#4f46e5','#10b981','#f59e0b','#ef4444','#64748b','#8b5cf6','#ec4899'],
-                borderWidth: 0
-            }] 
-        }, 
-        options: { 
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } }
-        } 
-    });
-
-    // Chart 2: Top Items by Stock
-    const topItems = [...active].sort((a,b) => b.current_stock - a.current_stock).slice(0, 10);
-    const ctx2 = document.getElementById('moveChart');
-    if(charts.move) charts.move.destroy();
-    
-    charts.move = new Chart(ctx2, { 
-        type: 'bar', 
-        data: { 
-            labels: topItems.map(i => i.material_code), 
-            datasets: [{ 
-                label: 'Current Stock', 
-                data: topItems.map(i => i.current_stock), 
-                backgroundColor: '#3b82f6', 
-                borderRadius: 4 
-            }] 
-        }, 
-        options: { 
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true } }
-        } 
-    });
-}
-
-async function renderAnalytics() {
-    // 30 Days trend
-    const { data: moves } = await supabaseClient.from('stock_movements').select('*').order('created_at', {ascending: true}).limit(200);
-    
-    const grouped = {};
-    (moves||[]).forEach(m => {
-        const d = new Date(m.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
-        if(!grouped[d]) grouped[d] = {in:0,out:0,loss:0};
-        
-        if(m.change_amount > 0) grouped[d].in += m.change_amount;
-        else if(m.reason?.toLowerCase().includes('disposal')) grouped[d].loss += Math.abs(m.change_amount);
-        else grouped[d].out += Math.abs(m.change_amount);
-    });
-
-    const dates = Object.keys(grouped);
-    const inData = dates.map(k => grouped[k].in);
-    const outData = dates.map(k => grouped[k].out);
-    const lossData = dates.map(k => grouped[k].loss);
-
-    const mkChart = (id, lbl, col, d) => {
-        const ctx = document.getElementById(id);
-        if(!ctx) return;
-        if(charts.analytics[id]) charts.analytics[id].destroy();
-        
-        charts.analytics[id] = new Chart(ctx, { 
-            type: 'line', 
-            data: { 
-                labels: dates, 
-                datasets: [{ 
-                    label: lbl, 
-                    data: d, 
-                    borderColor: col, 
-                    backgroundColor: col+'15', // very transparent fill
-                    fill: true, 
-                    tension: 0.4, 
-                    pointRadius: 2,
-                    pointHoverRadius: 4
-                }] 
-            }, 
-            options: { 
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }, 
-                scales: { x: { display: false }, y: { display: false } },
-                interaction: { mode: 'nearest', axis: 'x', intersect: false }
-            } 
-        });
-    };
-    
-    if(dates.length > 0) {
-        mkChart('mini-in', 'In', '#10b981', inData); 
-        mkChart('mini-out', 'Out', '#f59e0b', outData); 
-        mkChart('mini-loss', 'Loss', '#ef4444', lossData);
+async function delItem(code) {
+    if((await Swal.fire({title:'Archive Item?', text:'Hides item from active lists.', icon:'warning', showCancelButton:true})).isConfirmed) {
+        await supabaseClient.from('inventory').update({status:'ARCHIVED'}).eq('material_code', code);
+        refreshAll();
     }
+}
+async function restoreItem(code) {
+    await supabaseClient.from('inventory').update({status:'ACTIVE'}).eq('material_code', code);
+    refreshAll();
+}
+
+// Misc Helpers
+function openModal(id) { $(`#${id}`).removeClass('hidden').css('display','flex').hide().fadeIn(200); setTimeout(()=> $(`#${id} > div`).removeClass('scale-95'), 10); }
+function closeModal(id) { $(`#${id} > div`).addClass('scale-95'); $(`#${id}`).fadeOut(200, function(){ $(this).addClass('hidden'); }); }
+function filterInventory() { renderInventoryTable(); }
+function toggleArchivedView() { appSettings.showArchived = !appSettings.showArchived; $('#btn-show-archived').toggleClass('bg-slate-200'); refreshAll(); }
+function updateItemSelects() {
+    const opts = '<option value="">-- Select Item --</option>' + invCache.filter(x=>x.status!=='ARCHIVED').map(i => `<option value="${i.material_code}">${i.material_code} - ${i.description}</option>`).join('');
+    $('#pr-mat, #wr-mat, #disp-mat').html(opts);
+}
+
+// --- IMAGE HANDLING V2 (COMPRESSION & TABS) ---
+
+function toggleImgInput(type) {
+    if(type === 'upload') {
+        $('#img-input-upload').removeClass('hidden');
+        $('#img-input-url').addClass('hidden');
+    } else {
+        $('#img-input-upload').addClass('hidden');
+        $('#img-input-url').removeClass('hidden');
+    }
+}
+
+function handleUrlInput(val) {
+    if(val && val.trim().length > 0) {
+        $('#i-preview').attr('src', val);
+        $('#preview-container').removeClass('hidden');
+        $('#i-img-data').val(val);
+    } else {
+        $('#preview-container').addClass('hidden');
+    }
+}
+
+async function handleImageFile(input) {
+    if (input.files && input.files[0]) {
+        try {
+            // Compress Image on Client Side before Base64
+            const compressedBase64 = await compressImage(input.files[0]);
+            
+            $('#i-preview').attr('src', compressedBase64);
+            $('#preview-container').removeClass('hidden');
+            $('#i-img-data').val(compressedBase64); // Set the compressed string
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Error', 'Could not process image', 'error');
+            clearImage();
+        }
+    }
+}
+
+// Client-side Compression Utility
+function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800; // Limit width to 800px
+                const scaleSize = MAX_WIDTH / img.width;
+                const finalWidth = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
+                const finalHeight = (img.width > MAX_WIDTH) ? (img.height * scaleSize) : img.height;
+                
+                canvas.width = finalWidth;
+                canvas.height = finalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
+                
+                // Export as JPEG quality 0.7 (Reduces size significantly compared to PNG)
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+            };
+            img.onerror = reject;
+        };
+        reader.onerror = reject;
+    });
+}
+
+function clearImage() {
+    $('#i-file').val('');
+    $('#i-url-input').val('');
+    $('#i-img-data').val('');
+    $('#i-preview').attr('src', '');
+    $('#preview-container').addClass('hidden');
+}
+
+// --- END IMAGE HANDLING ---
+
+function switchTab(id) { $('.tab-btn').removeClass('active border-brand-600 text-brand-600').addClass('border-transparent text-slate-500'); $(event.target).removeClass('border-transparent text-slate-500').addClass('active border-brand-600 text-brand-600'); $('.tab-content').addClass('hidden'); $(`#${id}`).removeClass('hidden'); }
+function openLightbox(src) { $('#lightbox-img').attr('src', src); openModal('m-lightbox'); }
+
+// Check stock on WR modal
+function checkStockAvailability(code) {
+    const hint = $('#wr-stock-hint');
+    if(!code) { hint.css('opacity', 0); return; }
+    
+    const item = invCache.find(i => i.material_code === code);
+    if(item) {
+        let cls = 'stock-badge-good';
+        if(item.current_stock <= 0) cls = 'stock-badge-out';
+        else if(item.current_stock <= item.low_stock_threshold) cls = 'stock-badge-low';
+        
+        hint.html(`<span class="${cls}">Available Stock: ${formatNum(item.current_stock)} ${item.uom}</span>`);
+        hint.css('opacity', 1);
+        $('#wr-qty').attr('max', item.current_stock);
+    }
+}
+
+// View Item History
+function viewItemHistory(code) {
+    const history = movementCache.filter(m => m.material_code === code).reverse();
+    const item = invCache.find(i => i.material_code === code);
+    
+    let html = '';
+    if(history.length === 0) html = '<tr><td colspan="3" class="p-4 text-center text-slate-400">No movements recorded.</td></tr>';
+    else {
+        html = history.map(h => `
+            <tr class="border-b border-slate-200">
+                <td class="p-3 text-slate-500">${new Date(h.created_at).toLocaleDateString()}</td>
+                <td class="p-3 text-slate-700 font-medium">${escapeHTML(h.reason)}</td>
+                <td class="p-3 text-right font-bold ${h.change_amount > 0 ? 'text-emerald-600' : 'text-red-600'}">
+                    ${h.change_amount > 0 ? '+' : ''}${h.change_amount}
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    $('#tbl-item-history').html(html);
+    openModal('m-item-history');
 }
