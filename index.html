@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trans-System | Logistics V6</title>
+    <title>Trans-System | Logistics</title>
     
     <!-- CDNs -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,9 +12,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 
     <!-- Tailwind Config -->
     <script>
@@ -22,207 +23,172 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { 50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 800:'#1e40af', 900:'#1e3a8a' },
-                        dark: '#0f172a'
+                        royal: { 
+                            50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 
+                            700:'#1d4ed8', 800:'#1e40af', 900:'#1e3a8a' 
+                        },
+                        slate: { 850: '#151e2e' }
                     },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                    fontFamily: { sans: ['"Roboto"', 'sans-serif'] }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
+<body class="bg-slate-50 text-slate-700 font-sans h-screen flex overflow-hidden">
 
     <!-- Loading Overlay -->
-    <div id="loader-overlay" class="fixed inset-0 bg-white/90 z-[9999] flex flex-col items-center justify-center backdrop-blur-sm">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-brand-600 mb-4"></div>
-        <p class="text-brand-600 font-bold animate-pulse text-lg">Syncing Database...</p>
+    <div id="loader-overlay" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center transition-opacity duration-300">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-royal-800"></div>
+        <p class="text-royal-800 font-bold mt-4 tracking-wide text-sm uppercase">Loading System...</p>
     </div>
 
     <!-- Mobile Header -->
-    <div class="md:hidden fixed w-full bg-dark text-white z-50 flex items-center justify-between px-4 py-3 shadow-lg">
-        <div class="font-bold text-lg"><i class="fas fa-truck-moving mr-2"></i> Trans-System</div>
-        <button id="mobile-menu-btn" class="text-white hover:text-brand-400 focus:outline-none transition-transform active:scale-95">
+    <div class="md:hidden fixed w-full bg-slate-900 text-white z-50 flex items-center justify-between px-4 py-3 shadow-md">
+        <div class="font-bold text-lg"><i class="fas fa-truck-loading text-royal-500 mr-2"></i> Trans-System</div>
+        <button id="mobile-menu-btn" class="text-white hover:text-royal-400">
             <i class="fas fa-bars fa-lg"></i>
         </button>
     </div>
 
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="glass-sidebar w-64 text-slate-400 flex flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 z-40 border-r border-slate-800 shadow-2xl">
-        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
-            <div class="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-700 rounded-lg flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
-                <i class="fas fa-cubes text-lg"></i>
-            </div>
+    <aside id="sidebar" class="w-64 bg-slate-900 text-slate-400 flex flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 z-40 border-r border-slate-800 shadow-xl">
+        <!-- Logo Area -->
+        <div class="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800">
+            <i class="fas fa-box-open text-royal-500 text-xl mr-3"></i>
             <div>
-                <h2 class="text-white font-bold tracking-wide">Trans-System</h2>
-                <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Logistics Management</p>
+                <h2 class="text-white font-bold tracking-wide text-lg">Trans-System</h2>
+                <p class="text-[10px] uppercase text-slate-500 font-bold">Inventory Control</p>
             </div>
         </div>
 
+        <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-            <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Overview</p>
-            <a href="#" onclick="nav('dashboard')" class="nav-link active group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
-                <i class="fas fa-chart-pie w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Dashboard
-            </a>
-            <a href="#" onclick="nav('inventory')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
-                <i class="fas fa-boxes w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Inventory & Assets
+            
+            <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Overview</div>
+            <a href="#" onclick="nav('dashboard')" class="nav-link active">
+                <i class="fas fa-chart-pie w-6"></i> <span>Dashboard</span>
             </a>
 
-            <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">Logistics</p>
-            <a href="#" onclick="nav('purchase')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
-                <i class="fas fa-file-invoice w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Restocking (PR)
-            </a>
-            <a href="#" onclick="nav('withdrawal')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
-                <i class="fas fa-dolly w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Withdrawals (WR)
-            </a>
-            <a href="#" onclick="nav('disposal')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
-                <i class="fas fa-trash-alt w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Disposal Log
+            <div class="px-3 mb-2 mt-6 text-[10px] font-bold uppercase tracking-wider text-slate-500">Inventory Control</div>
+            <a href="#" onclick="nav('inventory')" class="nav-link">
+                <i class="fas fa-boxes w-6"></i> <span>Stock List</span>
             </a>
 
-            <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">System</p>
-            <a href="#" onclick="nav('settings')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
-                <i class="fas fa-cogs w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Master Data
+            <div class="px-3 mb-2 mt-6 text-[10px] font-bold uppercase tracking-wider text-slate-500">Transactions</div>
+            <a href="#" onclick="nav('purchase')" class="nav-link">
+                <i class="fas fa-arrow-down w-6 text-emerald-500"></i> <span>Stock In (PR)</span>
+            </a>
+            <a href="#" onclick="nav('withdrawal')" class="nav-link">
+                <i class="fas fa-arrow-up w-6 text-amber-500"></i> <span>Stock Out (WR)</span>
+            </a>
+            <a href="#" onclick="nav('disposal')" class="nav-link">
+                <i class="fas fa-trash-alt w-6 text-red-500"></i> <span>Disposal</span>
+            </a>
+
+            <div class="px-3 mb-2 mt-6 text-[10px] font-bold uppercase tracking-wider text-slate-500">Administration</div>
+            <a href="#" onclick="nav('settings')" class="nav-link">
+                <i class="fas fa-database w-6"></i> <span>Master Data</span>
             </a>
         </nav>
 
-        <div class="p-4 border-t border-slate-800 text-center text-xs">
-            <span class="text-emerald-500 flex items-center justify-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online V2.2</span>
+        <!-- User Profile Stub -->
+        <div class="p-4 border-t border-slate-800 bg-slate-950">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-royal-700 flex items-center justify-center text-white font-bold">A</div>
+                <div class="text-sm">
+                    <div class="text-white font-medium">Admin User</div>
+                    <div class="text-xs text-emerald-500">● Online</div>
+                </div>
+            </div>
         </div>
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50">
-        <!-- Main Scroll Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
         <div class="flex-1 overflow-y-auto p-4 md:p-8 mt-14 md:mt-0" id="main-container">
             
             <!-- DASHBOARD -->
             <div id="dashboard" class="page-section">
-                <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                    <div>
-                        <h1 class="text-3xl font-bold text-slate-800">Fleet Dashboard</h1>
-                        <p class="text-slate-500 mt-1">Real-time overview of assets and movements.</p>
-                    </div>
-                    <button onclick="refreshAll()" class="group bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-600 px-4 py-2 rounded-lg shadow-sm transition-all flex items-center gap-2 active:scale-95">
-                        <i class="fas fa-sync-alt group-hover:animate-spin"></i> Refresh Data
-                    </button>
-                </header>
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="page-title">Dashboard Overview</h1>
+                    <button onclick="refreshAll()" class="btn-secondary text-sm"><i class="fas fa-sync-alt mr-2"></i> Refresh</button>
+                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <!-- Stat 1 -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-                        <div class="absolute right-0 top-0 h-full w-1 bg-brand-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total SKUs</p>
-                                <h3 class="text-3xl font-bold text-slate-800 mt-2" id="d-items">0</h3>
-                            </div>
-                            <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-brand-600 text-xl group-hover:scale-110 transition-transform">
-                                <i class="fas fa-layer-group"></i>
-                            </div>
-                        </div>
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="card p-5 border-l-4 border-royal-600">
+                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Total Items</div>
+                        <div class="text-2xl font-bold text-slate-800" id="d-items">0</div>
                     </div>
-                    <!-- Stat 2 -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-                        <div class="absolute right-0 top-0 h-full w-1 bg-emerald-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Items Withdrawn</p>
-                                <h3 class="text-3xl font-bold text-slate-800 mt-2" id="d-withdrawn">0</h3>
-                                <p class="text-[10px] text-slate-400 mt-1">Total Lifetime Outbound</p>
-                            </div>
-                            <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 text-xl group-hover:scale-110 transition-transform">
-                                <i class="fas fa-dolly"></i>
-                            </div>
-                        </div>
+                    <div class="card p-5 border-l-4 border-emerald-500">
+                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Total Withdrawn</div>
+                        <div class="text-2xl font-bold text-slate-800" id="d-withdrawn">0</div>
                     </div>
-                    <!-- Stat 3 -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-                        <div class="absolute right-0 top-0 h-full w-1 bg-red-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Low Stock</p>
-                                <h3 class="text-3xl font-bold text-red-600 mt-2" id="d-low">0</h3>
-                            </div>
-                            <div class="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center text-red-600 text-xl animate-pulse">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                        </div>
+                    <div class="card p-5 border-l-4 border-red-500">
+                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Low Stock Alerts</div>
+                        <div class="text-2xl font-bold text-red-600" id="d-low">0</div>
                     </div>
-                    <!-- Stat 4 -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-                        <div class="absolute right-0 top-0 h-full w-1 bg-orange-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Fleets</p>
-                                <h3 class="text-3xl font-bold text-slate-800 mt-2" id="d-depts">0</h3>
-                            </div>
-                            <div class="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600 text-xl group-hover:scale-110 transition-transform">
-                                <i class="fas fa-users"></i>
-                            </div>
-                        </div>
+                    <div class="card p-5 border-l-4 border-amber-500">
+                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Departments</div>
+                        <div class="text-2xl font-bold text-slate-800" id="d-depts">0</div>
                     </div>
                 </div>
 
                 <!-- Charts -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                        <div class="flex items-center justify-between mb-6">
-                            <h3 class="font-bold text-slate-700">Movement Trends (14 Days)</h3>
-                        </div>
-                        <div class="h-64 relative w-full">
-                            <canvas id="trendChart"></canvas>
-                        </div>
+                    <div class="lg:col-span-2 card p-5">
+                        <h3 class="font-bold text-slate-700 mb-4 border-b pb-2">Movement History (14 Days)</h3>
+                        <div class="h-64 relative"><canvas id="trendChart"></canvas></div>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                        <h3 class="font-bold text-slate-700 mb-6">Stock Composition</h3>
-                        <div class="h-64 relative w-full">
-                            <canvas id="catChart"></canvas>
-                        </div>
+                    <div class="card p-5">
+                        <h3 class="font-bold text-slate-700 mb-4 border-b pb-2">Inventory by Category</h3>
+                        <div class="h-64 relative"><canvas id="catChart"></canvas></div>
                     </div>
                 </div>
             </div>
 
             <!-- INVENTORY PAGE -->
             <div id="inventory" class="page-section hidden">
-                <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                    <div>
-                        <h1 class="text-3xl font-bold text-slate-800">Inventory</h1>
-                        <p class="text-slate-500 mt-1">Manage spare parts and assets.</p>
-                    </div>
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h1 class="page-title">Inventory List</h1>
                     <div class="flex gap-2">
-                        <button id="btn-show-archived" onclick="toggleArchivedView()" class="px-4 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition shadow-sm text-sm font-medium">
-                            <i class="fas fa-archive mr-2"></i> Archives
+                        <button id="btn-show-archived" onclick="toggleArchivedView()" class="btn-secondary text-sm">
+                            <i class="fas fa-archive mr-2"></i> Show Archived
                         </button>
-                        <button onclick="openInventoryModal('add')" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition shadow-lg shadow-brand-500/30 text-sm font-medium active:scale-95">
-                            <i class="fas fa-plus mr-2"></i> Add Part
+                        <button onclick="openInventoryModal('add')" class="btn-primary">
+                            <i class="fas fa-plus mr-2"></i> Add Item
                         </button>
                     </div>
-                </header>
+                </div>
 
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row gap-4 items-center">
-                        <div class="relative flex-1 w-full">
+                <div class="card">
+                    <!-- Filters -->
+                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row gap-4">
+                        <div class="relative flex-1">
                             <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
-                            <input type="text" id="search-inv" onkeyup="filterInventory()" placeholder="Search SKU, name..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                            <input type="text" id="search-inv" onkeyup="filterInventory()" placeholder="Search Code or Description..." class="form-input pl-10">
                         </div>
-                        <select id="filter-cat" onchange="filterInventory()" class="w-full md:w-48 py-2 px-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <select id="filter-cat" onchange="filterInventory()" class="form-select w-full md:w-48">
                             <option value="">All Categories</option>
                         </select>
                     </div>
+                    <!-- Table -->
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-100 text-slate-600 text-xs uppercase font-bold">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs border-b border-slate-200">
                                 <tr>
                                     <th class="p-4">Image</th>
-                                    <th class="p-4 cursor-pointer hover:text-brand-600" onclick="sortInv('material_code')">SKU / Item <i class="fas fa-sort ml-1"></i></th>
-                                    <th class="p-4">Category</th>
+                                    <th class="p-4 cursor-pointer hover:bg-slate-200" onclick="sortInv('material_code')">Code <i class="fas fa-sort ml-1"></i></th>
+                                    <th class="p-4">Description</th>
                                     <th class="p-4">Stock</th>
-                                    <th class="p-4 text-center">Total Out</th>
-                                    <th class="p-4 text-center">Status</th>
+                                    <th class="p-4">Unit</th>
+                                    <th class="p-4">Category</th>
+                                    <th class="p-4 text-center">SDS</th>
                                     <th class="p-4 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="tbl-inv" class="text-sm divide-y divide-slate-100"></tbody>
+                            <tbody id="tbl-inv" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
@@ -230,74 +196,78 @@
 
             <!-- PURCHASE PAGE -->
             <div id="purchase" class="page-section hidden">
-                <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                    <div>
-                        <h1 class="text-3xl font-bold text-slate-800">Inbound (PR)</h1>
-                        <p class="text-slate-500 mt-1">Purchase Requests & Receiving.</p>
-                    </div>
-                    <button onclick="openModal('m-create-pr')" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/30 text-sm font-medium active:scale-95">
-                        <i class="fas fa-file-import mr-2"></i> Create PR
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="page-title">Stock Inbound (PR)</h1>
+                    <button onclick="openModal('m-create-pr')" class="btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-700">
+                        <i class="fas fa-plus mr-2"></i> Create Request
                     </button>
-                </header>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-100 text-slate-600 text-xs uppercase font-bold">
-                            <tr><th class="p-4">PR Ref</th><th class="p-4">Requester</th><th class="p-4">Items</th><th class="p-4">Date</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
+                </div>
+                <div class="card overflow-hidden">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
+                            <tr><th class="p-4">PR No.</th><th class="p-4">Requester</th><th class="p-4">Summary</th><th class="p-4">Date</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
                         </thead>
-                        <tbody id="tbl-pr" class="text-sm divide-y divide-slate-100"></tbody>
+                        <tbody id="tbl-pr" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
             </div>
 
             <!-- WITHDRAWAL PAGE -->
             <div id="withdrawal" class="page-section hidden">
-                <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                    <div>
-                        <h1 class="text-3xl font-bold text-slate-800">Outbound (WR)</h1>
-                        <p class="text-slate-500 mt-1">Issue stock to fleet.</p>
-                    </div>
-                    <button onclick="openModal('m-create-wr')" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition shadow-lg shadow-brand-500/30 text-sm font-medium active:scale-95">
-                        <i class="fas fa-dolly-flatbed mr-2"></i> Issue Stock
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="page-title">Stock Outbound (WR)</h1>
+                    <button onclick="openModal('m-create-wr')" class="btn-primary bg-amber-600 hover:bg-amber-700 border-amber-700">
+                        <i class="fas fa-dolly mr-2"></i> Issue Stock
                     </button>
-                </header>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-100 text-slate-600 text-xs uppercase font-bold">
-                            <tr><th class="p-4">WR Ref</th><th class="p-4">Recipient</th><th class="p-4">Item</th><th class="p-4">Date</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
+                </div>
+                <div class="card overflow-hidden">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
+                            <tr><th class="p-4">WR No.</th><th class="p-4">Recipient</th><th class="p-4">Item</th><th class="p-4">Date</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
                         </thead>
-                        <tbody id="tbl-wr" class="text-sm divide-y divide-slate-100"></tbody>
+                        <tbody id="tbl-wr" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
             </div>
 
             <!-- DISPOSAL PAGE -->
             <div id="disposal" class="page-section hidden">
-                <header class="mb-8"><h1 class="text-3xl font-bold text-slate-800">Disposal Log</h1></header>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-red-100">
-                            <h3 class="text-lg font-bold text-red-600 mb-4 pb-2 border-b border-red-50"><i class="fas fa-trash-alt mr-2"></i> Record Disposal</h3>
-                            <form onsubmit="handleDisposal(event)" class="space-y-4">
-                                <div><label class="label-text">Select Asset</label><select id="disp-mat" required class="input-field"></select></div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="label-text">Qty</label><input type="number" id="disp-qty" required min="1" class="input-field"></div>
-                                    <div><label class="label-text">Reason</label>
-                                        <select id="disp-reason" class="input-field">
-                                            <option value="Damaged">Damaged</option>
-                                            <option value="Expired">Expired</option>
-                                            <option value="Obsolete">Obsolete</option>
-                                            <option value="Lost">Lost</option>
-                                        </select>
-                                    </div>
+                <h1 class="page-title mb-6">Disposal Log</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="card p-6 border-t-4 border-red-600 h-fit">
+                        <h3 class="font-bold text-lg mb-4 text-red-700">Record New Disposal</h3>
+                        <form onsubmit="handleDisposal(event)" class="space-y-4">
+                            <div>
+                                <label class="label">Select Asset</label>
+                                <select id="disp-mat" required class="form-select w-full"></select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="label">Quantity</label>
+                                    <input type="number" id="disp-qty" required min="1" class="form-input w-full">
                                 </div>
-                                <div><label class="label-text">Approved By</label><input type="text" id="disp-auth" required class="input-field"></div>
-                                <button type="submit" id="btn-disp-submit" class="w-full py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition shadow-lg shadow-red-500/30">Confirm Disposal</button>
-                            </form>
-                        </div>
+                                <div>
+                                    <label class="label">Reason</label>
+                                    <select id="disp-reason" class="form-select w-full">
+                                        <option value="Damaged">Damaged</option>
+                                        <option value="Expired">Expired</option>
+                                        <option value="Obsolete">Obsolete</option>
+                                        <option value="Lost">Lost</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="label">Authorized By</label>
+                                <input type="text" id="disp-auth" required class="form-input w-full">
+                            </div>
+                            <button type="submit" id="btn-disp-submit" class="w-full btn-primary bg-red-600 hover:bg-red-700 border-red-700">Confirm Disposal</button>
+                        </form>
                     </div>
-                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 text-slate-500 text-xs border-b"><tr><th class="p-4">Ref</th><th class="p-4">Reason</th><th class="p-4">Date</th></tr></thead>
+                    <div class="lg:col-span-2 card overflow-hidden">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
+                                <tr><th class="p-4">Ref</th><th class="p-4">Auth By</th><th class="p-4">Details</th><th class="p-4">Date</th></tr>
+                            </thead>
                             <tbody id="tbl-disp-hist" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
@@ -306,25 +276,35 @@
 
             <!-- SETTINGS PAGE -->
             <div id="settings" class="page-section hidden">
-                <header class="mb-8"><h1 class="text-3xl font-bold text-slate-800">Master Data</h1></header>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                    <div class="flex space-x-2 mb-6 border-b border-slate-200 pb-1">
-                        <button onclick="switchTab('tab-cat')" class="tab-btn active border-b-2 border-brand-600 text-brand-600 px-4 py-2 text-sm font-bold">Categories</button>
-                        <button onclick="switchTab('tab-uom')" class="tab-btn border-b-2 border-transparent text-slate-500 hover:text-brand-600 px-4 py-2 text-sm font-bold">UoM</button>
-                        <button onclick="switchTab('tab-dept')" class="tab-btn border-b-2 border-transparent text-slate-500 hover:text-brand-600 px-4 py-2 text-sm font-bold">Depts</button>
+                <h1 class="page-title mb-6">Master Data Administration</h1>
+                <div class="card p-6 min-h-[500px]">
+                    <div class="flex border-b border-slate-200 mb-6">
+                        <button onclick="switchTab('tab-cat')" class="px-6 py-3 font-medium text-slate-500 hover:text-royal-600 border-b-2 border-transparent hover:border-royal-300 focus:outline-none active-tab">Categories</button>
+                        <button onclick="switchTab('tab-uom')" class="px-6 py-3 font-medium text-slate-500 hover:text-royal-600 border-b-2 border-transparent hover:border-royal-300 focus:outline-none">Units (UoM)</button>
+                        <button onclick="switchTab('tab-dept')" class="px-6 py-3 font-medium text-slate-500 hover:text-royal-600 border-b-2 border-transparent hover:border-royal-300 focus:outline-none">Departments</button>
                     </div>
 
                     <div id="tab-cat" class="tab-content">
-                        <div class="flex gap-2 mb-4"><input id="new-cat-name" placeholder="New Category..." class="flex-1 input-field"><button onclick="addMaster('categories', 'new-cat-name')" class="btn-primary">Add</button></div>
-                        <ul id="list-categories" class="divide-y divide-slate-100"></ul>
+                        <div class="flex gap-2 mb-4 bg-slate-50 p-4 rounded border border-slate-200">
+                            <input id="new-cat-name" placeholder="New Category Name" class="form-input flex-1">
+                            <button onclick="addMaster('categories', 'new-cat-name')" class="btn-primary">Add</button>
+                        </div>
+                        <ul id="list-categories" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></ul>
                     </div>
                     <div id="tab-uom" class="tab-content hidden">
-                        <div class="flex gap-2 mb-4"><input id="new-uom-code" placeholder="Code" class="w-24 input-field"><input id="new-uom-name" placeholder="Description" class="flex-1 input-field"><button onclick="addMaster('uoms', 'new-uom-code', 'new-uom-name')" class="btn-primary">Add</button></div>
-                        <ul id="list-uoms" class="divide-y divide-slate-100"></ul>
+                        <div class="flex gap-2 mb-4 bg-slate-50 p-4 rounded border border-slate-200">
+                            <input id="new-uom-code" placeholder="Code (PCS)" class="form-input w-24 uppercase font-bold">
+                            <input id="new-uom-name" placeholder="Description (Pieces)" class="form-input flex-1">
+                            <button onclick="addMaster('uoms', 'new-uom-code', 'new-uom-name')" class="btn-primary">Add</button>
+                        </div>
+                        <ul id="list-uoms" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></ul>
                     </div>
                     <div id="tab-dept" class="tab-content hidden">
-                        <div class="flex gap-2 mb-4"><input id="new-dept-name" placeholder="Department..." class="flex-1 input-field"><button onclick="addMaster('departments', 'new-dept-name')" class="btn-primary">Add</button></div>
-                        <ul id="list-departments" class="divide-y divide-slate-100"></ul>
+                        <div class="flex gap-2 mb-4 bg-slate-50 p-4 rounded border border-slate-200">
+                            <input id="new-dept-name" placeholder="Department Name" class="form-input flex-1">
+                            <button onclick="addMaster('departments', 'new-dept-name')" class="btn-primary">Add</button>
+                        </div>
+                        <ul id="list-departments" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></ul>
                     </div>
                 </div>
             </div>
@@ -332,169 +312,214 @@
         </div>
     </main>
 
-    <!-- MODALS -->
+    <!-- MODALS (Solid backgrounds, High Contrast) -->
     
     <!-- Inventory Modal -->
-    <div id="m-inventory" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden transform scale-95 transition-all duration-200">
-            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-slate-800" id="inv-modal-title">Part Details</h3>
-                <button onclick="closeModal('m-inventory')" class="text-slate-400 hover:text-red-500 text-2xl">&times;</button>
+    <div id="m-inventory" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-lg">
+                <h3 class="font-bold text-lg text-slate-800" id="inv-modal-title">Item Details</h3>
+                <button onclick="closeModal('m-inventory')" class="text-slate-400 hover:text-red-500"><i class="fas fa-times fa-lg"></i></button>
             </div>
             <div class="p-6 overflow-y-auto">
                 <form id="form-inventory" onsubmit="saveInventory(event)" class="space-y-4">
                     <input type="hidden" id="inv-mode">
+                    
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="label-text">SKU / Code <span class="text-red-500">*</span></label><input id="i-code" required class="input-field font-mono"></div>
-                        <div><label class="label-text">Category <span class="text-red-500">*</span></label><select id="i-cat" required class="input-field"></select></div>
+                        <div>
+                            <label class="label">Material Code *</label>
+                            <input id="i-code" required class="form-input w-full font-mono uppercase font-bold">
+                        </div>
+                        <div>
+                            <label class="label">Category *</label>
+                            <select id="i-cat" required class="form-select w-full"></select>
+                        </div>
                     </div>
-                    <div><label class="label-text">Description <span class="text-red-500">*</span></label><input id="i-desc" required class="input-field"></div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="label-text">Unit (UoM)</label><select id="i-uom" required class="input-field"></select></div>
-                        <div><label class="label-text">Low Stock Alert</label><input type="number" id="i-low" value="5" class="input-field"></div>
+
+                    <div>
+                        <label class="label">Description *</label>
+                        <input id="i-desc" required class="form-input w-full">
                     </div>
-                    <div id="div-init-stock" class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                        <label class="label-text text-brand-600">Initial Stock</label><input type="number" id="i-stock" value="0" min="0" class="input-field border-blue-200">
+
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="label">Unit (UoM) *</label>
+                            <select id="i-uom" required class="form-select w-full"></select>
+                        </div>
+                        <div>
+                            <label class="label">Low Stock Limit</label>
+                            <input type="number" id="i-low" value="5" class="form-input w-full">
+                        </div>
+                        <div id="div-init-stock">
+                            <label class="label text-royal-700">Initial Stock</label>
+                            <input type="number" id="i-stock" value="0" min="0" class="form-input w-full border-royal-300 bg-royal-50">
+                        </div>
                     </div>
                     
-                    <!-- NEW IMAGE HANDLING UI -->
-                    <div class="mt-4 border-t border-slate-100 pt-4">
-                        <label class="label-text mb-2 block">Item Image</label>
-                        
-                        <!-- Tabs -->
-                        <div class="flex gap-4 text-sm mb-3">
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="img-src-type" value="upload" checked onclick="toggleImgInput('upload')" class="text-brand-600"> Upload File</label>
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="img-src-type" value="url" onclick="toggleImgInput('url')" class="text-brand-600"> Image URL</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">SDS Link (URL)</label>
+                            <input type="url" id="i-sds" class="form-input w-full">
                         </div>
+                        <div>
+                            <label class="label">Remarks</label>
+                            <input type="text" id="i-remarks" class="form-input w-full">
+                        </div>
+                    </div>
 
-                        <!-- 1. Upload Zone -->
+                    <!-- Image Section -->
+                    <div class="border border-slate-200 rounded p-4 bg-slate-50">
+                        <label class="label mb-2 block">Item Image</label>
+                        <div class="flex gap-4 mb-3 text-sm">
+                            <label class="flex items-center"><input type="radio" name="img-src-type" value="upload" checked onclick="toggleImgInput('upload')" class="mr-2"> Upload</label>
+                            <label class="flex items-center"><input type="radio" name="img-src-type" value="url" onclick="toggleImgInput('url')" class="mr-2"> URL</label>
+                        </div>
                         <div id="img-input-upload">
-                            <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center cursor-pointer hover:bg-slate-50 hover:border-brand-400 transition-colors">
-                                <div class="drop-zone-content">
-                                    <i class="fas fa-cloud-upload-alt text-2xl text-slate-400 mb-2"></i>
-                                    <p class="text-xs font-medium text-slate-600">Click to upload (Auto-compressed)</p>
-                                </div>
+                            <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded p-4 text-center cursor-pointer hover:bg-white hover:border-royal-500 transition">
+                                <p class="text-xs text-slate-500">Click to Upload Image</p>
                                 <input type="file" id="i-file" accept="image/*" class="hidden" onchange="handleImageFile(this)">
                             </div>
                         </div>
-
-                        <!-- 2. URL Input -->
                         <div id="img-input-url" class="hidden">
-                            <input type="url" id="i-url-input" placeholder="https://example.com/image.jpg" class="input-field" onchange="handleUrlInput(this.value)">
+                            <input type="url" id="i-url-input" placeholder="http://..." class="form-input w-full" onchange="handleUrlInput(this.value)">
                         </div>
-
-                        <!-- Preview & Hidden Data -->
-                        <div id="preview-container" class="hidden mt-3 relative w-32 mx-auto">
-                            <img id="i-preview" class="w-32 h-32 rounded-lg object-contain border border-slate-200 bg-slate-50 shadow-sm">
-                            <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs shadow-md hover:bg-red-600" onclick="clearImage()">&times;</button>
+                        <div id="preview-container" class="hidden mt-2 relative w-20">
+                            <img id="i-preview" class="w-20 h-20 rounded object-cover border border-slate-300">
+                            <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center" onclick="clearImage()">&times;</button>
                         </div>
                         <input type="hidden" id="i-img-data">
                     </div>
 
-                    <button type="submit" id="btn-save-inv" class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition shadow-lg shadow-brand-500/30">Save Record</button>
+                    <div class="pt-4 border-t border-slate-100 text-right">
+                        <button type="button" onclick="closeModal('m-inventory')" class="btn-secondary mr-2">Cancel</button>
+                        <button type="submit" id="btn-save-inv" class="btn-primary">Save Item</button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 
     <!-- Stock Adjust Modal -->
-    <div id="m-stock-adjust" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <div><h3 class="font-bold text-lg">Adjust Stock</h3><p id="adj-name" class="text-sm text-slate-500">...</p></div>
-                    <button onclick="closeModal('m-stock-adjust')" class="text-slate-400 hover:text-slate-600">&times;</button>
-                </div>
-                <div class="bg-slate-50 rounded-lg p-4 text-center mb-4 border border-slate-200">
-                    <span class="text-xs uppercase text-slate-400 font-bold">Current Stock</span>
-                    <div id="adj-current" class="text-3xl font-bold text-brand-600">0</div>
-                </div>
-                <form onsubmit="submitAdjustment(event)" class="space-y-4">
-                    <input type="hidden" id="adj-code">
-                    <div><label class="label-text">Adjustment (+/-)</label><input type="number" id="adj-qty" required class="input-field" placeholder="e.g. 5 or -2"></div>
-                    <div><label class="label-text">Reason</label><textarea id="adj-reason" required class="input-field" rows="2"></textarea></div>
-                    <button id="btn-save-adj" class="w-full bg-brand-600 text-white font-bold py-2 rounded-lg hover:bg-brand-700 transition">Update</button>
-                </form>
+    <div id="m-stock-adjust" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
+            <h3 class="font-bold text-lg mb-1">Adjust Stock</h3>
+            <p id="adj-name" class="text-sm text-slate-500 mb-4 truncate">...</p>
+            
+            <div class="bg-royal-50 p-4 rounded border border-royal-100 text-center mb-4">
+                <div class="text-xs uppercase font-bold text-royal-600">Current Stock</div>
+                <div id="adj-current" class="text-3xl font-bold text-royal-800">0</div>
             </div>
+
+            <form onsubmit="submitAdjustment(event)" class="space-y-3">
+                <input type="hidden" id="adj-code">
+                <div>
+                    <label class="label">Adjustment Amount (+/-)</label>
+                    <input type="number" id="adj-qty" required class="form-input w-full font-bold">
+                </div>
+                <div>
+                    <label class="label">Reason</label>
+                    <input type="text" id="adj-reason" required class="form-input w-full">
+                </div>
+                <button class="btn-primary w-full mt-2">Update</button>
+                <button type="button" onclick="closeModal('m-stock-adjust')" class="btn-secondary w-full">Cancel</button>
+            </form>
         </div>
     </div>
 
-    <!-- Create PR Modal -->
-    <div id="m-create-pr" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div class="bg-emerald-50 px-6 py-4 border-b border-emerald-100 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-emerald-800">New Purchase Request</h3>
-                <button onclick="closeModal('m-create-pr')" class="text-emerald-400 hover:text-emerald-700 text-xl">&times;</button>
+    <!-- PR Modal -->
+    <div id="m-create-pr" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="flex justify-between mb-4">
+                <h3 class="font-bold text-lg">Create Purchase Request</h3>
+                <button onclick="closeModal('m-create-pr')"><i class="fas fa-times"></i></button>
             </div>
-            <div class="p-6">
-                <form onsubmit="createPR(event)" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="label-text">Ref #</label><input id="pr-num" readonly class="input-field bg-slate-50"></div>
-                        <div><label class="label-text">Requester</label><input id="pr-name" required class="input-field"></div>
+            <form onsubmit="createPR(event)" class="space-y-4">
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="label">Ref #</label>
+                        <input id="pr-num" readonly class="form-input w-full bg-slate-100 text-slate-500">
                     </div>
-                    <div><label class="label-text">Select Part</label><select id="pr-mat" required class="input-field"></select></div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="label-text">Quantity</label><input type="number" id="pr-qty" required min="1" class="input-field"></div>
-                        <div><label class="label-text">Est. Cost</label><input type="number" id="pr-price" required step="0.01" class="input-field"></div>
+                    <div class="flex-1">
+                        <label class="label">Requester</label>
+                        <input id="pr-name" required class="form-input w-full">
                     </div>
-                    <button id="btn-save-pr" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/30">Submit Request</button>
-                </form>
-            </div>
+                </div>
+                <div>
+                    <label class="label">Material</label>
+                    <select id="pr-mat" required class="form-select w-full"></select>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="label">Quantity</label>
+                        <input type="number" id="pr-qty" required min="1" class="form-input w-full">
+                    </div>
+                    <div class="flex-1">
+                        <label class="label">Unit Price</label>
+                        <input type="number" id="pr-price" required step="0.01" class="form-input w-full">
+                    </div>
+                </div>
+                <button id="btn-save-pr" class="btn-primary w-full bg-emerald-600 border-emerald-700 hover:bg-emerald-700">Submit Request</button>
+            </form>
         </div>
     </div>
 
-    <!-- Create WR Modal -->
-    <div id="m-create-wr" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div class="bg-brand-50 px-6 py-4 border-b border-brand-100 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-brand-800">Issue Stock</h3>
-                <button onclick="closeModal('m-create-wr')" class="text-brand-400 hover:text-brand-700 text-xl">&times;</button>
+    <!-- WR Modal -->
+    <div id="m-create-wr" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="flex justify-between mb-4">
+                <h3 class="font-bold text-lg">Create Withdrawal</h3>
+                <button onclick="closeModal('m-create-wr')"><i class="fas fa-times"></i></button>
             </div>
-            <div class="p-6">
-                <form onsubmit="createWR(event)" class="space-y-4">
-                    <div><label class="label-text">Ref #</label><input id="wr-num" readonly class="input-field bg-slate-50"></div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="label-text">Recipient</label><input id="wr-name" required class="input-field"></div>
-                        <div><label class="label-text">Fleet / Dept</label><select id="wr-dept" required class="input-field"></select></div>
+            <form onsubmit="createWR(event)" class="space-y-4">
+                <input id="wr-num" readonly class="form-input w-full bg-slate-100 mb-2">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">Recipient</label>
+                        <input id="wr-name" required class="form-input w-full">
                     </div>
                     <div>
-                        <label class="label-text">Select Part</label>
-                        <select id="wr-mat" required class="input-field" onchange="checkStockAvailability(this.value)"></select>
-                        <!-- Stock availability hints -->
-                        <div id="wr-stock-hint" class="text-xs mt-1.5 font-semibold h-5 transition-all opacity-0"></div>
+                        <label class="label">Department</label>
+                        <select id="wr-dept" required class="form-select w-full"></select>
                     </div>
-                    <div><label class="label-text">Quantity</label><input type="number" id="wr-qty" required min="1" class="input-field"></div>
-                    <button id="btn-submit-wr" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition shadow-lg shadow-brand-500/30">Submit for Approval</button>
-                </form>
-            </div>
+                </div>
+                <div class="relative">
+                    <label class="label">Material</label>
+                    <select id="wr-mat" required class="form-select w-full" onchange="checkStockAvailability(this.value)"></select>
+                    <div id="wr-stock-hint" class="text-xs font-bold text-right mt-1 h-4"></div>
+                </div>
+                <div>
+                    <label class="label">Quantity</label>
+                    <input type="number" id="wr-qty" required min="1" class="form-input w-full">
+                </div>
+                <button id="btn-submit-wr" class="btn-primary w-full bg-amber-600 border-amber-700 hover:bg-amber-700">Issue Stock</button>
+            </form>
         </div>
     </div>
 
-    <!-- Item History Modal (New Feature) -->
-    <div id="m-item-history" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[80vh] flex flex-col overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                <h3 class="font-bold text-lg text-slate-800">Movement History</h3>
-                <button onclick="closeModal('m-item-history')" class="text-slate-400 hover:text-red-500 text-2xl">&times;</button>
+    <!-- History Modal -->
+    <div id="m-item-history" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="font-bold">Item History</h3>
+                <button onclick="closeModal('m-item-history')"><i class="fas fa-times"></i></button>
             </div>
-            <div class="p-0 overflow-y-auto flex-1 bg-slate-50/50">
-                <table class="w-full text-sm text-left">
-                    <thead class="bg-slate-100 text-xs text-slate-500 border-b sticky top-0">
-                        <tr><th class="p-3">Date</th><th class="p-3">Reason</th><th class="p-3 text-right">Change</th></tr>
+            <div class="overflow-y-auto p-0">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b">
+                        <tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Reason</th><th class="p-3 text-right">Qty</th></tr>
                     </thead>
-                    <tbody id="tbl-item-history" class="divide-y divide-slate-200"></tbody>
+                    <tbody id="tbl-item-history" class="divide-y"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <!-- Lightbox -->
-    <div id="m-lightbox" class="modal-backdrop hidden fixed inset-0 z-[100] bg-black/90 flex items-center justify-center cursor-pointer" onclick="closeModal('m-lightbox')">
-        <img id="lightbox-img" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl transform transition-transform scale-95">
+    <div id="m-lightbox" class="fixed inset-0 z-[100] bg-black bg-opacity-90 hidden flex items-center justify-center cursor-pointer" onclick="closeModal('m-lightbox')">
+        <img id="lightbox-img" class="max-w-[90vw] max-h-[90vh] border-4 border-white shadow-2xl rounded">
     </div>
 
-    <!-- Scripts -->
-    <script src="js/script.js"></script>
+    <script src="js/script.js></script>
     <script src="js/auth.js"></script>
     <script src="js/inventorymanagement.js"></script>
 </body>
