@@ -194,7 +194,7 @@
                 </div>
             </div>
 
-            <!-- PURCHASE PAGE -->
+            <!-- PURCHASE PAGE (UPDATED) -->
             <div id="purchase" class="page-section hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="page-title">Stock Inbound (PR)</h1>
@@ -203,16 +203,29 @@
                     </button>
                 </div>
                 <div class="card overflow-hidden">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
-                            <tr><th class="p-4">PR No.</th><th class="p-4">Requester</th><th class="p-4">Summary</th><th class="p-4">Date</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
-                        </thead>
-                        <tbody id="tbl-pr" class="divide-y divide-slate-100"></tbody>
-                    </table>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left whitespace-nowrap">
+                            <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
+                                <tr>
+                                    <th class="p-4">PR No.</th>
+                                    <th class="p-4">Mat. Code</th>
+                                    <th class="p-4">Description</th>
+                                    <th class="p-4 text-center">Qty</th>
+                                    <th class="p-4">Unit</th>
+                                    <th class="p-4">Category</th>
+                                    <th class="p-4 text-right">Total Val</th>
+                                    <th class="p-4">Remarks</th>
+                                    <th class="p-4">Status</th>
+                                    <th class="p-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-pr" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- WITHDRAWAL PAGE -->
+            <!-- WITHDRAWAL PAGE (UPDATED) -->
             <div id="withdrawal" class="page-section hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="page-title">Stock Outbound (WR)</h1>
@@ -221,40 +234,60 @@
                     </button>
                 </div>
                 <div class="card overflow-hidden">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
-                            <tr><th class="p-4">WR No.</th><th class="p-4">Recipient</th><th class="p-4">Item</th><th class="p-4">Date</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
-                        </thead>
-                        <tbody id="tbl-wr" class="divide-y divide-slate-100"></tbody>
-                    </table>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left whitespace-nowrap">
+                            <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
+                                <tr>
+                                    <th class="p-4">WR No.</th>
+                                    <th class="p-4">Mat. Code</th>
+                                    <th class="p-4">Description</th>
+                                    <th class="p-4 text-center">Qty</th>
+                                    <th class="p-4">Recipient</th>
+                                    <th class="p-4">Date</th>
+                                    <th class="p-4 text-center">Status</th>
+                                    <th class="p-4">Remarks</th>
+                                    <th class="p-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-wr" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- DISPOSAL PAGE -->
+            <!-- DISPOSAL PAGE (UPDATED) -->
             <div id="disposal" class="page-section hidden">
                 <h1 class="page-title mb-6">Disposal Log</h1>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="card p-6 border-t-4 border-red-600 h-fit">
                         <h3 class="font-bold text-lg mb-4 text-red-700">Record New Disposal</h3>
                         <form onsubmit="handleDisposal(event)" class="space-y-4">
-                            <div>
-                                <label class="label">Select Asset</label>
-                                <select id="disp-mat" required class="form-select w-full"></select>
-                            </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label class="label">Quantity</label>
-                                    <input type="number" id="disp-qty" required min="1" class="form-input w-full">
-                                </div>
-                                <div>
-                                    <label class="label">Reason</label>
-                                    <select id="disp-reason" class="form-select w-full">
-                                        <option value="Damaged">Damaged</option>
-                                        <option value="Expired">Expired</option>
-                                        <option value="Obsolete">Obsolete</option>
-                                        <option value="Lost">Lost</option>
+                                    <label class="label">Select WR No.</label>
+                                    <select id="disp-wr-id" required class="form-select w-full" onchange="onDisposalWrChange(this.value)">
+                                        <option value="">Loading...</option>
                                     </select>
                                 </div>
+                                <div>
+                                    <label class="label">Recipient</label>
+                                    <input type="text" id="disp-recipient" readonly class="form-input w-full bg-slate-100 text-slate-500 cursor-not-allowed">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="label">Asset Details (From WR)</label>
+                                <input type="text" id="disp-item-details" readonly class="form-input w-full bg-slate-100 text-slate-500 cursor-not-allowed">
+                            </div>
+
+                            <div>
+                                <label class="label">Reason for Disposal</label>
+                                <select id="disp-reason" class="form-select w-full">
+                                    <option value="Damaged">Damaged</option>
+                                    <option value="Expired">Expired</option>
+                                    <option value="Obsolete">Obsolete</option>
+                                    <option value="Lost">Lost</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="label">Authorized By</label>
@@ -264,12 +297,22 @@
                         </form>
                     </div>
                     <div class="lg:col-span-2 card overflow-hidden">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
-                                <tr><th class="p-4">Ref</th><th class="p-4">Auth By</th><th class="p-4">Details</th><th class="p-4">Date</th></tr>
-                            </thead>
-                            <tbody id="tbl-disp-hist" class="divide-y divide-slate-100"></tbody>
-                        </table>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
+                                    <tr>
+                                        <th class="p-4">Ref</th>
+                                        <th class="p-4">Mat. Code</th>
+                                        <th class="p-4">Description</th>
+                                        <th class="p-4 text-center">Qty</th>
+                                        <th class="p-4">Date</th>
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4">Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbl-disp-hist" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -312,7 +355,7 @@
         </div>
     </main>
 
-    <!-- MODALS (Solid backgrounds, High Contrast) -->
+    <!-- MODALS -->
     
     <!-- Inventory Modal -->
     <div id="m-inventory" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
@@ -335,12 +378,10 @@
                             <select id="i-cat" required class="form-select w-full"></select>
                         </div>
                     </div>
-
                     <div>
                         <label class="label">Description *</label>
                         <input id="i-desc" required class="form-input w-full">
                     </div>
-
                     <div class="grid grid-cols-3 gap-4">
                         <div>
                             <label class="label">Unit (UoM) *</label>
@@ -355,7 +396,6 @@
                             <input type="number" id="i-stock" value="0" min="0" class="form-input w-full border-royal-300 bg-royal-50">
                         </div>
                     </div>
-                    
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="label">SDS Link (URL)</label>
@@ -366,7 +406,6 @@
                             <input type="text" id="i-remarks" class="form-input w-full">
                         </div>
                     </div>
-
                     <!-- Image Section -->
                     <div class="border border-slate-200 rounded p-4 bg-slate-50">
                         <label class="label mb-2 block">Item Image</label>
@@ -389,7 +428,6 @@
                         </div>
                         <input type="hidden" id="i-img-data">
                     </div>
-
                     <div class="pt-4 border-t border-slate-100 text-right">
                         <button type="button" onclick="closeModal('m-inventory')" class="btn-secondary mr-2">Cancel</button>
                         <button type="submit" id="btn-save-inv" class="btn-primary">Save Item</button>
@@ -404,12 +442,10 @@
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
             <h3 class="font-bold text-lg mb-1">Adjust Stock</h3>
             <p id="adj-name" class="text-sm text-slate-500 mb-4 truncate">...</p>
-            
             <div class="bg-royal-50 p-4 rounded border border-royal-100 text-center mb-4">
                 <div class="text-xs uppercase font-bold text-royal-600">Current Stock</div>
                 <div id="adj-current" class="text-3xl font-bold text-royal-800">0</div>
             </div>
-
             <form onsubmit="submitAdjustment(event)" class="space-y-3">
                 <input type="hidden" id="adj-code">
                 <div>
@@ -426,18 +462,19 @@
         </div>
     </div>
 
-    <!-- PR Modal -->
+    <!-- PR Modal (Updated) -->
     <div id="m-create-pr" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex justify-between mb-4">
-                <h3 class="font-bold text-lg">Create Purchase Request</h3>
+                <h3 class="font-bold text-lg" id="pr-modal-title">Create Purchase Request</h3>
                 <button onclick="closeModal('m-create-pr')"><i class="fas fa-times"></i></button>
             </div>
-            <form onsubmit="createPR(event)" class="space-y-4">
+            <form id="pr-form" onsubmit="createPR(event)" class="space-y-4">
+                <input type="hidden" id="pr-id">
                 <div class="flex gap-4">
                     <div class="flex-1">
-                        <label class="label">Ref #</label>
-                        <input id="pr-num" readonly class="form-input w-full bg-slate-100 text-slate-500">
+                        <label class="label">PR No.</label>
+                        <input id="pr-num" required class="form-input w-full font-bold">
                     </div>
                     <div class="flex-1">
                         <label class="label">Requester</label>
@@ -458,19 +495,24 @@
                         <input type="number" id="pr-price" required step="0.01" class="form-input w-full">
                     </div>
                 </div>
+                <div>
+                    <label class="label">Remarks</label>
+                    <input type="text" id="pr-remarks" class="form-input w-full" placeholder="Optional notes...">
+                </div>
                 <button id="btn-save-pr" class="btn-primary w-full bg-emerald-600 border-emerald-700 hover:bg-emerald-700">Submit Request</button>
             </form>
         </div>
     </div>
 
-    <!-- WR Modal -->
+    <!-- WR Modal (Updated) -->
     <div id="m-create-wr" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex justify-between mb-4">
-                <h3 class="font-bold text-lg">Create Withdrawal</h3>
+                <h3 class="font-bold text-lg" id="wr-modal-title">Create Withdrawal</h3>
                 <button onclick="closeModal('m-create-wr')"><i class="fas fa-times"></i></button>
             </div>
-            <form onsubmit="createWR(event)" class="space-y-4">
+            <form id="wr-form" onsubmit="createWR(event)" class="space-y-4">
+                <input type="hidden" id="wr-id">
                 <input id="wr-num" readonly class="form-input w-full bg-slate-100 mb-2">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -490,6 +532,10 @@
                 <div>
                     <label class="label">Quantity</label>
                     <input type="number" id="wr-qty" required min="1" class="form-input w-full">
+                </div>
+                <div>
+                    <label class="label">Remarks</label>
+                    <input type="text" id="wr-remarks" class="form-input w-full" placeholder="Optional notes...">
                 </div>
                 <button id="btn-submit-wr" class="btn-primary w-full bg-amber-600 border-amber-700 hover:bg-amber-700">Issue Stock</button>
             </form>
@@ -519,8 +565,6 @@
         <img id="lightbox-img" class="max-w-[90vw] max-h-[90vh] border-4 border-white shadow-2xl rounded">
     </div>
 
-    <script src="js/script.js></script>
-    <script src="js/auth.js"></script>
-    <script src="js/inventorymanagement.js"></script>
+    <script src="js/script.js"></script>
 </body>
 </html>
