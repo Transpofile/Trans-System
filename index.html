@@ -3,938 +3,499 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMS Enterprise V5 - Advanced</title>
+    <title>Trans-System | Logistics V6</title>
     
-    <!-- External Libraries -->
+    <!-- CDNs -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <style>
-        :root {
-            /* Brand & Accent Colors */
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --primary-light: #e0e7ff;
-            
-            /* Semantic Colors */
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --info: #3b82f6;
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
 
-            /* Backgrounds & Surfaces */
-            --bg: #f8fafc;
-            --sidebar-bg: #0f172a;
-            --sidebar-hover: rgba(255, 255, 255, 0.1);
-            --card-bg: #ffffff;
-            --surface-hover: #f1f5f9;
-
-            /* Text */
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --text-on-dark: #f1f5f9;
-
-            /* Borders & Shadows */
-            --border: #e2e8f0;
-            --focus-ring: 0 0 0 4px rgba(79, 70, 229, 0.15);
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --shadow-glow: 0 0 15px rgba(79, 70, 229, 0.3);
-
-            /* Transitions */
-            --trans-fast: 0.15s ease;
-            --trans-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 800:'#1e40af', 900:'#1e3a8a' },
+                        dark: '#0f172a'
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
         }
-
-        /* --- Base --- */
-        * { box-sizing: border-box; }
-
-        body { 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background: var(--bg); 
-            color: var(--text-main); 
-            margin: 0; 
-            display: flex; 
-            height: 100vh; 
-            overflow: hidden; 
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        /* --- Sidebar --- */
-        .sidebar { 
-            width: 260px; 
-            background: var(--sidebar-bg); 
-            color: var(--text-on-dark); 
-            display: flex; 
-            flex-direction: column; 
-            z-index: 50; 
-            transition: var(--trans-smooth);
-            border-right: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .brand { 
-            padding: 24px; 
-            font-size: 1.25rem; 
-            font-weight: 700; 
-            color: white; 
-            display: flex; 
-            align-items: center; 
-            gap: 12px;
-            letter-spacing: -0.025em;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .brand-icon { 
-            width: 36px; 
-            height: 36px; 
-            background: linear-gradient(135deg, var(--primary), var(--primary-hover)); 
-            border-radius: 10px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            color: white; 
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-        }
-
-        .nav-container { padding: 16px; flex: 1; overflow-y: auto; }
-
-        .nav-section { 
-            font-size: 0.7rem; 
-            text-transform: uppercase; 
-            color: var(--text-muted); 
-            font-weight: 700; 
-            margin: 24px 12px 12px; 
-            letter-spacing: 0.05em; 
-        }
-
-        .nav-btn { 
-            background: transparent; 
-            border: none; 
-            color: #94a3b8; 
-            padding: 12px 16px; 
-            width: 100%; 
-            text-align: left; 
-            cursor: pointer; 
-            border-radius: 8px; 
-            margin-bottom: 4px; 
-            font-size: 0.9rem; 
-            font-weight: 500; 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            transition: var(--trans-fast); 
-        }
-
-        .nav-btn:hover { background: var(--sidebar-hover); color: white; }
-
-        .nav-btn.active { 
-            background: var(--primary); 
-            color: white; 
-            box-shadow: var(--shadow-glow);
-        }
-
-        .sidebar-footer { 
-            padding: 20px; 
-            text-align: center; 
-            color: var(--text-muted); 
-            font-size: 0.8rem; 
-            border-top: 1px solid rgba(255,255,255,0.05); 
-            background: rgba(0,0,0,0.1);
-        }
-
-        /* --- Main Content --- */
-        .main { 
-            flex: 1; 
-            padding: 32px; 
-            overflow-y: auto; 
-            overflow-x: hidden; 
-            position: relative; 
-            scroll-behavior: smooth;
-        }
-
-        .page { display: none; animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        .page.active { display: block; }
-
-        @keyframes fadeInUp { 
-            from { opacity: 0; transform: translateY(10px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-
-        .page-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 32px; 
-            flex-wrap: wrap; 
-            gap: 20px; 
-        }
-        
-        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
-        h1 { 
-            margin: 0; 
-            font-size: 1.875rem; 
-            font-weight: 800; 
-            color: var(--text-main); 
-            letter-spacing: -0.025em; 
-        }
-        
-        .text-muted { color: var(--text-muted); }
-
-        /* --- Components: Buttons --- */
-        .btn { 
-            padding: 10px 20px; 
-            border-radius: 8px; 
-            border: 1px solid transparent; 
-            cursor: pointer; 
-            font-size: 0.9rem; 
-            font-weight: 600; 
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 8px; 
-            transition: var(--trans-fast); 
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn:active { transform: scale(0.97); }
-
-        .btn-primary { 
-            background: var(--primary); 
-            color: white; 
-            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.25); 
-        }
-        .btn-primary:hover { 
-            background: var(--primary-hover); 
-            box-shadow: 0 6px 12px rgba(79, 70, 229, 0.3); 
-            transform: translateY(-1px);
-        }
-        
-        .btn-secondary { 
-            background: white; 
-            border-color: var(--border); 
-            color: var(--text-main); 
-            box-shadow: var(--shadow-sm);
-        }
-        .btn-secondary:hover { 
-            background: var(--surface-hover); 
-            border-color: #cbd5e1; 
-            color: #0f172a;
-        }
-
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #dc2626; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
-
-        .btn-icon { width: 42px; height: 42px; padding: 0; border-radius: 12px; }
-        .full-width { width: 100%; }
-
-        /* --- Components: Inputs --- */
-        .form-control { 
-            width: 100%; 
-            padding: 11px 16px; 
-            border: 1px solid var(--border); 
-            border-radius: 8px; 
-            font-size: 0.95rem; 
-            background: #fff; 
-            color: var(--text-main);
-            transition: var(--trans-fast);
-        }
-        .form-control:focus { 
-            outline: none; 
-            border-color: var(--primary); 
-            box-shadow: var(--focus-ring); 
-        }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; color: var(--text-main); }
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
-
-        /* --- Components: Cards --- */
-        .card { 
-            background: var(--card-bg); 
-            border-radius: 16px; 
-            box-shadow: var(--shadow-sm); 
-            border: 1px solid var(--border); 
-            overflow: hidden; 
-            margin-bottom: 24px; 
-            transition: var(--trans-smooth); 
-            position: relative;
-        }
-        .card:hover { 
-            box-shadow: var(--shadow-lg); 
-            border-color: #cbd5e1;
-        }
-        .card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); background: #fcfcfc; }
-        .card-header h3 { margin: 0; font-size: 1.1rem; }
-        
-        /* Stat Cards */
-        .stat-card { padding: 28px; display: flex; justify-content: space-between; align-items: flex-start; }
-        .stat-val { font-size: 2rem; font-weight: 800; margin-top: 8px; letter-spacing: -0.03em; color: var(--text-main); }
-        .stat-label { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; }
-        
-        .border-l-blue { border-left: 4px solid var(--info); }
-        .border-l-red { border-left: 4px solid var(--danger); }
-        .border-l-green { border-left: 4px solid var(--success); }
-
-        .icon-box { 
-            width: 52px; height: 52px; border-radius: 12px; 
-            display: flex; justify-content: center; align-items: center; 
-            font-size: 1.4rem; transition: 0.3s;
-        }
-        .bg-blue-soft { background: #eff6ff; color: var(--info); }
-        .bg-red-soft { background: #fef2f2; color: var(--danger); }
-        .bg-green-soft { background: #ecfdf5; color: var(--success); }
-        .bg-danger-soft { background: #fee2e2; }
-        .text-danger { color: var(--danger); }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 32px; }
-        .two-col-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; }
-        
-        /* Charts */
-        .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
-        .chart-container { height: 400px; padding: 0; }
-        .chart-wrapper { padding: 20px; position: relative; height: 320px; }
-        .analytics-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .analytics-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: var(--shadow-sm); }
-        .analytics-card h4 { margin: 0 0 10px 0; font-size: 0.85rem; color: var(--text-muted); }
-        .mini-chart { height: 60px; }
-
-        /* --- Tables --- */
-        .table-responsive { overflow-x: auto; border-radius: 0 0 16px 16px; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th { 
-            background: #f8fafc; text-align: left; padding: 16px 24px; 
-            font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); 
-            font-weight: 700; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); 
-        }
-        .sticky-header th { position: sticky; top: 0; z-index: 10; background: rgba(248, 250, 252, 0.95); backdrop-filter: blur(8px); }
-        td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 0.9rem; color: var(--text-main); vertical-align: middle; }
-        tr:hover { background: #f8fafc; }
-        .text-right { text-align: right; }
-
-        /* --- Tabs (Settings) --- */
-        .tabs { display: flex; gap: 10px; border-bottom: 1px solid var(--border); padding: 0 24px; margin-top: 10px; }
-        .tab-btn { 
-            background: none; border: none; padding: 15px 10px; 
-            cursor: pointer; color: var(--text-muted); font-weight: 600; 
-            border-bottom: 2px solid transparent; transition: 0.2s;
-        }
-        .tab-btn:hover { color: var(--primary); }
-        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .tab-content { padding: 24px; }
-        .tab-pane { display: none; }
-        .tab-pane.active { display: block; animation: fadeIn 0.3s; }
-        .tab-actions { display: flex; gap: 10px; margin-bottom: 20px; }
-        
-        .master-list { list-style: none; padding: 0; margin: 0; border: 1px solid var(--border); border-radius: 8px; }
-        .master-list li { display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); background: white; }
-        .master-list li:last-child { border-bottom: none; border-radius: 0 0 8px 8px; }
-        .master-list li:first-child { border-radius: 8px 8px 0 0; }
-
-        /* --- Modals --- */
-        .modal { 
-            display: none; position: fixed; inset: 0; 
-            background: rgba(15, 23, 42, 0.6); z-index: 1000; 
-            justify-content: center; align-items: center; 
-            backdrop-filter: blur(4px); 
-        }
-        .modal-content { 
-            background: white; width: 90%; max-width: 550px; 
-            border-radius: 16px; padding: 30px; 
-            box-shadow: var(--shadow-lg); 
-            animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
-            display: flex; flex-direction: column; gap: 15px;
-            max-height: 90vh; overflow-y: auto;
-        }
-        .modal-content.sm-content { max-width: 400px; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .modal-header h3 { margin: 0; font-size: 1.4rem; }
-        .close-btn { font-size: 1.5rem; cursor: pointer; color: #cbd5e1; transition: 0.2s; }
-        .close-btn:hover { color: var(--danger); transform: rotate(90deg); }
-        
-        @keyframes popIn { from { transform: scale(0.95) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-
-        /* --- Drop Zone --- */
-        .drop-zone { 
-            border: 2px dashed #cbd5e1; border-radius: 12px; 
-            padding: 30px; text-align: center; position: relative; 
-            cursor: pointer; transition: 0.2s; background: #f8fafc; 
-        }
-        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
-        .drop-zone-input { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; top: 0; left: 0; }
-        .drop-zone-preview { max-width: 100%; max-height: 200px; margin-top: 10px; border-radius: 8px; box-shadow: var(--shadow-md); }
-
-        /* --- Filter Panel --- */
-        .filter-panel { 
-            background: white; padding: 15px; border-radius: 12px; 
-            margin-bottom: 20px; box-shadow: var(--shadow-sm); 
-            display: flex; gap: 10px; border: 1px solid var(--border);
-        }
-        #search-inv { flex: 2; }
-        
-        /* --- Toasts --- */
-        #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 2000; display: flex; flex-direction: column; gap: 12px; }
-        .toast { 
-            background: white; padding: 16px 20px; border-radius: 10px; 
-            box-shadow: var(--shadow-lg); border-left: 5px solid var(--primary); 
-            font-size: 0.95rem; font-weight: 500; animation: slideIn 0.3s; 
-            display: flex; align-items: center; gap: 12px; 
-        }
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-
-        /* --- Mobile --- */
-        .mobile-toggle { 
-            display: none; position: fixed; top: 15px; right: 15px; 
-            z-index: 100; background: var(--primary); color: white; 
-            border: none; padding: 10px 14px; border-radius: 8px; 
-            box-shadow: var(--shadow-md); cursor: pointer;
-        }
-
-        @media (max-width: 900px) {
-            .two-col-grid { grid-template-columns: 1fr; }
-        }
-
-        @media (max-width: 768px) {
-            .sidebar { position: fixed; height: 100%; transform: translateX(-100%); width: 280px; box-shadow: var(--shadow-lg); }
-            .sidebar.open { transform: translateX(0); }
-            .mobile-toggle { display: block; }
-            .main { padding: 20px 16px 80px 16px; }
-            .stat-card { padding: 20px; }
-            .stats-grid { grid-template-columns: 1fr; }
-            h1 { font-size: 1.5rem; }
-            .page-header { flex-direction: column; align-items: flex-start; }
-            .header-actions { width: 100%; display: flex; gap: 10px; }
-            .header-actions button { flex: 1; }
-        }
-    </style>
-    
-    <!-- Assuming js/script.js exists for Supabase logic, but UI logic is added below for immediate display -->
-    <script src="js/script.js" defer></script>
+    </script>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
 
-    <!-- Mobile Menu Toggle -->
-    <button class="mobile-toggle"><i class="fas fa-bars"></i></button>
-
-    <!-- SIDEBAR -->
-    <div class="sidebar" id="sidebar">
-        <div class="brand">
-            <div class="brand-icon"><i class="fas fa-cube"></i></div>
-            <span>IMS Enterprise <small>v5</small></span>
-        </div>
-        
-        <div class="nav-container">
-            <div class="nav-section">MAIN</div>
-            <button class="nav-btn active" data-target="dashboard">
-                <i class="fas fa-chart-pie"></i> <span>Dashboard</span>
-            </button>
-            <button class="nav-btn" data-target="inventory">
-                <i class="fas fa-boxes"></i> <span>Inventory</span>
-            </button>
-            
-            <div class="nav-section">OPERATIONS</div>
-            <button class="nav-btn" data-target="purchase">
-                <i class="fas fa-truck-loading"></i> <span>Inbound (PR)</span>
-            </button>
-            <button class="nav-btn" data-target="withdrawal">
-                <i class="fas fa-dolly"></i> <span>Outbound (WR)</span>
-            </button>
-            <button class="nav-btn" data-target="disposal">
-                <i class="fas fa-trash-alt"></i> <span>Disposal</span>
-            </button>
-
-            <div class="nav-section">ADMIN</div>
-            <button class="nav-btn" data-target="settings">
-                <i class="fas fa-cogs"></i> <span>Master Data</span>
-            </button>
-        </div>
-        
-        <div class="sidebar-footer">
-            <small>System Connected</small>
-        </div>
+    <!-- Loading Overlay -->
+    <div id="loader-overlay" class="fixed inset-0 bg-white/90 z-[9999] flex flex-col items-center justify-center backdrop-blur-sm">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-brand-600 mb-4"></div>
+        <p class="text-brand-600 font-bold animate-pulse text-lg">Syncing Database...</p>
     </div>
 
+    <!-- Mobile Header -->
+    <div class="md:hidden fixed w-full bg-dark text-white z-50 flex items-center justify-between px-4 py-3 shadow-lg">
+        <div class="font-bold text-lg"><i class="fas fa-truck-moving mr-2"></i> Trans-System</div>
+        <button id="mobile-menu-btn" class="text-white hover:text-brand-400 focus:outline-none transition-transform active:scale-95">
+            <i class="fas fa-bars fa-lg"></i>
+        </button>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="glass-sidebar w-64 text-slate-400 flex flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 z-40 border-r border-slate-800 shadow-2xl">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <div class="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-700 rounded-lg flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
+                <i class="fas fa-cubes text-lg"></i>
+            </div>
+            <div>
+                <h2 class="text-white font-bold tracking-wide">Trans-System</h2>
+                <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Logistics Management</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Overview</p>
+            <a href="#" onclick="nav('dashboard')" class="nav-link active group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
+                <i class="fas fa-chart-pie w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Dashboard
+            </a>
+            <a href="#" onclick="nav('inventory')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
+                <i class="fas fa-boxes w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Inventory & Assets
+            </a>
+
+            <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">Logistics</p>
+            <a href="#" onclick="nav('purchase')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
+                <i class="fas fa-file-invoice w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Restocking (PR)
+            </a>
+            <a href="#" onclick="nav('withdrawal')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
+                <i class="fas fa-dolly w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Withdrawals (WR)
+            </a>
+            <a href="#" onclick="nav('disposal')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
+                <i class="fas fa-trash-alt w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Disposal Log
+            </a>
+
+            <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2">System</p>
+            <a href="#" onclick="nav('settings')" class="nav-link group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-all duration-200">
+                <i class="fas fa-cogs w-6 text-center mr-2 group-hover:text-brand-400 transition-colors"></i> Master Data
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 text-center text-xs">
+            <span class="text-emerald-500 flex items-center justify-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online V2.2</span>
+        </div>
+    </aside>
+
     <!-- MAIN CONTENT -->
-    <div class="main">
-        
-        <!-- DASHBOARD -->
-        <div id="dashboard" class="page active">
-            <div class="page-header">
-                <div>
-                    <h1>Executive Dashboard</h1>
-                    <p class="text-muted">Real-time inventory overview</p>
-                </div>
-                <button class="btn btn-secondary btn-icon" onclick="refreshAll()"><i class="fas fa-sync-alt"></i></button>
-            </div>
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50">
+        <!-- Main Scroll Area -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 mt-14 md:mt-0" id="main-container">
             
-            <div class="stats-grid">
-                <div class="card stat-card border-l-blue">
-                    <div class="stat-info">
-                        <span class="stat-label">Active SKUs</span>
-                        <div class="stat-val" id="d-items">0</div>
+            <!-- DASHBOARD -->
+            <div id="dashboard" class="page-section">
+                <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-800">Fleet Dashboard</h1>
+                        <p class="text-slate-500 mt-1">Real-time overview of assets and movements.</p>
                     </div>
-                    <div class="icon-box bg-blue-soft"><i class="fas fa-cubes"></i></div>
-                </div>
-                <div class="card stat-card border-l-red">
-                    <div class="stat-info">
-                        <span class="stat-label">Critical Stock</span>
-                        <div class="stat-val text-danger" id="d-low">0</div>
-                    </div>
-                    <div class="icon-box bg-red-soft"><i class="fas fa-exclamation-triangle"></i></div>
-                </div>
-                <div class="card stat-card border-l-green">
-                    <div class="stat-info">
-                        <span class="stat-label">Categories</span>
-                        <div class="stat-val" id="d-cats">0</div>
-                    </div>
-                    <div class="icon-box bg-green-soft"><i class="fas fa-tags"></i></div>
-                </div>
-            </div>
+                    <button onclick="refreshAll()" class="group bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-600 px-4 py-2 rounded-lg shadow-sm transition-all flex items-center gap-2 active:scale-95">
+                        <i class="fas fa-sync-alt group-hover:animate-spin"></i> Refresh Data
+                    </button>
+                </header>
 
-            <div class="charts-row">
-                <div class="card chart-container">
-                    <div class="card-header">
-                        <h3><i class="fas fa-chart-bar"></i> Volume by Category</h3>
-                    </div>
-                    <div class="chart-wrapper">
-                        <canvas id="moveChart"></canvas>
-                    </div>
-                </div>
-                <div class="card chart-container">
-                    <div class="card-header">
-                        <h3><i class="fas fa-chart-pie"></i> Inventory Value Share</h3>
-                    </div>
-                    <div class="chart-wrapper">
-                        <canvas id="catChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- INVENTORY -->
-        <div id="inventory" class="page">
-            <div class="page-header">
-                <h1>Inventory Management</h1>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" onclick="toggleFilter()"><i class="fas fa-filter"></i> Search</button>
-                    <button class="btn btn-secondary" id="btn-show-archived" onclick="toggleArchivedView()">Show Archived</button>
-                    <button class="btn btn-primary" onclick="openInventoryModal('add')"><i class="fas fa-plus"></i> New Item</button>
-                </div>
-            </div>
-
-            <!-- Analytics Strip -->
-            <div class="analytics-strip">
-                <div class="analytics-card">
-                    <h4>Stock In Trend</h4>
-                    <div class="mini-chart"><canvas id="mini-in"></canvas></div>
-                </div>
-                <div class="analytics-card">
-                    <h4>Usage Trend</h4>
-                    <div class="mini-chart"><canvas id="mini-out"></canvas></div>
-                </div>
-                <div class="analytics-card">
-                    <h4>Loss/Disposal</h4>
-                    <div class="mini-chart"><canvas id="mini-loss"></canvas></div>
-                </div>
-            </div>
-            
-            <!-- Filter -->
-            <div id="inv-filter" class="filter-panel" style="display:none;">
-                <input type="text" id="search-inv" class="form-control" placeholder="Search Code, Name or Desc..." onkeyup="filterInventory()">
-                <select id="filter-cat" class="form-control" onchange="filterInventory()">
-                    <option value="">All Categories</option>
-                </select>
-            </div>
-
-            <!-- Wrapped in table-container for correct styling -->
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table-hover sticky-header">
-                        <thead>
-                            <tr>
-                                <th width="60">Image</th>
-                                <th>Item Details</th>
-                                <th>Category</th>
-                                <th>Stock Level</th>
-                                <th>Status</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbl-inv"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- PURCHASE (INBOUND) -->
-        <div id="purchase" class="page">
-            <div class="page-header">
-                <h1>Inbound Orders (PR)</h1>
-                <button class="btn btn-primary" onclick="openModal('m-create-pr')"><i class="fas fa-plus"></i> Create PR</button>
-            </div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table>
-                        <thead><tr><th>PR Ref</th><th>Requester</th><th>Status</th><th>Date</th><th class="text-right">Actions</th></tr></thead>
-                        <tbody id="tbl-pr"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- WITHDRAWAL (OUTBOUND) -->
-        <div id="withdrawal" class="page">
-            <div class="page-header">
-                <h1>Outbound Orders (WR)</h1>
-                <button class="btn btn-primary" onclick="openModal('m-create-wr')"><i class="fas fa-plus"></i> Create WR</button>
-            </div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table>
-                        <thead><tr><th>WR Ref</th><th>Requester</th><th>Dept</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
-                        <tbody id="tbl-wr"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- DISPOSAL -->
-        <div id="disposal" class="page">
-            <div class="page-header">
-                <h1>Asset Disposal</h1>
-            </div>
-            <div class="two-col-grid">
-                <div class="card">
-                    <div class="card-header bg-danger-soft">
-                        <h3 class="text-danger"><i class="fas fa-exclamation-triangle"></i> Record Disposal</h3>
-                    </div>
-                    <form onsubmit="handleDisposal(event)" class="p-20" style="padding: 24px;">
-                        <div class="form-group">
-                            <label>Select Material</label>
-                            <select id="disp-mat" required class="form-control select-search"></select>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Quantity</label>
-                                <input type="number" id="disp-qty" required min="1" class="form-control">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Stat 1 -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+                        <div class="absolute right-0 top-0 h-full w-1 bg-brand-500"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total SKUs</p>
+                                <h3 class="text-3xl font-bold text-slate-800 mt-2" id="d-items">0</h3>
                             </div>
-                            <div class="form-group">
-                                <label>Reason</label>
-                                <select id="disp-reason" required class="form-control">
-                                    <option value="Damaged">Damaged / Broken</option>
-                                    <option value="Expired">Expired</option>
-                                    <option value="Obsolete">Obsolete</option>
-                                    <option value="Lost">Lost / Stolen</option>
-                                </select>
+                            <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-brand-600 text-xl group-hover:scale-110 transition-transform">
+                                <i class="fas fa-layer-group"></i>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Authorized By</label>
-                            <input type="text" id="disp-auth" required placeholder="Manager Name" class="form-control">
-                        </div>
-                        <button id="btn-disp" class="btn btn-danger full-width">Confirm Disposal</button>
-                    </form>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Disposal Log</h3>
                     </div>
-                    <div class="table-responsive" style="max-height: 400px;">
-                        <table class="table-sm">
-                            <thead><tr><th>Ref</th><th>Reason</th><th>Date</th></tr></thead>
-                            <tbody id="tbl-disp-hist"></tbody>
+                    <!-- Stat 2 -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+                        <div class="absolute right-0 top-0 h-full w-1 bg-emerald-500"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Items Withdrawn</p>
+                                <h3 class="text-3xl font-bold text-slate-800 mt-2" id="d-withdrawn">0</h3>
+                                <p class="text-[10px] text-slate-400 mt-1">Total Lifetime Outbound</p>
+                            </div>
+                            <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 text-xl group-hover:scale-110 transition-transform">
+                                <i class="fas fa-dolly"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Stat 3 -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+                        <div class="absolute right-0 top-0 h-full w-1 bg-red-500"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Low Stock</p>
+                                <h3 class="text-3xl font-bold text-red-600 mt-2" id="d-low">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center text-red-600 text-xl animate-pulse">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Stat 4 -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+                        <div class="absolute right-0 top-0 h-full w-1 bg-orange-500"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Fleets</p>
+                                <h3 class="text-3xl font-bold text-slate-800 mt-2" id="d-depts">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600 text-xl group-hover:scale-110 transition-transform">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="font-bold text-slate-700">Movement Trends (14 Days)</h3>
+                        </div>
+                        <div class="h-64 relative w-full">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <h3 class="font-bold text-slate-700 mb-6">Stock Composition</h3>
+                        <div class="h-64 relative w-full">
+                            <canvas id="catChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INVENTORY PAGE -->
+            <div id="inventory" class="page-section hidden">
+                <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-800">Inventory</h1>
+                        <p class="text-slate-500 mt-1">Manage spare parts and assets.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="btn-show-archived" onclick="toggleArchivedView()" class="px-4 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition shadow-sm text-sm font-medium">
+                            <i class="fas fa-archive mr-2"></i> Archives
+                        </button>
+                        <button onclick="openInventoryModal('add')" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition shadow-lg shadow-brand-500/30 text-sm font-medium active:scale-95">
+                            <i class="fas fa-plus mr-2"></i> Add Part
+                        </button>
+                    </div>
+                </header>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row gap-4 items-center">
+                        <div class="relative flex-1 w-full">
+                            <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+                            <input type="text" id="search-inv" onkeyup="filterInventory()" placeholder="Search SKU, name..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                        </div>
+                        <select id="filter-cat" onchange="filterInventory()" class="w-full md:w-48 py-2 px-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-100 text-slate-600 text-xs uppercase font-bold">
+                                <tr>
+                                    <th class="p-4">Image</th>
+                                    <th class="p-4 cursor-pointer hover:text-brand-600" onclick="sortInv('material_code')">SKU / Item <i class="fas fa-sort ml-1"></i></th>
+                                    <th class="p-4">Category</th>
+                                    <th class="p-4">Stock</th>
+                                    <th class="p-4 text-center">Total Out</th>
+                                    <th class="p-4 text-center">Status</th>
+                                    <th class="p-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-inv" class="text-sm divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- SETTINGS -->
-        <div id="settings" class="page">
-            <div class="page-header">
-                <h1>Master Data Management</h1>
-            </div>
-            <div class="card">
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="tab-cat">Categories</button>
-                    <button class="tab-btn" data-tab="tab-uom">Units (UoM)</button>
-                    <button class="tab-btn" data-tab="tab-dept">Departments</button>
-                </div>
-                <div class="tab-content">
-                    <div id="tab-cat" class="tab-pane active">
-                        <div class="tab-actions">
-                            <input id="new-cat-name" placeholder="New Category Name..." class="form-control">
-                            <button class="btn btn-primary" onclick="addMaster('categories', 'new-cat-name')">Add</button>
-                        </div>
-                        <ul id="list-categories" class="master-list"></ul>
+            <!-- PURCHASE PAGE -->
+            <div id="purchase" class="page-section hidden">
+                <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-800">Inbound (PR)</h1>
+                        <p class="text-slate-500 mt-1">Purchase Requests & Receiving.</p>
                     </div>
-                    <div id="tab-uom" class="tab-pane">
-                        <div class="tab-actions">
-                            <input id="new-uom-code" placeholder="Code..." class="form-control" style="width: 100px;">
-                            <input id="new-uom-name" placeholder="Description..." class="form-control">
-                            <button class="btn btn-primary" onclick="addMaster('uoms', 'new-uom-code', 'new-uom-name')">Add</button>
-                        </div>
-                        <ul id="list-uoms" class="master-list"></ul>
-                    </div>
-                    <div id="tab-dept" class="tab-pane">
-                        <div class="tab-actions">
-                            <input id="new-dept-name" placeholder="Department Name..." class="form-control">
-                            <button class="btn btn-primary" onclick="addMaster('departments', 'new-dept-name')">Add</button>
-                        </div>
-                        <ul id="list-departments" class="master-list"></ul>
-                    </div>
+                    <button onclick="openModal('m-create-pr')" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/30 text-sm font-medium active:scale-95">
+                        <i class="fas fa-file-import mr-2"></i> Create PR
+                    </button>
+                </header>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-100 text-slate-600 text-xs uppercase font-bold">
+                            <tr><th class="p-4">PR Ref</th><th class="p-4">Requester</th><th class="p-4">Items</th><th class="p-4">Date</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
+                        </thead>
+                        <tbody id="tbl-pr" class="text-sm divide-y divide-slate-100"></tbody>
+                    </table>
                 </div>
             </div>
+
+            <!-- WITHDRAWAL PAGE -->
+            <div id="withdrawal" class="page-section hidden">
+                <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-800">Outbound (WR)</h1>
+                        <p class="text-slate-500 mt-1">Issue stock to fleet.</p>
+                    </div>
+                    <button onclick="openModal('m-create-wr')" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition shadow-lg shadow-brand-500/30 text-sm font-medium active:scale-95">
+                        <i class="fas fa-dolly-flatbed mr-2"></i> Issue Stock
+                    </button>
+                </header>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-100 text-slate-600 text-xs uppercase font-bold">
+                            <tr><th class="p-4">WR Ref</th><th class="p-4">Recipient</th><th class="p-4">Item</th><th class="p-4">Date</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
+                        </thead>
+                        <tbody id="tbl-wr" class="text-sm divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- DISPOSAL PAGE -->
+            <div id="disposal" class="page-section hidden">
+                <header class="mb-8"><h1 class="text-3xl font-bold text-slate-800">Disposal Log</h1></header>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-1">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-red-100">
+                            <h3 class="text-lg font-bold text-red-600 mb-4 pb-2 border-b border-red-50"><i class="fas fa-trash-alt mr-2"></i> Record Disposal</h3>
+                            <form onsubmit="handleDisposal(event)" class="space-y-4">
+                                <div><label class="label-text">Select Asset</label><select id="disp-mat" required class="input-field"></select></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="label-text">Qty</label><input type="number" id="disp-qty" required min="1" class="input-field"></div>
+                                    <div><label class="label-text">Reason</label>
+                                        <select id="disp-reason" class="input-field">
+                                            <option value="Damaged">Damaged</option>
+                                            <option value="Expired">Expired</option>
+                                            <option value="Obsolete">Obsolete</option>
+                                            <option value="Lost">Lost</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div><label class="label-text">Approved By</label><input type="text" id="disp-auth" required class="input-field"></div>
+                                <button type="submit" id="btn-disp-submit" class="w-full py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition shadow-lg shadow-red-500/30">Confirm Disposal</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-xs border-b"><tr><th class="p-4">Ref</th><th class="p-4">Reason</th><th class="p-4">Date</th></tr></thead>
+                            <tbody id="tbl-disp-hist" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS PAGE -->
+            <div id="settings" class="page-section hidden">
+                <header class="mb-8"><h1 class="text-3xl font-bold text-slate-800">Master Data</h1></header>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex space-x-2 mb-6 border-b border-slate-200 pb-1">
+                        <button onclick="switchTab('tab-cat')" class="tab-btn active border-b-2 border-brand-600 text-brand-600 px-4 py-2 text-sm font-bold">Categories</button>
+                        <button onclick="switchTab('tab-uom')" class="tab-btn border-b-2 border-transparent text-slate-500 hover:text-brand-600 px-4 py-2 text-sm font-bold">UoM</button>
+                        <button onclick="switchTab('tab-dept')" class="tab-btn border-b-2 border-transparent text-slate-500 hover:text-brand-600 px-4 py-2 text-sm font-bold">Depts</button>
+                    </div>
+
+                    <div id="tab-cat" class="tab-content">
+                        <div class="flex gap-2 mb-4"><input id="new-cat-name" placeholder="New Category..." class="flex-1 input-field"><button onclick="addMaster('categories', 'new-cat-name')" class="btn-primary">Add</button></div>
+                        <ul id="list-categories" class="divide-y divide-slate-100"></ul>
+                    </div>
+                    <div id="tab-uom" class="tab-content hidden">
+                        <div class="flex gap-2 mb-4"><input id="new-uom-code" placeholder="Code" class="w-24 input-field"><input id="new-uom-name" placeholder="Description" class="flex-1 input-field"><button onclick="addMaster('uoms', 'new-uom-code', 'new-uom-name')" class="btn-primary">Add</button></div>
+                        <ul id="list-uoms" class="divide-y divide-slate-100"></ul>
+                    </div>
+                    <div id="tab-dept" class="tab-content hidden">
+                        <div class="flex gap-2 mb-4"><input id="new-dept-name" placeholder="Department..." class="flex-1 input-field"><button onclick="addMaster('departments', 'new-dept-name')" class="btn-primary">Add</button></div>
+                        <ul id="list-departments" class="divide-y divide-slate-100"></ul>
+                    </div>
+                </div>
+            </div>
+
         </div>
-    </div>
+    </main>
 
     <!-- MODALS -->
     
-    <!-- Add/Edit Inventory Modal -->
-    <div id="m-inventory" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="inv-modal-title">Item Details</h3>
-                <span class="close-btn" onclick="closeModal('m-inventory')">&times;</span>
+    <!-- Inventory Modal -->
+    <div id="m-inventory" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden transform scale-95 transition-all duration-200">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800" id="inv-modal-title">Part Details</h3>
+                <button onclick="closeModal('m-inventory')" class="text-slate-400 hover:text-red-500 text-2xl">&times;</button>
             </div>
-            <form onsubmit="saveInventory(event)">
-                <input type="hidden" id="inv-mode">
-                <div class="form-row">
-                    <div class="form-group"><label>Item Code (SKU) *</label><input id="i-code" required class="form-control"></div>
-                    <div class="form-group"><label>Category *</label><select id="i-cat" required class="form-control"></select></div>
-                </div>
-                <div class="form-group"><label>Description *</label><input id="i-desc" required class="form-control"></div>
-                
-                <div class="form-row">
-                    <div class="form-group"><label>Unit (UoM)</label><select id="i-uom" required class="form-control"></select></div>
-                    <div class="form-group"><label>Min. Threshold</label><input type="number" id="i-low" value="10" class="form-control"></div>
-                </div>
-                
-                <div class="form-group" id="div-init-stock">
-                     <label>Initial Stock</label><input type="number" id="i-stock" value="0" class="form-control">
-                     <small class="text-muted">Only for new items.</small>
-                </div>
-                
-                <!-- Drop Zone -->
-                <div class="form-group">
-                    <label>Item Image</label>
-                    <div class="drop-zone" id="drop-zone">
-                        <div class="drop-zone-content">
-                            <i class="fas fa-cloud-upload-alt fa-2x"></i>
-                            <p>Drag & Drop or Click to Upload</p>
-                        </div>
-                        <img id="i-preview" class="drop-zone-preview" src="" style="display:none;">
-                        <input type="file" id="i-file" accept="image/*" class="drop-zone-input" onchange="handleImageFile(this)">
+            <div class="p-6 overflow-y-auto">
+                <form id="form-inventory" onsubmit="saveInventory(event)" class="space-y-4">
+                    <input type="hidden" id="inv-mode">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="label-text">SKU / Code <span class="text-red-500">*</span></label><input id="i-code" required class="input-field font-mono"></div>
+                        <div><label class="label-text">Category <span class="text-red-500">*</span></label><select id="i-cat" required class="input-field"></select></div>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm mt-2" onclick="clearImage()" style="width:100%">Remove Image</button>
-                    <input type="hidden" id="i-img-data">
-                </div>
+                    <div><label class="label-text">Description <span class="text-red-500">*</span></label><input id="i-desc" required class="input-field"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="label-text">Unit (UoM)</label><select id="i-uom" required class="input-field"></select></div>
+                        <div><label class="label-text">Low Stock Alert</label><input type="number" id="i-low" value="5" class="input-field"></div>
+                    </div>
+                    <div id="div-init-stock" class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <label class="label-text text-brand-600">Initial Stock</label><input type="number" id="i-stock" value="0" min="0" class="input-field border-blue-200">
+                    </div>
+                    
+                    <!-- NEW IMAGE HANDLING UI -->
+                    <div class="mt-4 border-t border-slate-100 pt-4">
+                        <label class="label-text mb-2 block">Item Image</label>
+                        
+                        <!-- Tabs -->
+                        <div class="flex gap-4 text-sm mb-3">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="img-src-type" value="upload" checked onclick="toggleImgInput('upload')" class="text-brand-600"> Upload File</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="img-src-type" value="url" onclick="toggleImgInput('url')" class="text-brand-600"> Image URL</label>
+                        </div>
 
-                <button id="btn-save-inv" class="btn btn-primary full-width">Save Item</button>
-            </form>
+                        <!-- 1. Upload Zone -->
+                        <div id="img-input-upload">
+                            <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center cursor-pointer hover:bg-slate-50 hover:border-brand-400 transition-colors">
+                                <div class="drop-zone-content">
+                                    <i class="fas fa-cloud-upload-alt text-2xl text-slate-400 mb-2"></i>
+                                    <p class="text-xs font-medium text-slate-600">Click to upload (Auto-compressed)</p>
+                                </div>
+                                <input type="file" id="i-file" accept="image/*" class="hidden" onchange="handleImageFile(this)">
+                            </div>
+                        </div>
+
+                        <!-- 2. URL Input -->
+                        <div id="img-input-url" class="hidden">
+                            <input type="url" id="i-url-input" placeholder="https://example.com/image.jpg" class="input-field" onchange="handleUrlInput(this.value)">
+                        </div>
+
+                        <!-- Preview & Hidden Data -->
+                        <div id="preview-container" class="hidden mt-3 relative w-32 mx-auto">
+                            <img id="i-preview" class="w-32 h-32 rounded-lg object-contain border border-slate-200 bg-slate-50 shadow-sm">
+                            <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs shadow-md hover:bg-red-600" onclick="clearImage()">&times;</button>
+                        </div>
+                        <input type="hidden" id="i-img-data">
+                    </div>
+
+                    <button type="submit" id="btn-save-inv" class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition shadow-lg shadow-brand-500/30">Save Record</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Stock Adjust Modal -->
-    <div id="m-stock-adjust" class="modal">
-        <div class="modal-content sm-content">
-            <div class="modal-header">
-                <h3 id="adj-title">Quick Adjust</h3>
-                <span class="close-btn" onclick="closeModal('m-stock-adjust')">&times;</span>
+    <div id="m-stock-adjust" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div><h3 class="font-bold text-lg">Adjust Stock</h3><p id="adj-name" class="text-sm text-slate-500">...</p></div>
+                    <button onclick="closeModal('m-stock-adjust')" class="text-slate-400 hover:text-slate-600">&times;</button>
+                </div>
+                <div class="bg-slate-50 rounded-lg p-4 text-center mb-4 border border-slate-200">
+                    <span class="text-xs uppercase text-slate-400 font-bold">Current Stock</span>
+                    <div id="adj-current" class="text-3xl font-bold text-brand-600">0</div>
+                </div>
+                <form onsubmit="submitAdjustment(event)" class="space-y-4">
+                    <input type="hidden" id="adj-code">
+                    <div><label class="label-text">Adjustment (+/-)</label><input type="number" id="adj-qty" required class="input-field" placeholder="e.g. 5 or -2"></div>
+                    <div><label class="label-text">Reason</label><textarea id="adj-reason" required class="input-field" rows="2"></textarea></div>
+                    <button id="btn-save-adj" class="w-full bg-brand-600 text-white font-bold py-2 rounded-lg hover:bg-brand-700 transition">Update</button>
+                </form>
             </div>
-            <form onsubmit="submitAdjustment(event)">
-                <input type="hidden" id="adj-code">
-                <div class="info-box" style="background:#f1f5f9; padding:15px; border-radius:8px; margin-bottom:15px; text-align:center;">
-                    <div class="info-label" style="font-size:0.8rem; color:var(--text-muted)">Current Stock</div>
-                    <div class="info-val" id="adj-current" style="font-size:1.5rem; font-weight:800; color:var(--primary)">0</div>
-                    <div class="info-name" id="adj-name" style="font-weight:600;">...</div>
-                </div>
-                <div class="form-group">
-                    <label>Qty Change (+/-)</label>
-                    <input type="number" id="adj-qty" required class="form-control" placeholder="-5 or 10">
-                </div>
-                <div class="form-group">
-                    <label>Reason</label>
-                    <textarea id="adj-reason" required class="form-control" rows="2" placeholder="Audit, Damage, Found..."></textarea>
-                </div>
-                <button class="btn btn-primary full-width">Update Stock</button>
-            </form>
         </div>
     </div>
 
-    <!-- Universal Transaction Modals (PR/WR) -->
-    <div id="m-create-pr" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3>New Purchase Request</h3><span class="close-btn" onclick="closeModal('m-create-pr')">&times;</span></div>
-            <form onsubmit="createPR(event)">
-                <div class="form-group"><label>PR Number</label><input id="pr-num" required class="form-control"></div>
-                <div class="form-group"><label>Requester</label><input id="pr-name" required class="form-control"></div>
-                <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
-                <div class="form-group"><label>Item</label><select id="pr-mat" required class="form-control"></select></div>
-                <div class="form-row">
-                    <div class="form-group"><label>Qty</label><input type="number" id="pr-qty" required min="1" class="form-control"></div>
-                    <div class="form-group"><label>Est. Price</label><input type="number" id="pr-price" required step="0.01" class="form-control"></div>
-                </div>
-                <button class="btn btn-primary full-width">Submit</button>
-            </form>
+    <!-- Create PR Modal -->
+    <div id="m-create-pr" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div class="bg-emerald-50 px-6 py-4 border-b border-emerald-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-emerald-800">New Purchase Request</h3>
+                <button onclick="closeModal('m-create-pr')" class="text-emerald-400 hover:text-emerald-700 text-xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <form onsubmit="createPR(event)" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="label-text">Ref #</label><input id="pr-num" readonly class="input-field bg-slate-50"></div>
+                        <div><label class="label-text">Requester</label><input id="pr-name" required class="input-field"></div>
+                    </div>
+                    <div><label class="label-text">Select Part</label><select id="pr-mat" required class="input-field"></select></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="label-text">Quantity</label><input type="number" id="pr-qty" required min="1" class="input-field"></div>
+                        <div><label class="label-text">Est. Cost</label><input type="number" id="pr-price" required step="0.01" class="input-field"></div>
+                    </div>
+                    <button id="btn-save-pr" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/30">Submit Request</button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <div id="m-create-wr" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3>New Withdrawal</h3><span class="close-btn" onclick="closeModal('m-create-wr')">&times;</span></div>
-            <form onsubmit="createWR(event)">
-                <div class="form-group"><label>WR Number</label><input id="wr-num" required class="form-control"></div>
-                <div class="form-row">
-                    <div class="form-group"><label>Requester</label><input id="wr-name" required class="form-control"></div>
-                    <div class="form-group"><label>Dept</label><select id="wr-dept" required class="form-control"></select></div>
-                </div>
-                <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
-                <div class="form-group"><label>Item</label><select id="wr-mat" required class="form-control"></select></div>
-                <div class="form-group"><label>Qty</label><input type="number" id="wr-qty" required min="1" class="form-control"></div>
-                <button class="btn btn-primary full-width">Submit</button>
-            </form>
+    <!-- Create WR Modal -->
+    <div id="m-create-wr" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div class="bg-brand-50 px-6 py-4 border-b border-brand-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-brand-800">Issue Stock</h3>
+                <button onclick="closeModal('m-create-wr')" class="text-brand-400 hover:text-brand-700 text-xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <form onsubmit="createWR(event)" class="space-y-4">
+                    <div><label class="label-text">Ref #</label><input id="wr-num" readonly class="input-field bg-slate-50"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="label-text">Recipient</label><input id="wr-name" required class="input-field"></div>
+                        <div><label class="label-text">Fleet / Dept</label><select id="wr-dept" required class="input-field"></select></div>
+                    </div>
+                    <div>
+                        <label class="label-text">Select Part</label>
+                        <select id="wr-mat" required class="input-field" onchange="checkStockAvailability(this.value)"></select>
+                        <!-- Stock availability hints -->
+                        <div id="wr-stock-hint" class="text-xs mt-1.5 font-semibold h-5 transition-all opacity-0"></div>
+                    </div>
+                    <div><label class="label-text">Quantity</label><input type="number" id="wr-qty" required min="1" class="input-field"></div>
+                    <button id="btn-submit-wr" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition shadow-lg shadow-brand-500/30">Submit for Approval</button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <div id="m-view-details" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3 id="view-title">Details</h3><span class="close-btn" onclick="closeModal('m-view-details')">&times;</span></div>
-            <div id="view-content" class="detail-content"></div>
+    <!-- Item History Modal (New Feature) -->
+    <div id="m-item-history" class="modal-backdrop hidden fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[80vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-lg text-slate-800">Movement History</h3>
+                <button onclick="closeModal('m-item-history')" class="text-slate-400 hover:text-red-500 text-2xl">&times;</button>
+            </div>
+            <div class="p-0 overflow-y-auto flex-1 bg-slate-50/50">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-slate-100 text-xs text-slate-500 border-b sticky top-0">
+                        <tr><th class="p-3">Date</th><th class="p-3">Reason</th><th class="p-3 text-right">Change</th></tr>
+                    </thead>
+                    <tbody id="tbl-item-history" class="divide-y divide-slate-200"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- Image Lightbox Modal -->
-    <div id="m-lightbox" class="modal lightbox-modal" onclick="closeModal('m-lightbox')">
-        <span class="close-btn lightbox-close" style="position:absolute; top:20px; right:30px; color:white;">&times;</span>
-        <img id="lightbox-img" src="" alt="Full View" style="max-width:90%; max-height:80vh; border-radius:8px;">
+    <!-- Lightbox -->
+    <div id="m-lightbox" class="modal-backdrop hidden fixed inset-0 z-[100] bg-black/90 flex items-center justify-center cursor-pointer" onclick="closeModal('m-lightbox')">
+        <img id="lightbox-img" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl transform transition-transform scale-95">
     </div>
 
-    <div id="toast-container"></div>
-
-    <!-- UI Logic Script -->
-    <script>
-        // --- 1. Mobile Sidebar Toggle ---
-        const sidebar = document.querySelector('.sidebar');
-        const mobileToggle = document.querySelector('.mobile-toggle');
-
-        mobileToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(e.target) && 
-                !mobileToggle.contains(e.target) && 
-                sidebar.classList.contains('open')) {
-                sidebar.classList.remove('open');
-            }
-        });
-
-        // --- 2. Main Navigation Tabs ---
-        const navBtns = document.querySelectorAll('.nav-btn');
-        const pages = document.querySelectorAll('.page');
-
-        navBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const targetId = btn.getAttribute('data-target');
-                if(!targetId) { 
-                    // Fallback for onclick="nav()" logic existing in your main js
-                    return; 
-                }
-
-                // Update UI state
-                navBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                pages.forEach(p => p.classList.remove('active'));
-                const targetPage = document.getElementById(targetId);
-                if(targetPage) targetPage.classList.add('active');
-
-                // Close mobile sidebar on selection
-                if(window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
-                }
-            });
-        });
-
-        // Compatibility wrapper for your existing onclick="nav('id')" calls
-        function nav(id) {
-            // Find button with this data-target and trigger click
-            const btn = document.querySelector(`.nav-btn[data-target="${id}"]`);
-            if(btn) btn.click();
-        }
-
-        // --- 3. Settings Page Tabs ---
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabPanes = document.querySelectorAll('.tab-pane');
-
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const targetId = btn.getAttribute('data-tab');
-
-                tabBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                tabPanes.forEach(p => p.classList.remove('active'));
-                document.getElementById(targetId).classList.add('active');
-            });
-        });
-
-        // Compatibility wrapper for your existing onclick="switchTab('id')"
-        function switchTab(id) {
-            const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
-            if(btn) btn.click();
-        }
-
-        // --- 4. Modal Logic (UI Only) ---
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if(modal) {
-                modal.style.display = "flex";
-            }
-        }
-
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if(modal) {
-                modal.style.display = "none";
-            }
-        }
-        
-        // Helper for specific inventory modal
-        function openInventoryModal(mode) {
-            document.getElementById('inv-mode').value = mode;
-            document.getElementById('inv-modal-title').innerText = mode === 'add' ? 'New Item' : 'Edit Item';
-            openModal('m-inventory');
-        }
-
-        // Close modal when clicking outside content
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.style.display = "none";
-            }
-        });
-
-        // Toggle Filter Panel
-        function toggleFilter() {
-            const panel = document.getElementById('inv-filter');
-            panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
-        }
-    </script>
-
-
-    <script src="js/script.js">
-        
-    </script>
+    <!-- Scripts -->
+    <script src="js/script.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/inventorymanagement.js"></script>
 </body>
 </html>
