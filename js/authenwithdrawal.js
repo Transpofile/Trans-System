@@ -5,7 +5,7 @@ const CONFIG = {
     // Adjust these paths relative to where your HTML files are located
     PAGES: {
         LOGIN: "Login.html", 
-        DASHBOARD: "index.html"
+        DASHBOARD: "withdrawal-request.html"
     },
     ROLES: {
         ADMIN: "admin",
