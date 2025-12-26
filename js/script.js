@@ -17,6 +17,7 @@ let wrCart = [];
 const escapeHTML = (str) => String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
 const formatNum = (num) => new Intl.NumberFormat('en-US').format(num);
 const formatMoney = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString() : '-';
 
 // --- INITIALIZATION ---
 $(document).ready(async () => {
@@ -309,6 +310,7 @@ function addToPrCart() {
     const mat = $('#pr-mat').val();
     const qty = parseFloat($('#pr-qty').val());
     const cost = parseFloat($('#pr-price').val()) || 0;
+    const partNo = $('#pr-part-no').val().trim(); // New Field
     
     if(!mat || !qty || qty <= 0) return Swal.fire('Error', 'Invalid Material or Quantity', 'warning');
 
@@ -316,13 +318,20 @@ function addToPrCart() {
     const exists = prCart.find(i => i.material_code === mat);
     if(exists) {
         exists.quantity_requested += qty;
-        exists.unit_price = cost; // Update price
+        exists.unit_price = cost; 
+        exists.part_number = partNo;
     } else {
         const item = invCache.find(i => i.material_code === mat);
-        prCart.push({ material_code: mat, description: item.description, quantity_requested: qty, unit_price: cost });
+        prCart.push({ 
+            material_code: mat, 
+            description: item.description, 
+            quantity_requested: qty, 
+            unit_price: cost,
+            part_number: partNo 
+        });
     }
     renderPrCart();
-    $('#pr-mat').val(''); $('#pr-qty').val(''); $('#pr-price').val('');
+    $('#pr-mat').val(''); $('#pr-qty').val(''); $('#pr-price').val(''); $('#pr-part-no').val('');
 }
 
 function removePrCart(idx) {
@@ -332,7 +341,7 @@ function removePrCart(idx) {
 
 function renderPrCart() {
     const tb = $('#pr-cart-body').empty();
-    if(!prCart.length) tb.html('<tr><td colspan="4" class="p-3 text-center text-slate-400 italic">No items added.</td></tr>');
+    if(!prCart.length) tb.html('<tr><td colspan="5" class="p-3 text-center text-slate-400 italic">No items added.</td></tr>');
     else {
         prCart.forEach((item, idx) => {
             tb.append(`
@@ -341,6 +350,7 @@ function renderPrCart() {
                         <div class="font-bold text-xs">${item.material_code}</div>
                         <div class="text-[10px] text-slate-500 truncate max-w-[150px]">${item.description}</div>
                     </td>
+                    <td class="p-2 text-xs">${item.part_number || '-'}</td>
                     <td class="p-2 text-center font-bold text-xs">${item.quantity_requested}</td>
                     <td class="p-2 text-right text-xs">${formatMoney(item.unit_price)}</td>
                     <td class="p-2 text-right"><button type="button" onclick="removePrCart(${idx})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></td>
@@ -361,7 +371,12 @@ async function createPR(e) {
         const payloadHeader = { 
             pr_number: $('#pr-num').val().trim(), 
             requester_name: $('#pr-name').val(), 
-            remarks: $('#pr-remarks').val().trim()
+            remarks: $('#pr-remarks').val().trim(),
+            // New Fields
+            purchaser: $('#pr-purchaser').val().trim(),
+            arf_number: $('#pr-arf').val().trim(),
+            gl_account: $('#pr-gl').val().trim(),
+            expected_date: $('#pr-expected').val() || null
         };
 
         let activePrId = prId;
@@ -385,7 +400,8 @@ async function createPR(e) {
             pr_id: activePrId,
             material_code: i.material_code,
             quantity_requested: i.quantity_requested,
-            unit_price: i.unit_price
+            unit_price: i.unit_price,
+            part_number: i.part_number // Save Part No to Items
         }));
 
         const { error: itemErr } = await supabaseClient.from('pr_items').insert(itemsPayload);
@@ -510,7 +526,7 @@ async function getPRs() {
     prCache = data || [];
     let rowsHtml = '';
 
-    if(!prCache.length) rowsHtml = '<tr><td colspan="9" class="p-4 text-center text-slate-400">No records found.</td></tr>';
+    if(!prCache.length) rowsHtml = '<tr><td colspan="16" class="p-4 text-center text-slate-400">No records found.</td></tr>';
     else {
         // Flat map: One row per item to show images clearly
         prCache.forEach(pr => {
@@ -537,14 +553,13 @@ async function getPRs() {
                         </select>
                     `;
                     
-                    // Show header actions only on the first item of the PR to avoid clutter, or repeat if desired.
                     const isFirst = idx === 0;
                     const borderClass = isFirst ? 'border-t border-slate-200' : '';
 
                     rowsHtml += `
                     <tr class="${borderClass} hover:bg-slate-50 transition">
-                        <td class="p-3">${getItemImage(item.material_code)}</td>
-                        <td class="p-3 font-mono font-bold text-royal-700 text-xs">${isFirst ? escapeHTML(pr.pr_number) : '<span class="opacity-0">"</span>'}</td>
+                        <td class="p-3 sticky left-0 bg-white z-10">${getItemImage(item.material_code)}</td>
+                        <td class="p-3 font-mono font-bold text-royal-700 text-xs sticky left-16 bg-white z-10">${isFirst ? escapeHTML(pr.pr_number) : '<span class="opacity-0">"</span>'}</td>
                         <td class="p-3 text-xs">${isFirst ? escapeHTML(pr.requester_name) : ''}</td>
                         <td class="p-3 font-mono text-xs font-bold">${escapeHTML(item.material_code)}</td>
                         <td class="p-3 text-xs max-w-[200px] truncate" title="${escapeHTML(invItem.description || '')}">${escapeHTML(invItem.description || '-')}</td>
@@ -552,13 +567,23 @@ async function getPRs() {
                         <td class="p-3 text-right font-mono text-xs text-slate-600">${formatMoney(totalVal)}</td>
                         <td class="p-3 text-center">
                            ${isFirst ? `<span class="block px-2 py-1 rounded text-[10px] uppercase font-bold ${badgeClass} mb-1">${pr.status}</span>` : ''}
-                           ${isFirst && ['Received','Cancel'].includes(pr.status) === false ? actionStatus : ''}
                         </td>
+                        <td class="p-3 text-xs">${isFirst ? escapeHTML(pr.purchaser || '-') : ''}</td>
+                        <td class="p-3 text-xs font-mono">${escapeHTML(item.part_number || '-')}</td>
+                        <td class="p-3 text-xs">${isFirst ? escapeHTML(pr.arf_number || '-') : ''}</td>
+                        <td class="p-3 text-xs">${isFirst ? escapeHTML(pr.gl_account || '-') : ''}</td>
+                        <td class="p-3 text-xs">${isFirst ? formatDate(pr.expected_date) : ''}</td>
+                        <td class="p-3 text-xs">${isFirst ? formatDate(pr.date_processed) : ''}</td>
+                        <td class="p-3 text-xs">${isFirst ? formatDate(pr.date_received) : ''}</td>
+                        
                         <td class="p-3 text-right">
                              ${isFirst ? `
-                             <div class="flex justify-end gap-1">
-                                <button onclick="editPR('${pr.pr_id}')" class="text-amber-500 hover:text-amber-700 p-1" title="Edit" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-edit"></i></button>
-                                <button onclick="deletePR('${pr.pr_id}')" class="text-red-500 hover:text-red-700 p-1" title="Delete" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-trash-alt"></i></button>
+                             <div class="flex flex-col items-end gap-1">
+                                ${['Received','Cancel'].includes(pr.status) === false ? actionStatus : ''}
+                                <div class="flex gap-1">
+                                    <button onclick="editPR('${pr.pr_id}')" class="text-amber-500 hover:text-amber-700 p-1" title="Edit" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-edit"></i></button>
+                                    <button onclick="deletePR('${pr.pr_id}')" class="text-red-500 hover:text-red-700 p-1" title="Delete" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-trash-alt"></i></button>
+                                </div>
                             </div>` : ''}
                         </td>
                     </tr>
@@ -656,12 +681,25 @@ async function editPR(id) {
     $('#pr-num').val(pr.pr_number).prop('readonly', true);
     $('#pr-name').val(pr.requester_name);
     $('#pr-remarks').val(pr.remarks);
+    
+    // Populate New Fields
+    $('#pr-purchaser').val(pr.purchaser || '');
+    $('#pr-arf').val(pr.arf_number || '');
+    $('#pr-gl').val(pr.gl_account || '');
+    $('#pr-expected').val(pr.expected_date || '');
+
     $('#btn-save-pr').text('Update Request');
 
     // Load Cart
     prCart = pr.pr_items.map(i => {
         const inv = invCache.find(x => x.material_code === i.material_code);
-        return { material_code: i.material_code, description: inv?.description, quantity_requested: i.quantity_requested, unit_price: i.unit_price };
+        return { 
+            material_code: i.material_code, 
+            description: inv?.description, 
+            quantity_requested: i.quantity_requested, 
+            unit_price: i.unit_price,
+            part_number: i.part_number
+        };
     });
     renderPrCart();
 }
@@ -703,9 +741,14 @@ async function deleteWR(id) {
 
 async function updatePRStatus(id, newStatus, matCode, qty) {
     // Note: In multi-item PRs, receiving means receiving ALL items in this simple logic.
-    // For advanced partial receiving, a different DB structure is needed.
-    // Here we assume status change applies to the Header and updates stock for all items if Received.
     try {
+        const timestamp = new Date().toISOString();
+        let updatePayload = { status: newStatus };
+
+        // Auto Date Logic
+        if(newStatus === 'Processing') updatePayload.date_processed = timestamp;
+        if(newStatus === 'Received') updatePayload.date_received = timestamp;
+
         if(newStatus === 'Received') {
             const confirm = await Swal.fire({title: 'Confirm Receipt?', text: `Add items to inventory?`, icon: 'question', showCancelButton: true, confirmButtonColor: '#10b981'});
             if(!confirm.isConfirmed) return; 
@@ -722,7 +765,8 @@ async function updatePRStatus(id, newStatus, matCode, qty) {
         } else if (newStatus === 'Cancel') {
              if(!(await Swal.fire({title:'Cancel Request?', icon:'warning', showCancelButton:true, confirmButtonColor: '#ef4444'})).isConfirmed) return;
         }
-        await supabaseClient.from('purchase_requests').update({status: newStatus}).eq('pr_id', id);
+
+        await supabaseClient.from('purchase_requests').update(updatePayload).eq('pr_id', id);
         await refreshAll();
         Swal.mixin({toast: true, position: 'top-end', showConfirmButton: false, timer: 3000}).fire({icon: 'success', title: `Status: ${newStatus}`});
     } catch(err) { Swal.fire('Error', err.message, 'error'); await refreshAll(); }
