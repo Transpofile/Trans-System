@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css"/>
+    
     <!-- Tailwind Config -->
     <script>
         tailwind.config = {
@@ -31,32 +32,6 @@
             }
         }
     </script>
-
-    <style>
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        .nav-link { 
-            display: flex; align-items: center; padding: 12px 24px; color: #94a3b8; 
-            transition: all 0.2s; cursor: pointer; border-left: 3px solid transparent; 
-        }
-        .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
-        .nav-link.active { color: #60a5fa; background: rgba(37,99,235,0.1); border-left-color: #60a5fa; }
-        .card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
-        .page-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; letter-spacing: -0.025em; }
-        .btn-primary { background-color: #2563eb; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.875rem; transition: background 0.2s; display: inline-flex; align-items: center; justify-content: center; }
-        .btn-primary:hover { background-color: #1d4ed8; }
-        .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
-        .btn-secondary { background-color: white; color: #475569; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; }
-        .btn-secondary:hover { background-color: #f8fafc; border-color: #94a3b8; color: #1e293b; }
-        .form-input, .form-select { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.375rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; transition: border 0.2s; color: #334155; }
-        .form-input:focus, .form-select:focus { border-color: #3b82f6; ring: 2px solid #bfdbfe; }
-        .label { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 0.25rem; uppercase; }
-        .dragover { background-color: #eff6ff; border-color: #3b82f6; }
-    </style>
 </head>
 <body class="bg-slate-50 text-slate-700 font-sans h-screen flex overflow-hidden">
 
@@ -87,7 +62,6 @@
 
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-            
             <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Overview</div>
             <a href="#" onclick="nav('dashboard')" class="nav-link active">
                 <i class="fas fa-chart-pie w-6"></i> <span>Dashboard</span>
@@ -106,7 +80,7 @@
                 <i class="fas fa-arrow-up w-6 text-amber-500"></i> <span>Stock Out (WR)</span>
             </a>
             <a href="#" onclick="nav('disposal')" class="nav-link">
-                <i class="fas fa-trash-alt w-6 text-red-500"></i> <span>Disposal</span>
+                <i class="fas fa-trash-alt w-6 text-red-500"></i> <span>Disposal Log</span>
             </a>
 
             <div class="px-3 mb-2 mt-6 text-[10px] font-bold uppercase tracking-wider text-slate-500">Administration</div>
@@ -201,7 +175,7 @@
                         <table class="w-full text-sm text-left">
                             <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs border-b border-slate-200">
                                 <tr>
-                                    <th class="p-4">Image</th>
+                                    <th class="p-4 w-16">Image</th>
                                     <th class="p-4 cursor-pointer hover:bg-slate-200" onclick="sortInv('material_code')">Code <i class="fas fa-sort ml-1"></i></th>
                                     <th class="p-4">Description</th>
                                     <th class="p-4">Stock</th>
@@ -222,7 +196,7 @@
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="page-title">Stock Inbound (PR)</h1>
                     <button onclick="openModal('m-create-pr')" class="btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-700">
-                        <i class="fas fa-plus mr-2"></i> Create Request
+                        <i class="fas fa-plus mr-2"></i> Create PR
                     </button>
                 </div>
                 <div class="card overflow-hidden">
@@ -230,14 +204,13 @@
                         <table class="w-full text-sm text-left whitespace-nowrap">
                             <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
                                 <tr>
+                                    <th class="p-4 w-16">Image</th>
                                     <th class="p-4">PR No.</th>
+                                    <th class="p-4">Requester</th>
                                     <th class="p-4">Mat. Code</th>
                                     <th class="p-4">Description</th>
                                     <th class="p-4 text-center">Qty</th>
-                                    <th class="p-4">Unit</th>
-                                    <th class="p-4">Category</th>
-                                    <th class="p-4 text-right">Total Val</th>
-                                    <th class="p-4">Remarks</th>
+                                    <th class="p-4 text-right">Cost</th>
                                     <th class="p-4">Status</th>
                                     <th class="p-4 text-right">Action</th>
                                 </tr>
@@ -253,7 +226,7 @@
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="page-title">Stock Outbound (WR)</h1>
                     <button onclick="openModal('m-create-wr')" class="btn-primary bg-amber-600 hover:bg-amber-700 border-amber-700">
-                        <i class="fas fa-dolly mr-2"></i> Issue Stock
+                        <i class="fas fa-dolly mr-2"></i> Create WR
                     </button>
                 </div>
                 <div class="card overflow-hidden">
@@ -261,14 +234,14 @@
                         <table class="w-full text-sm text-left whitespace-nowrap">
                             <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
                                 <tr>
+                                    <th class="p-4 w-16">Image</th>
                                     <th class="p-4">WR No.</th>
+                                    <th class="p-4">Recipient</th>
                                     <th class="p-4">Mat. Code</th>
                                     <th class="p-4">Description</th>
                                     <th class="p-4 text-center">Qty</th>
-                                    <th class="p-4">Recipient</th>
                                     <th class="p-4">Date</th>
                                     <th class="p-4 text-center">Status</th>
-                                    <th class="p-4">Remarks</th>
                                     <th class="p-4 text-right">Action</th>
                                 </tr>
                             </thead>
@@ -282,8 +255,9 @@
             <div id="disposal" class="page-section hidden">
                 <h1 class="page-title mb-6">Disposal Log</h1>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Form Side -->
                     <div class="card p-6 border-t-4 border-red-600 h-fit">
-                        <h3 class="font-bold text-lg mb-4 text-red-700">Record New Disposal</h3>
+                        <h3 class="font-bold text-lg mb-4 text-red-700">Log New Disposal</h3>
                         <form onsubmit="handleDisposal(event)" class="space-y-4">
                             <div>
                                 <label class="label">Select WR Source</label>
@@ -293,26 +267,9 @@
                             </div>
                             
                             <!-- Auto-filled Fields -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="label">Recipient</label>
-                                    <input type="text" id="disp-recipient" readonly class="form-input w-full bg-slate-100 text-slate-500 cursor-not-allowed">
-                                </div>
-                                <div>
-                                    <label class="label">Asset</label>
-                                    <input type="text" id="disp-item-details" readonly class="form-input w-full bg-slate-100 text-slate-500 cursor-not-allowed">
-                                </div>
-                            </div>
-
-                            <!-- Additional Fields for Logging -->
-                            <div>
-                                <label class="label">Disposal Status</label>
-                                <select id="disp-status" class="form-select w-full">
-                                    <option value="Logged">Logged</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="For Disposal">For Disposal</option>
-                                    <option value="Disposed">Disposed</option>
-                                </select>
+                            <div class="bg-slate-50 p-3 rounded border border-slate-200 text-sm mb-2">
+                                <p class="font-bold text-slate-500 text-xs uppercase">Source Details:</p>
+                                <div id="disp-details-view" class="mt-1 text-slate-700 italic">No WR Selected</div>
                             </div>
 
                             <div class="grid grid-cols-2 gap-4">
@@ -329,7 +286,7 @@
                                     <select id="disp-dest" class="form-select w-full">
                                         <option value="MRF">MRF</option>
                                         <option value="Scrap Yard">Scrap Yard</option>
-                                        <option value="Secondary Waste BIN">Secondary Waste BIN</option>
+                                        <option value="Secondary BIN">Secondary BIN</option>
                                     </select>
                                 </div>
                             </div>
@@ -348,17 +305,19 @@
                             <button type="submit" id="btn-disp-submit" class="w-full btn-primary bg-red-600 hover:bg-red-700 border-red-700">Confirm Disposal</button>
                         </form>
                     </div>
+
+                    <!-- Table Side -->
                     <div class="lg:col-span-2 card overflow-hidden">
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm text-left">
                                 <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
                                     <tr>
-                                        <th class="p-4">Ref</th>
+                                        <th class="p-4 w-16">Image</th>
+                                        <th class="p-4">Ref No.</th>
                                         <th class="p-4">Item Details</th>
                                         <th class="p-4 text-center">Qty</th>
-                                        <th class="p-4">Destination</th>
+                                        <th class="p-4">Type / Dest</th>
                                         <th class="p-4">Status</th>
-                                        <th class="p-4">Details / Waste Type</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbl-disp-hist" class="divide-y divide-slate-100"></tbody>
@@ -513,59 +472,83 @@
         </div>
     </div>
 
-    <!-- PR Modal (Updated for Edit/Delete Fix) -->
+    <!-- Multi-Item PR Modal -->
     <div id="m-create-pr" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between mb-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between mb-4 border-b pb-2">
                 <h3 class="font-bold text-lg" id="pr-modal-title">Create Purchase Request</h3>
                 <button onclick="closeModal('m-create-pr')"><i class="fas fa-times"></i></button>
             </div>
-            <form id="pr-form" onsubmit="createPR(event)" class="space-y-4">
+            
+            <form id="pr-form" onsubmit="createPR(event)" class="flex flex-col flex-1 overflow-hidden">
                 <input type="hidden" id="pr-id">
-                <div class="flex gap-4">
-                    <div class="flex-1">
+                
+                <!-- Header Info -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
                         <label class="label">PR No.</label>
                         <input id="pr-num" required class="form-input w-full font-bold">
                     </div>
-                    <div class="flex-1">
+                    <div>
                         <label class="label">Requester</label>
                         <input id="pr-name" required class="form-input w-full">
                     </div>
                 </div>
-                <div>
-                    <label class="label">Material</label>
-                    <select id="pr-mat" required class="form-select w-full"></select>
-                </div>
-                <div class="flex gap-4">
-                    <div class="flex-1">
-                        <label class="label">Quantity</label>
-                        <input type="number" id="pr-qty" required min="1" class="form-input w-full">
+
+                <!-- Add Item Section -->
+                <div class="bg-slate-50 p-3 rounded border border-slate-200 mb-4" id="pr-add-area">
+                    <label class="label mb-2 text-emerald-600">Add Item to List</label>
+                    <div class="flex gap-2 mb-2">
+                        <select id="pr-mat" class="form-select flex-[2]"></select>
+                        <input type="number" id="pr-qty" placeholder="Qty" min="1" class="form-input w-20 text-center">
                     </div>
-                    <div class="flex-1">
-                        <label class="label">Unit Price</label>
-                        <input type="number" id="pr-price" required step="0.01" class="form-input w-full">
+                    <div class="flex gap-2">
+                        <input type="number" id="pr-price" placeholder="Cost" step="0.01" class="form-input flex-1">
+                        <button type="button" onclick="addToPrCart()" class="btn-primary bg-slate-700 hover:bg-slate-800"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
+
+                <!-- Cart Table -->
+                <div class="flex-1 overflow-y-auto border border-slate-200 rounded mb-4">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-xs uppercase font-bold text-slate-600 sticky top-0">
+                            <tr>
+                                <th class="p-2">Item</th>
+                                <th class="p-2 text-center">Qty</th>
+                                <th class="p-2 text-right">Cost</th>
+                                <th class="p-2 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pr-cart-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+
                 <div>
                     <label class="label">Remarks</label>
-                    <input type="text" id="pr-remarks" class="form-input w-full" placeholder="Optional notes...">
+                    <input type="text" id="pr-remarks" class="form-input w-full mb-4" placeholder="Optional notes...">
+                    <button id="btn-save-pr" class="btn-primary w-full bg-emerald-600 border-emerald-700 hover:bg-emerald-700 h-10">Submit Request</button>
                 </div>
-                <button id="btn-save-pr" class="btn-primary w-full bg-emerald-600 border-emerald-700 hover:bg-emerald-700">Submit Request</button>
             </form>
         </div>
     </div>
 
-    <!-- WR Modal (Updated for Edit/Delete Fix) -->
+    <!-- Multi-Item WR Modal -->
     <div id="m-create-wr" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between mb-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between mb-4 border-b pb-2">
                 <h3 class="font-bold text-lg" id="wr-modal-title">Create Withdrawal</h3>
                 <button onclick="closeModal('m-create-wr')"><i class="fas fa-times"></i></button>
             </div>
-            <form id="wr-form" onsubmit="createWR(event)" class="space-y-4">
+            
+            <form id="wr-form" onsubmit="createWR(event)" class="flex flex-col flex-1 overflow-hidden">
                 <input type="hidden" id="wr-id">
-                <input id="wr-num" readonly class="form-input w-full bg-slate-100 mb-2">
-                <div class="grid grid-cols-2 gap-4">
+                
+                <!-- Header Info -->
+                <div class="mb-4">
+                    <label class="label">WR No.</label>
+                    <input id="wr-num" readonly class="form-input w-full bg-slate-100 mb-2">
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="label">Recipient</label>
                         <input id="wr-name" required class="form-input w-full">
@@ -575,20 +558,39 @@
                         <select id="wr-dept" required class="form-select w-full"></select>
                     </div>
                 </div>
-                <div class="relative">
-                    <label class="label">Material</label>
-                    <select id="wr-mat" required class="form-select w-full" onchange="checkStockAvailability(this.value)"></select>
-                    <div id="wr-stock-hint" class="text-xs font-bold text-right mt-1 h-4"></div>
+
+                <!-- Add Item Section -->
+                <div class="bg-slate-50 p-3 rounded border border-slate-200 mb-4" id="wr-add-area">
+                    <label class="label mb-2 text-amber-600">Add Item to List</label>
+                    <div class="flex gap-2">
+                        <div class="flex-[2]">
+                            <select id="wr-mat" class="form-select w-full" onchange="checkStockAvailability(this.value)"></select>
+                            <div id="wr-stock-hint" class="text-[10px] font-bold text-right mt-1 h-3"></div>
+                        </div>
+                        <input type="number" id="wr-qty" placeholder="Qty" min="1" class="form-input w-20 text-center h-[42px]">
+                        <button type="button" onclick="addToWrCart()" class="btn-primary bg-slate-700 hover:bg-slate-800 h-[42px] w-[42px] flex items-center justify-center"><i class="fas fa-plus"></i></button>
+                    </div>
                 </div>
-                <div>
-                    <label class="label">Quantity</label>
-                    <input type="number" id="wr-qty" required min="1" class="form-input w-full">
+
+                <!-- Cart Table -->
+                <div class="flex-1 overflow-y-auto border border-slate-200 rounded mb-4">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-xs uppercase font-bold text-slate-600 sticky top-0">
+                            <tr>
+                                <th class="p-2">Item</th>
+                                <th class="p-2 text-center">Qty</th>
+                                <th class="p-2 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wr-cart-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
                 </div>
+
                 <div>
                     <label class="label">Remarks</label>
-                    <input type="text" id="wr-remarks" class="form-input w-full" placeholder="Optional notes...">
+                    <input type="text" id="wr-remarks" class="form-input w-full mb-4" placeholder="Optional notes...">
+                    <button id="btn-submit-wr" class="btn-primary w-full bg-amber-600 border-amber-700 hover:bg-amber-700 h-10">Issue Stock</button>
                 </div>
-                <button id="btn-submit-wr" class="btn-primary w-full bg-amber-600 border-amber-700 hover:bg-amber-700">Issue Stock</button>
             </form>
         </div>
     </div>
