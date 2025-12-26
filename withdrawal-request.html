@@ -25,45 +25,64 @@
                         },
                         slate: { 850: '#151e2e' }
                     },
-                    fontFamily: { sans: ['"Roboto"', 'sans-serif'] }
+                    fontFamily: { sans: ['"Roboto"', 'sans-serif'] },
+                    animation: {
+                        'pulse-short': 'pulse 0.3s ease-in-out 1'
+                    }
                 }
             }
         }
     </script>
 
     <style>
-        body { background-color: #f8fafc; font-family: 'Roboto', sans-serif; }
-        .glass-panel { background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border-radius: 12px; }
+        body { background-color: #f1f5f9; font-family: 'Roboto', sans-serif; }
+        .glass-panel { background: white; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border-radius: 16px; }
         
         /* Images */
-        .img-preview { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .img-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; }
-        .img-placeholder-lg { width: 64px; height: 64px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #cbd5e1; font-size: 1.5rem; }
-        .img-placeholder-sm { width: 40px; height: 40px; background: #f1f5f9; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #cbd5e1; }
+        .img-preview { width: 80px; height: 80px; object-fit: cover; border-radius: 12px; border: 2px solid #e2e8f0; }
+        .img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .img-placeholder-lg { width: 80px; height: 80px; background: #f8fafc; border-radius: 12px; border: 2px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 2rem; }
+        .img-placeholder-sm { width: 48px; height: 48px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; color: #cbd5e1; }
+
+        /* Form Elements */
+        .input-field { transition: all 0.2s; }
+        .input-field:focus { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
     </style>
 </head>
-<body class="text-slate-700 h-screen flex flex-col overflow-hidden">
+<body class="text-slate-700 h-screen flex flex-col overflow-hidden selection:bg-royal-200 selection:text-royal-900">
 
     <!-- Header -->
-    <header class="bg-slate-900 text-white shadow-lg z-50 flex-none">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <header class="bg-slate-900 text-white shadow-xl z-50 flex-none relative overflow-hidden">
+        <!-- Deco bg -->
+        <div class="absolute top-0 right-0 w-64 h-full bg-royal-600 opacity-10 skew-x-12 transform translate-x-10"></div>
+        
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center relative z-10">
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded bg-royal-600 flex items-center justify-center text-white shadow-lg ring-2 ring-royal-500 ring-offset-2 ring-offset-slate-900">
-                    <i class="fas fa-dolly text-lg"></i>
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-royal-500 to-royal-700 flex items-center justify-center text-white shadow-lg ring-2 ring-royal-500/50 ring-offset-2 ring-offset-slate-900">
+                    <i class="fas fa-dolly text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-wide">Withdrawal Portal</h1>
-                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Inventory Distribution Point</p>
+                    <h1 class="text-xl font-bold tracking-tight text-white">Withdrawal Portal</h1>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <p class="text-[10px] text-slate-300 uppercase font-bold tracking-widest">System Online</p>
+                    </div>
                 </div>
             </div>
-            <div class="text-right hidden md:block">
-                <div class="text-xs text-slate-400 uppercase font-bold">Current Session</div>
-                <div class="font-mono text-emerald-400 font-bold" id="clock">00:00:00</div>
+            <div class="flex items-center gap-6">
+                <button onclick="loadData()" title="Refresh Data" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <div class="text-right hidden md:block border-l border-slate-700 pl-6">
+                    <div class="text-[10px] text-slate-400 uppercase font-bold">Current Session</div>
+                    <div class="font-mono text-emerald-400 font-bold text-lg leading-none" id="clock">00:00:00</div>
+                </div>
             </div>
         </div>
     </header>
@@ -72,115 +91,141 @@
     <main class="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
         
         <!-- LEFT COLUMN: INPUT FORM -->
-        <div class="lg:col-span-5 flex flex-col gap-6 overflow-y-auto pr-1">
+        <div class="lg:col-span-5 flex flex-col gap-5 overflow-y-auto pr-1 pb-4">
             
             <!-- Step 1: Recipient -->
-            <div class="glass-panel p-6 border-l-4 border-royal-500">
-                <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center">
-                    <span class="w-7 h-7 rounded-full bg-royal-100 text-royal-600 flex items-center justify-center mr-3 text-xs font-bold ring-1 ring-royal-200">1</span>
-                    Recipient Details
-                </h3>
+            <div class="glass-panel p-6 border-l-4 border-royal-500 relative">
+                <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-royal-600 text-white flex items-center justify-center text-sm font-bold shadow-lg ring-2 ring-white">1</div>
+                <h3 class="font-bold text-slate-800 text-lg mb-4 pl-2">Recipient Details</h3>
+                
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Department / Designation</label>
-                        <select id="w-dept" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-royal-500 focus:border-royal-500 bg-white text-sm">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Department / Designation</label>
+                        <select id="w-dept" class="w-full p-3 border border-slate-300 rounded-xl bg-slate-50 text-sm input-field focus:bg-white cursor-pointer">
                             <option value="">Loading Departments...</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Withdrawer Name</label>
-                        <input type="text" id="w-name" placeholder="e.g. John Doe" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-royal-500 focus:outline-none text-sm font-medium">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Withdrawer Name</label>
+                        <input type="text" id="w-name" placeholder="Who is taking the stock?" class="w-full p-3 border border-slate-300 rounded-xl bg-slate-50 text-sm font-medium input-field focus:bg-white">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Transaction Ref (Auto)</label>
-                        <input type="text" id="w-ref" readonly class="w-full p-2.5 bg-slate-100 text-slate-500 border border-slate-200 rounded-lg font-mono font-bold text-sm tracking-wide">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Transaction Ref (Auto)</label>
+                        <div class="relative">
+                            <input type="text" id="w-ref" readonly class="w-full p-3 bg-slate-100 text-slate-500 border border-slate-200 rounded-xl font-mono font-bold text-sm tracking-wide">
+                            <i class="fas fa-lock absolute right-4 top-3.5 text-slate-300"></i>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Step 2: Item Selection -->
-            <div class="glass-panel p-6 flex-1 border-l-4 border-amber-500">
-                <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center">
-                    <span class="w-7 h-7 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mr-3 text-xs font-bold ring-1 ring-amber-200">2</span>
-                    Select Items
-                </h3>
+            <div class="glass-panel p-6 flex-1 border-l-4 border-amber-500 relative flex flex-col">
+                <div class="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center text-sm font-bold shadow-lg ring-2 ring-white">2</div>
+                <h3 class="font-bold text-slate-800 text-lg mb-4 pl-2">Select Items</h3>
                 
-                <div class="relative mb-4">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Search Item</label>
-                    <select id="w-item-select" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white text-sm" onchange="checkStock(this.value)">
-                        <option value="">-- Choose Material --</option>
-                    </select>
+                <!-- Search Filter -->
+                <div class="mb-3 relative">
+                    <i class="fas fa-search absolute left-3 top-3.5 text-slate-400"></i>
+                    <input type="text" id="item-search" placeholder="Filter items by name or code..." class="w-full pl-10 p-3 border border-slate-300 rounded-xl text-sm input-field" onkeyup="filterItems()">
                 </div>
 
-                <!-- Live Stock Display -->
-                <div id="stock-display" class="hidden mb-6 p-4 rounded-lg bg-royal-50 border border-royal-100 flex items-center gap-4 transition-all shadow-sm">
-                    <div id="stock-img-container">
+                <div class="relative mb-6">
+                    <select id="w-item-select" class="w-full p-3 border border-slate-300 rounded-xl bg-white text-sm input-field cursor-pointer" onchange="checkStock(this.value)" size="4">
+                        <option value="">-- Load Inventory --</option>
+                    </select>
+                    <p class="text-[10px] text-slate-400 mt-1 italic text-right">* Select an item from the list</p>
+                </div>
+
+                <!-- Live Stock Display Card -->
+                <div id="stock-display" class="hidden mb-6 p-4 rounded-xl bg-white border border-royal-100 shadow-sm flex items-start gap-4 transition-all">
+                    <div id="stock-img-container" class="flex-none">
                         <!-- Image injected via JS -->
                     </div>
-                    <div class="flex-1">
-                        <p class="text-[10px] text-royal-600 font-bold uppercase tracking-wider">Available Stock</p>
-                        <div class="flex items-baseline gap-1">
-                            <p class="text-3xl font-bold text-royal-800" id="stock-qty-display">0</p>
-                            <p class="text-xs text-slate-500 font-bold" id="stock-uom-display">PCS</p>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Available Stock</p>
+                                <div class="flex items-baseline gap-1">
+                                    <p class="text-3xl font-bold text-slate-800" id="stock-qty-display">0</p>
+                                    <p class="text-xs text-slate-500 font-bold" id="stock-uom-display">PCS</p>
+                                </div>
+                            </div>
+                            <span id="stock-badge" class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-500">Normal</span>
                         </div>
-                        <div class="text-xs text-slate-500 truncate w-48" id="stock-desc-display"></div>
+                        <div class="mt-2 text-sm font-medium text-slate-700 leading-tight" id="stock-desc-display">Description</div>
+                        <div class="mt-1 text-xs text-slate-400 font-mono" id="stock-code-display">CODE</div>
                     </div>
                 </div>
 
-                <div class="flex gap-3 items-end">
-                    <div class="w-24">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qty</label>
-                        <input type="number" id="w-qty" min="1" value="1" class="w-full p-3 border border-slate-300 rounded-lg font-bold text-xl text-center focus:ring-2 focus:ring-amber-500 outline-none text-slate-700">
+                <div class="mt-auto">
+                    <div class="flex gap-3 items-end">
+                        <div class="w-28">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Quantity</label>
+                            <input type="number" id="w-qty" min="1" value="1" class="w-full p-3 border border-slate-300 rounded-xl font-bold text-xl text-center input-field text-slate-800">
+                        </div>
+                        <button onclick="addToCart()" id="btn-add" class="flex-1 h-[54px] bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition transform active:scale-95 flex items-center justify-center text-sm uppercase tracking-wide">
+                            <span>Add to List</span> <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
                     </div>
-                    <button onclick="addToCart()" class="flex-1 h-[54px] bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg shadow-md transition flex items-center justify-center text-sm uppercase tracking-wide">
-                        <i class="fas fa-plus-circle mr-2 text-lg"></i> Add to List
-                    </button>
+                    <p id="error-msg" class="text-red-500 text-xs mt-2 font-bold h-4 text-center"></p>
                 </div>
-                <p id="error-msg" class="text-red-500 text-xs mt-2 font-bold h-4 text-center"></p>
             </div>
         </div>
 
         <!-- RIGHT COLUMN: CART & SUMMARY -->
-        <div class="lg:col-span-7 flex flex-col h-full overflow-hidden">
-            <div class="glass-panel flex flex-col h-full overflow-hidden border-t-4 border-emerald-500">
-                <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center flex-none">
-                    <h3 class="font-bold text-slate-800 flex items-center">
-                        <i class="fas fa-clipboard-list text-slate-400 mr-2"></i> Withdrawal Summary
+        <div class="lg:col-span-7 flex flex-col h-full overflow-hidden pb-4">
+            <div class="glass-panel flex flex-col h-full overflow-hidden border-t-4 border-emerald-500 relative">
+                <div class="p-5 border-b border-slate-100 bg-white flex justify-between items-center flex-none">
+                    <h3 class="font-bold text-slate-800 flex items-center text-lg">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mr-3">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        Summary List
                     </h3>
-                    <button onclick="clearCart()" id="btn-clear" class="hidden text-xs text-red-500 hover:text-red-700 font-bold bg-white border border-red-200 px-3 py-1 rounded shadow-sm hover:bg-red-50 transition">
-                        <i class="fas fa-trash-alt mr-1"></i> Clear List
+                    <button onclick="clearCart()" id="btn-clear" class="hidden text-xs text-red-500 hover:text-red-700 font-bold bg-red-50 border border-red-100 px-3 py-2 rounded-lg hover:bg-red-100 transition">
+                        Clear All
                     </button>
                 </div>
 
                 <!-- Table Header -->
-                <div class="grid grid-cols-12 bg-slate-100 text-[10px] font-bold text-slate-500 uppercase py-3 px-4 border-b border-slate-200 flex-none">
+                <div class="grid grid-cols-12 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase py-3 px-5 border-b border-slate-100 flex-none tracking-wider">
                     <div class="col-span-2">Item</div>
-                    <div class="col-span-2">Code</div>
-                    <div class="col-span-5">Description</div>
-                    <div class="col-span-2 text-center">Qty</div>
+                    <div class="col-span-6">Details</div>
+                    <div class="col-span-3 text-center">Qty</div>
                     <div class="col-span-1 text-right"></div>
                 </div>
 
                 <!-- Table Body (Scrollable) -->
                 <div class="flex-1 overflow-y-auto bg-white relative" id="cart-container">
                     <!-- Empty State -->
-                    <div id="empty-cart" class="absolute inset-0 flex flex-col items-center justify-center text-slate-300 opacity-60">
-                        <i class="fas fa-box-open text-6xl mb-4"></i>
-                        <p class="font-medium text-sm">Your list is empty.</p>
-                        <p class="text-xs">Select items from the left to begin.</p>
+                    <div id="empty-cart" class="absolute inset-0 flex flex-col items-center justify-center text-slate-300">
+                        <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-basket-shopping text-4xl text-slate-200"></i>
+                        </div>
+                        <p class="font-medium text-slate-400">Your cart is empty.</p>
+                        <p class="text-xs text-slate-400 mt-1">Select items to begin transaction.</p>
                     </div>
                     <!-- Items List -->
                     <div id="cart-list" class="divide-y divide-slate-50"></div>
                 </div>
 
                 <!-- Footer / Action -->
-                <div class="p-6 bg-slate-50 border-t border-slate-200 flex-none">
+                <div class="p-6 bg-slate-50 border-t border-slate-200 flex-none z-10">
                     <div class="flex justify-between items-end mb-4">
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Line Items</span>
-                        <span id="total-items-count" class="text-2xl font-bold text-slate-800">0</span>
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Line Items</span>
+                            <span class="text-xs text-slate-400">Ready to dispense</span>
+                        </div>
+                        <div class="text-right">
+                            <span id="total-items-count" class="text-3xl font-bold text-slate-800 leading-none">0</span>
+                            <span class="text-sm font-medium text-slate-500">items</span>
+                        </div>
                     </div>
-                    <button onclick="processTransaction()" id="btn-process" disabled class="w-full py-4 bg-slate-200 text-slate-400 font-bold rounded-lg text-lg transition cursor-not-allowed flex items-center justify-center uppercase tracking-widest shadow-inner">
-                        <i class="fas fa-check mr-2"></i> Confirm Withdrawal
+                    <button onclick="processTransaction()" id="btn-process" disabled class="w-full py-4 bg-slate-200 text-slate-400 font-bold rounded-xl text-lg transition cursor-not-allowed flex items-center justify-center uppercase tracking-widest shadow-inner group relative overflow-hidden">
+                        <span class="relative z-10 flex items-center">
+                            <i class="fas fa-check-circle mr-2 group-hover:scale-110 transition"></i> Confirm Withdrawal
+                        </span>
                     </button>
                 </div>
             </div>
@@ -217,6 +262,9 @@
         }
 
         async function loadData() {
+            const btn = $('button[title="Refresh Data"] i');
+            btn.addClass('fa-spin');
+            
             try {
                 // 1. Load Departments
                 const { data: depts } = await supabaseClient.from('departments').select('*').order('name');
@@ -225,7 +273,7 @@
                         depts.map(d => `<option value="${d.name}">${d.name}</option>`).join(''));
                 }
 
-                // 2. Load Active Inventory with Images
+                // 2. Load Active Inventory
                 const { data: inv } = await supabaseClient.from('inventory').select('*').neq('status', 'ARCHIVED').order('description');
                 inventory = inv || [];
 
@@ -234,22 +282,46 @@
             } catch (e) {
                 console.error(e);
                 Swal.fire('Connection Error', 'Failed to load system data. Check internet connection.', 'error');
+            } finally {
+                setTimeout(() => btn.removeClass('fa-spin'), 500);
             }
         }
 
         function populateItemSelect() {
-            // Smart dropdown with status indicators
-            let html = '<option value="">-- Choose Material --</option>';
+            const select = $('#w-item-select');
+            select.empty();
+            
             inventory.forEach(item => {
-                let statusIcon = '🟢';
-                if(item.current_stock <= 0) statusIcon = '🔴 (Out)';
-                else if(item.current_stock <= item.low_stock_threshold) statusIcon = '🟠 (Low)';
+                let statusText = '';
+                if(item.current_stock <= 0) statusText = '(OUT OF STOCK)';
+                else if(item.current_stock <= item.low_stock_threshold) statusText = '(LOW STOCK)';
                 
-                html += `<option value="${item.material_code}" ${item.current_stock <= 0 ? 'disabled class="bg-slate-100 text-slate-400"' : ''}>
-                    ${statusIcon} ${item.description} [${item.material_code}]
-                </option>`;
+                const option = $('<option></option>')
+                    .val(item.material_code)
+                    .text(`${item.description} [${item.material_code}] ${statusText}`)
+                    .attr('data-stock', item.current_stock);
+                
+                if(item.current_stock <= 0) option.prop('disabled', true).addClass('text-slate-300 italic bg-slate-50');
+                
+                select.append(option);
             });
-            $('#w-item-select').html(html);
+            
+            // Re-apply filter if text exists
+            filterItems();
+        }
+
+        function filterItems() {
+            const term = $('#item-search').val().toLowerCase();
+            $('#w-item-select option').each(function() {
+                const text = $(this).text().toLowerCase();
+                if(text.indexOf(term) > -1) $(this).show();
+                else $(this).hide();
+            });
+            // Reset selection if hidden
+            if($('#w-item-select option:selected').css('display') === 'none') {
+                $('#w-item-select').val('');
+                checkStock('');
+            }
         }
 
         // --- UI LOGIC ---
@@ -258,13 +330,16 @@
             $('#error-msg').text('');
             if(!code) {
                 $('#stock-display').addClass('hidden');
+                $('#btn-add').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
                 return;
             }
+            
             const item = inventory.find(i => i.material_code === code);
             if(item) {
                 $('#stock-qty-display').text(item.current_stock);
                 $('#stock-uom-display').text(item.uom);
                 $('#stock-desc-display').text(item.description);
+                $('#stock-code-display').text(item.material_code);
                 
                 // Image Handling
                 const imgHTML = item.image_link 
@@ -273,67 +348,91 @@
                 $('#stock-img-container').html(imgHTML);
 
                 $('#stock-display').removeClass('hidden');
+                $('#btn-add').prop('disabled', false).removeClass('opacity-50 cursor-not-allowed');
                 
-                // Visual feedback if low
-                if(item.current_stock <= item.low_stock_threshold) {
-                    $('#stock-display').removeClass('bg-royal-50 border-royal-100').addClass('bg-amber-50 border-amber-200');
-                    $('#stock-qty-display').addClass('text-amber-600').removeClass('text-royal-800');
+                // Badge Logic
+                const badge = $('#stock-badge');
+                const card = $('#stock-display');
+                
+                if(item.current_stock <= 0) {
+                    badge.text('Out of Stock').removeClass().addClass('px-2 py-1 rounded text-[10px] font-bold uppercase bg-red-100 text-red-600');
+                    card.addClass('border-red-200 bg-red-50/50').removeClass('border-royal-100 border-amber-200 bg-white');
+                    $('#btn-add').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
+                } else if(item.current_stock <= item.low_stock_threshold) {
+                    badge.text('Low Stock').removeClass().addClass('px-2 py-1 rounded text-[10px] font-bold uppercase bg-amber-100 text-amber-600');
+                    card.addClass('border-amber-200 bg-amber-50/50').removeClass('border-royal-100 border-red-200 bg-white');
                 } else {
-                    $('#stock-display').addClass('bg-royal-50 border-royal-100').removeClass('bg-amber-50 border-amber-200');
-                    $('#stock-qty-display').removeClass('text-amber-600').addClass('text-royal-800');
+                    badge.text('In Stock').removeClass().addClass('px-2 py-1 rounded text-[10px] font-bold uppercase bg-emerald-100 text-emerald-600');
+                    card.addClass('border-royal-100 bg-white').removeClass('border-red-200 border-amber-200 bg-red-50/50 bg-amber-50/50');
                 }
                 
-                // Set max input
-                $('#w-qty').attr('max', item.current_stock);
-                $('#w-qty').val(1);
+                $('#w-qty').attr('max', item.current_stock).val(1);
             }
         }
 
         function addToCart() {
             const code = $('#w-item-select').val();
-            const qty = parseInt($('#w-qty').val());
+            const qtyInput = $('#w-qty');
+            const qty = parseInt(qtyInput.val());
 
-            // Validation
             $('#error-msg').text('');
             if(!code) return $('#error-msg').text('Please select an item.');
             if(isNaN(qty) || qty <= 0) return $('#error-msg').text('Invalid quantity.');
 
             const item = inventory.find(i => i.material_code === code);
-            
-            // Check real stock
             if(qty > item.current_stock) return $('#error-msg').text(`Only ${item.current_stock} available.`);
 
-            // Smart Cart Logic: Check if exists
+            // Check if already in cart
             const existingIdx = cart.findIndex(c => c.code === code);
             
             if(existingIdx >= 0) {
-                // Update existing
                 const newTotal = cart[existingIdx].qty + qty;
                 if(newTotal > item.current_stock) {
-                     return $('#error-msg').text(`Total cart quantity (${newTotal}) exceeds stock.`);
+                     return $('#error-msg').text(`Total cart quantity (${newTotal}) would exceed stock.`);
                 }
                 cart[existingIdx].qty = newTotal;
             } else {
-                // Add new
                 cart.push({
                     code: item.material_code,
                     name: item.description,
                     qty: qty,
                     uom: item.uom,
-                    image: item.image_link
+                    image: item.image_link,
+                    max: item.current_stock
                 });
             }
 
             renderCart();
-            $('#w-qty').val(1);
+            qtyInput.val(1);
             
-            // Visual success cues
-            const btn = $('button[onclick="addToCart()"]');
+            // Success animation
+            const btn = $('#btn-add');
             const originalContent = btn.html();
-            btn.html('<i class="fas fa-check text-lg"></i>').addClass('bg-emerald-500').removeClass('bg-slate-800');
+            btn.html('<i class="fas fa-check text-xl"></i>').addClass('bg-emerald-500').removeClass('bg-slate-800');
             setTimeout(() => {
                 btn.html(originalContent).removeClass('bg-emerald-500').addClass('bg-slate-800');
-            }, 500);
+            }, 600);
+        }
+
+        function updateCartQty(index, delta) {
+            const item = cart[index];
+            const newQty = item.qty + delta;
+
+            if (newQty <= 0) {
+                removeFromCart(index);
+                return;
+            }
+            if (newQty > item.max) {
+                Swal.fire({
+                    toast: true, position: 'top-end', 
+                    icon: 'warning', title: 'Max stock reached', 
+                    showConfirmButton: false, timer: 1500
+                });
+                return;
+            }
+            
+            item.qty = newQty;
+            renderCart();
         }
 
         function removeFromCart(index) {
@@ -358,7 +457,7 @@
                 empty.removeClass('hidden');
                 clearBtn.addClass('hidden');
                 btn.prop('disabled', true)
-                   .removeClass('bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg')
+                   .removeClass('bg-emerald-600 text-white hover:bg-emerald-700 shadow-xl shadow-emerald-500/30')
                    .addClass('bg-slate-200 text-slate-400 cursor-not-allowed shadow-inner');
                 $('#total-items-count').text('0');
                 return;
@@ -367,7 +466,7 @@
             empty.addClass('hidden');
             clearBtn.removeClass('hidden');
             btn.prop('disabled', false)
-               .addClass('bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg')
+               .addClass('bg-emerald-600 text-white hover:bg-emerald-700 shadow-xl shadow-emerald-500/30')
                .removeClass('bg-slate-200 text-slate-400 cursor-not-allowed shadow-inner');
 
             let totalItems = 0;
@@ -379,21 +478,27 @@
                     : `<div class="img-placeholder-sm"><i class="fas fa-cube text-xs"></i></div>`;
 
                 container.append(`
-                    <div class="grid grid-cols-12 items-center py-3 px-4 hover:bg-slate-50 transition border-b border-slate-50 last:border-0">
+                    <div class="grid grid-cols-12 items-center py-3 px-5 hover:bg-slate-50 transition border-b border-slate-50 last:border-0 group">
                         <div class="col-span-2">${imgHTML}</div>
-                        <div class="col-span-2 font-mono font-bold text-xs text-royal-700">${item.code}</div>
-                        <div class="col-span-5 text-xs font-medium text-slate-700 truncate pr-2">${item.name}</div>
-                        <div class="col-span-2 text-center">
-                            <span class="bg-slate-100 font-bold px-2 py-1 rounded text-sm border border-slate-200">${item.qty}</span>
+                        <div class="col-span-6 pr-2">
+                            <div class="font-bold text-xs text-slate-800 line-clamp-1">${item.name}</div>
+                            <div class="font-mono text-[10px] text-slate-500">${item.code}</div>
+                        </div>
+                        <div class="col-span-3 flex justify-center items-center">
+                             <div class="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
+                                <button onclick="updateCartQty(${idx}, -1)" class="px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"><i class="fas fa-minus text-[10px]"></i></button>
+                                <span class="px-2 text-xs font-bold text-slate-700 w-8 text-center">${item.qty}</span>
+                                <button onclick="updateCartQty(${idx}, 1)" class="px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"><i class="fas fa-plus text-[10px]"></i></button>
+                            </div>
                         </div>
                         <div class="col-span-1 text-right">
-                            <button onclick="removeFromCart(${idx})" class="text-slate-300 hover:text-red-500 transition"><i class="fas fa-times-circle text-lg"></i></button>
+                            <button onclick="removeFromCart(${idx})" class="text-slate-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
                 `);
             });
 
-            $('#total-items-count').text(cart.length);
+            $('#total-items-count').text(totalItems);
         }
 
         // --- SUBMISSION LOGIC ---
@@ -406,27 +511,26 @@
             if(!dept) return Swal.fire({icon:'warning', title:'Missing Info', text:'Please select a Department.'});
             if(!name) return Swal.fire({icon:'warning', title:'Missing Info', text:'Please enter the Recipient Name.'});
 
-            // Confirm
             const result = await Swal.fire({
                 title: 'Confirm Withdrawal?',
-                html: `<div class="text-left text-sm">
-                        <p><b>Recipient:</b> ${name}</p>
-                        <p><b>Department:</b> ${dept}</p>
-                        <p><b>Items:</b> ${cart.length} line items</p>
+                html: `<div class="bg-slate-50 p-4 rounded text-left text-sm border border-slate-200">
+                        <div class="flex justify-between mb-1"><span class="text-slate-500">Recipient:</span> <span class="font-bold">${name}</span></div>
+                        <div class="flex justify-between mb-1"><span class="text-slate-500">Department:</span> <span class="font-bold">${dept}</span></div>
+                        <div class="border-t border-slate-200 my-2"></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Total Items:</span> <span class="font-bold text-emerald-600">${$('#total-items-count').text()} units</span></div>
                        </div>`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
-                confirmButtonText: 'Yes, Issue Stock',
-                cancelButtonText: 'Review'
+                confirmButtonText: 'Dispense Stock',
+                cancelButtonText: 'Cancel'
             });
 
             if(!result.isConfirmed) return;
 
-            // Show Loading
             Swal.fire({
                 title: 'Processing...',
-                html: 'Updating inventory and logging transaction.',
+                html: 'Updating inventory records.',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading() }
             });
@@ -457,7 +561,7 @@
                         quantity_requested: item.qty
                     }]);
 
-                    // B. Deduct Stock (Fetch fresh to be safe)
+                    // B. Deduct Stock
                     const { data: freshItem } = await supabaseClient.from('inventory').select('current_stock, total_withdrawn').eq('material_code', item.code).single();
                     
                     if(freshItem) {
@@ -477,24 +581,24 @@
                     }
                 }
 
-                // Success
                 await Swal.fire({
                     icon: 'success',
-                    title: 'Dispensed Successfully',
+                    title: 'Dispensed!',
                     text: `Reference: ${ref}`,
                     timer: 2000,
                     showConfirmButton: false
                 });
 
-                // Reset UI
+                // Reset
                 cart = [];
                 renderCart();
                 generateRef();
                 $('#w-name').val('');
-                $('#w-item-select').val('').trigger('change');
+                $('#w-item-select').val('');
+                $('#item-search').val('');
+                checkStock('');
                 
-                // Reload data to reflect new stock levels immediately
-                await loadData();
+                await loadData(); // Auto refresh for next user
 
             } catch (err) {
                 console.error(err);
