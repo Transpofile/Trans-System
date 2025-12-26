@@ -13,10 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
-
+    <link rel="stylesheet" href="css/style.css"/>
     <!-- Tailwind Config -->
     <script>
         tailwind.config = {
@@ -34,6 +31,32 @@
             }
         }
     </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .nav-link { 
+            display: flex; align-items: center; padding: 12px 24px; color: #94a3b8; 
+            transition: all 0.2s; cursor: pointer; border-left: 3px solid transparent; 
+        }
+        .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .nav-link.active { color: #60a5fa; background: rgba(37,99,235,0.1); border-left-color: #60a5fa; }
+        .card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+        .page-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; letter-spacing: -0.025em; }
+        .btn-primary { background-color: #2563eb; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.875rem; transition: background 0.2s; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+        .btn-secondary { background-color: white; color: #475569; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; }
+        .btn-secondary:hover { background-color: #f8fafc; border-color: #94a3b8; color: #1e293b; }
+        .form-input, .form-select { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.375rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; transition: border 0.2s; color: #334155; }
+        .form-input:focus, .form-select:focus { border-color: #3b82f6; ring: 2px solid #bfdbfe; }
+        .label { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 0.25rem; uppercase; }
+        .dragover { background-color: #eff6ff; border-color: #3b82f6; }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-700 font-sans h-screen flex overflow-hidden">
 
@@ -156,7 +179,7 @@
                         <button id="btn-show-archived" onclick="toggleArchivedView()" class="btn-secondary text-sm">
                             <i class="fas fa-archive mr-2"></i> Show Archived
                         </button>
-                        <button onclick="openInventoryModal('add')" class="btn-primary">
+                        <button onclick="openInventoryModal('add', '')" class="btn-primary">
                             <i class="fas fa-plus mr-2"></i> Add Item
                         </button>
                     </div>
@@ -194,7 +217,7 @@
                 </div>
             </div>
 
-            <!-- PURCHASE PAGE (UPDATED) -->
+            <!-- PURCHASE PAGE -->
             <div id="purchase" class="page-section hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="page-title">Stock Inbound (PR)</h1>
@@ -225,7 +248,7 @@
                 </div>
             </div>
 
-            <!-- WITHDRAWAL PAGE (UPDATED) -->
+            <!-- WITHDRAWAL PAGE -->
             <div id="withdrawal" class="page-section hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="page-title">Stock Outbound (WR)</h1>
@@ -255,44 +278,73 @@
                 </div>
             </div>
 
-            <!-- DISPOSAL PAGE (UPDATED) -->
+            <!-- DISPOSAL PAGE -->
             <div id="disposal" class="page-section hidden">
                 <h1 class="page-title mb-6">Disposal Log</h1>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="card p-6 border-t-4 border-red-600 h-fit">
                         <h3 class="font-bold text-lg mb-4 text-red-700">Record New Disposal</h3>
                         <form onsubmit="handleDisposal(event)" class="space-y-4">
+                            <div>
+                                <label class="label">Select WR Source</label>
+                                <select id="disp-wr-id" required class="form-select w-full" onchange="onDisposalWrChange(this.value)">
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Auto-filled Fields -->
                             <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="label">Select WR No.</label>
-                                    <select id="disp-wr-id" required class="form-select w-full" onchange="onDisposalWrChange(this.value)">
-                                        <option value="">Loading...</option>
-                                    </select>
-                                </div>
                                 <div>
                                     <label class="label">Recipient</label>
                                     <input type="text" id="disp-recipient" readonly class="form-input w-full bg-slate-100 text-slate-500 cursor-not-allowed">
                                 </div>
+                                <div>
+                                    <label class="label">Asset</label>
+                                    <input type="text" id="disp-item-details" readonly class="form-input w-full bg-slate-100 text-slate-500 cursor-not-allowed">
+                                </div>
                             </div>
-                            
+
+                            <!-- Additional Fields for Logging -->
                             <div>
-                                <label class="label">Asset Details (From WR)</label>
-                                <input type="text" id="disp-item-details" readonly class="form-input w-full bg-slate-100 text-slate-500 cursor-not-allowed">
+                                <label class="label">Disposal Status</label>
+                                <select id="disp-status" class="form-select w-full">
+                                    <option value="Logged">Logged</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="For Disposal">For Disposal</option>
+                                    <option value="Disposed">Disposed</option>
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="label">Waste Type</label>
+                                    <select id="disp-type" class="form-select w-full">
+                                        <option value="Hazardous Waste">Hazardous Waste</option>
+                                        <option value="Residual Waste">Residual Waste</option>
+                                        <option value="Compostable Waste">Compostable Waste</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="label">Destination</label>
+                                    <select id="disp-dest" class="form-select w-full">
+                                        <option value="MRF">MRF</option>
+                                        <option value="Scrap Yard">Scrap Yard</option>
+                                        <option value="Secondary Waste BIN">Secondary Waste BIN</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div>
-                                <label class="label">Reason for Disposal</label>
-                                <select id="disp-reason" class="form-select w-full">
+                                <label class="label">Reason / Notes</label>
+                                <select id="disp-reason" class="form-select w-full mb-2">
                                     <option value="Damaged">Damaged</option>
                                     <option value="Expired">Expired</option>
                                     <option value="Obsolete">Obsolete</option>
                                     <option value="Lost">Lost</option>
                                 </select>
+                                <input type="text" id="disp-auth" placeholder="Authorized By" required class="form-input w-full">
                             </div>
-                            <div>
-                                <label class="label">Authorized By</label>
-                                <input type="text" id="disp-auth" required class="form-input w-full">
-                            </div>
+                            
                             <button type="submit" id="btn-disp-submit" class="w-full btn-primary bg-red-600 hover:bg-red-700 border-red-700">Confirm Disposal</button>
                         </form>
                     </div>
@@ -302,12 +354,11 @@
                                 <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
                                     <tr>
                                         <th class="p-4">Ref</th>
-                                        <th class="p-4">Mat. Code</th>
-                                        <th class="p-4">Description</th>
+                                        <th class="p-4">Item Details</th>
                                         <th class="p-4 text-center">Qty</th>
-                                        <th class="p-4">Date</th>
+                                        <th class="p-4">Destination</th>
                                         <th class="p-4">Status</th>
-                                        <th class="p-4">Remarks</th>
+                                        <th class="p-4">Details / Waste Type</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbl-disp-hist" class="divide-y divide-slate-100"></tbody>
@@ -462,7 +513,7 @@
         </div>
     </div>
 
-    <!-- PR Modal (Updated) -->
+    <!-- PR Modal (Updated for Edit/Delete Fix) -->
     <div id="m-create-pr" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex justify-between mb-4">
@@ -504,7 +555,7 @@
         </div>
     </div>
 
-    <!-- WR Modal (Updated) -->
+    <!-- WR Modal (Updated for Edit/Delete Fix) -->
     <div id="m-create-wr" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex justify-between mb-4">
@@ -565,6 +616,7 @@
         <img id="lightbox-img" class="max-w-[90vw] max-h-[90vh] border-4 border-white shadow-2xl rounded">
     </div>
 
+    <!-- External Script Reference -->
     <script src="js/script.js"></script>
 </body>
 </html>
