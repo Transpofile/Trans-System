@@ -204,14 +204,21 @@
                         <table class="w-full text-sm text-left whitespace-nowrap">
                             <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-xs">
                                 <tr>
-                                    <th class="p-4 w-16">Image</th>
-                                    <th class="p-4">PR No.</th>
+                                    <th class="p-4 w-16 sticky left-0 bg-slate-100 z-10">Image</th>
+                                    <th class="p-4 sticky left-16 bg-slate-100 z-10">PR No.</th>
                                     <th class="p-4">Requester</th>
                                     <th class="p-4">Mat. Code</th>
                                     <th class="p-4">Description</th>
                                     <th class="p-4 text-center">Qty</th>
                                     <th class="p-4 text-right">Cost</th>
                                     <th class="p-4">Status</th>
+                                    <th class="p-4">Purchaser</th>
+                                    <th class="p-4">Part No.</th>
+                                    <th class="p-4">A.R.F No.</th>
+                                    <th class="p-4">G.L Acc</th>
+                                    <th class="p-4">Expected</th>
+                                    <th class="p-4">Processed</th>
+                                    <th class="p-4">Received</th>
                                     <th class="p-4 text-right">Action</th>
                                 </tr>
                             </thead>
@@ -276,9 +283,14 @@
                                 <div>
                                     <label class="label">Waste Type</label>
                                     <select id="disp-type" class="form-select w-full">
+                                        <option value="Biodegradable Waste">Biodegradable Waste</option>
+                                        <option value="Non-Biodegradable Waste">Non-Biodegradable Waste</option>
                                         <option value="Hazardous Waste">Hazardous Waste</option>
-                                        <option value="Residual Waste">Residual Waste</option>
-                                        <option value="Compostable Waste">Compostable Waste</option>
+                                        <option value="Non-Hazardous Waste">Non-Hazardous Waste</option>
+                                        <option value="Combustible Waste">Combustible Waste</option>
+                                        <option value="Non-Combustible Waste">Non-Combustible Waste</option>
+                                        <option value="Biomedical/Healthcare Waste">Biomedical/Healthcare Waste</option>
+                                        <option value="Construction & Demolition (C&D) Waste">Construction & Demolition (C&D) Waste</option>
                                     </select>
                                 </div>
                                 <div>
@@ -286,7 +298,7 @@
                                     <select id="disp-dest" class="form-select w-full">
                                         <option value="MRF">MRF</option>
                                         <option value="Scrap Yard">Scrap Yard</option>
-                                        <option value="Secondary BIN">Secondary BIN</option>
+                                        <option value="Secondary Waste BIN">Secondary BIN</option>
                                     </select>
                                 </div>
                             </div>
@@ -294,10 +306,10 @@
                             <div>
                                 <label class="label">Reason / Notes</label>
                                 <select id="disp-reason" class="form-select w-full mb-2">
+                                    <option value="Disposed">Disposed</option>
+                                    <option value="For Disposed">For Disposed</option>
+                                    <option value="Used Material">Used Material</option>
                                     <option value="Damaged">Damaged</option>
-                                    <option value="Expired">Expired</option>
-                                    <option value="Obsolete">Obsolete</option>
-                                    <option value="Lost">Lost</option>
                                 </select>
                                 <input type="text" id="disp-auth" placeholder="Authorized By" required class="form-input w-full">
                             </div>
@@ -474,7 +486,7 @@
 
     <!-- Multi-Item PR Modal -->
     <div id="m-create-pr" class="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] flex flex-col">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 max-h-[95vh] flex flex-col">
             <div class="flex justify-between mb-4 border-b pb-2">
                 <h3 class="font-bold text-lg" id="pr-modal-title">Create Purchase Request</h3>
                 <button onclick="closeModal('m-create-pr')"><i class="fas fa-times"></i></button>
@@ -484,27 +496,54 @@
                 <input type="hidden" id="pr-id">
                 
                 <!-- Header Info -->
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <div class="col-span-1">
                         <label class="label">PR No.</label>
                         <input id="pr-num" required class="form-input w-full font-bold">
                     </div>
-                    <div>
+                    <div class="col-span-1">
                         <label class="label">Requester</label>
                         <input id="pr-name" required class="form-input w-full">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label">Purchaser</label>
+                        <input id="pr-purchaser" class="form-input w-full">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="label">Expected Date</label>
+                        <input type="date" id="pr-expected" class="form-input w-full">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="label">A.R.F Number</label>
+                        <input id="pr-arf" class="form-input w-full">
+                    </div>
+                    <div>
+                        <label class="label">G.L Account Number</label>
+                        <input id="pr-gl" class="form-input w-full">
                     </div>
                 </div>
 
                 <!-- Add Item Section -->
                 <div class="bg-slate-50 p-3 rounded border border-slate-200 mb-4" id="pr-add-area">
                     <label class="label mb-2 text-emerald-600">Add Item to List</label>
-                    <div class="flex gap-2 mb-2">
-                        <select id="pr-mat" class="form-select flex-[2]"></select>
-                        <input type="number" id="pr-qty" placeholder="Qty" min="1" class="form-input w-20 text-center">
-                    </div>
-                    <div class="flex gap-2">
-                        <input type="number" id="pr-price" placeholder="Cost" step="0.01" class="form-input flex-1">
-                        <button type="button" onclick="addToPrCart()" class="btn-primary bg-slate-700 hover:bg-slate-800"><i class="fas fa-plus"></i></button>
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-4">
+                             <select id="pr-mat" class="form-select w-full"></select>
+                        </div>
+                        <div class="col-span-3">
+                            <input type="text" id="pr-part-no" placeholder="Part Number" class="form-input w-full">
+                        </div>
+                        <div class="col-span-2">
+                            <input type="number" id="pr-qty" placeholder="Qty" min="1" class="form-input w-full text-center">
+                        </div>
+                        <div class="col-span-2">
+                            <input type="number" id="pr-price" placeholder="Cost" step="0.01" class="form-input w-full">
+                        </div>
+                        <div class="col-span-1">
+                            <button type="button" onclick="addToPrCart()" class="btn-primary w-full bg-slate-700 hover:bg-slate-800 h-full flex items-center justify-center"><i class="fas fa-plus"></i></button>
+                        </div>
                     </div>
                 </div>
 
@@ -514,6 +553,7 @@
                         <thead class="bg-slate-100 text-xs uppercase font-bold text-slate-600 sticky top-0">
                             <tr>
                                 <th class="p-2">Item</th>
+                                <th class="p-2">Part No.</th>
                                 <th class="p-2 text-center">Qty</th>
                                 <th class="p-2 text-right">Cost</th>
                                 <th class="p-2 text-right">Action</th>
@@ -619,6 +659,8 @@
     </div>
 
     <!-- External Script Reference -->
+	<script src="js/inventorymanagement.js"></script>
     <script src="js/script.js"></script>
+    <script src="js/disposal.js"></script>
 </body>
 </html>
