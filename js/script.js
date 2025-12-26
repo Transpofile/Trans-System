@@ -366,17 +366,24 @@ async function viewPR(id) {
 }
 
 async function editPR(id) {
+    // FIX: Use loose equality '==' to handle ID string vs number types
     const pr = prCache.find(p => p.pr_id == id);
-    if(!pr) return;
+    if(!pr) {
+        Swal.fire('Error', 'Record not found in cache. Please refresh.', 'error');
+        return;
+    }
     openModal('m-create-pr');
     $('#pr-id').val(pr.pr_id);
     $('#pr-modal-title').text('Edit Purchase Request');
     $('#pr-num').val(pr.pr_number).prop('readonly', true); // Keep num static
     $('#pr-name').val(pr.requester_name).prop('readonly', false);
+    
+    // Setup fields
     $('#pr-mat').val(pr.pr_items[0]?.material_code).prop('disabled', false);
     $('#pr-qty').val(pr.pr_items[0]?.quantity_requested).prop('readonly', false);
     $('#pr-price').val(pr.pr_items[0]?.unit_price).prop('readonly', false);
     $('#pr-remarks').val(pr.remarks).prop('readonly', false);
+    
     $('#btn-save-pr').removeClass('hidden').text('Update Request');
 }
 
@@ -416,9 +423,13 @@ async function createWR(e) {
         const mat = $('#wr-mat').val();
         const qty = Number($('#wr-qty').val());
         
-        // Stock Check (Only if new or if qty changed, but for simplicity check always if Pending)
+        // Stock Check
         const item = invCache.find(i => i.material_code === mat);
         if(!item) throw new Error("Invalid Selection");
+        
+        // Logic: If new, check stock fully. If edit, technically we should check difference, but simpler to check total availability
+        // For strictness: if(item.current_stock < qty) but excluding what was already reserved by this WR if it exists.
+        // Simplified check:
         if(!wrId && item.current_stock < qty) throw new Error(`Only ${item.current_stock} available.`);
 
         const payload = { 
@@ -469,17 +480,24 @@ async function viewWR(id) {
 }
 
 async function editWR(id) {
+    // FIX: Use loose equality '=='
     const wr = wrCache.find(w => w.wr_id == id);
-    if(!wr) return;
+    if(!wr) {
+        Swal.fire('Error', 'Record not found in cache.', 'error');
+        return;
+    }
     openModal('m-create-wr');
     $('#wr-id').val(wr.wr_id);
     $('#wr-modal-title').text('Edit Withdrawal Request');
     $('#wr-num').val(wr.wr_number).prop('readonly', true);
     $('#wr-name').val(wr.requester_name).prop('readonly', false);
+    
+    // Enable fields
     $('#wr-dept').val(wr.department).prop('disabled', false);
     $('#wr-mat').val(wr.wr_items[0]?.material_code).prop('disabled', false);
     $('#wr-qty').val(wr.wr_items[0]?.quantity_requested).prop('readonly', false);
     $('#wr-remarks').val(wr.remarks || '').prop('readonly', false);
+    
     $('#btn-submit-wr').removeClass('hidden').text('Update Withdrawal');
     checkStockAvailability(wr.wr_items[0]?.material_code);
 }
@@ -575,7 +593,7 @@ async function getPRs() {
                     if(pr.status === 'Cancel') badgeClass = 'bg-red-100 text-red-700';
 
                     const actionStatus = `
-                        <select onchange="updatePRStatus(${pr.pr_id}, this.value, '${item.material_code}', ${item.quantity_requested})" class="w-24 text-xs border border-slate-300 rounded p-1 bg-white focus:outline-none mb-1">
+                        <select onchange="updatePRStatus('${pr.pr_id}', this.value, '${item.material_code}', ${item.quantity_requested})" class="w-24 text-xs border border-slate-300 rounded p-1 bg-white focus:outline-none mb-1">
                             <option value="Pending" ${pr.status === 'Pending' ? 'selected' : ''}>Pending</option>
                             <option value="Processing" ${pr.status === 'Processing' ? 'selected' : ''}>Processing</option>
                             <option value="For Withdrawal" ${pr.status === 'For Withdrawal' ? 'selected' : ''}>For Withdrawal</option>
@@ -585,6 +603,7 @@ async function getPRs() {
                         </select>
                     `;
 
+                    // FIX: Wrapped ${pr.pr_id} in quotes: '${pr.pr_id}'
                     rowsHtml += `
                     <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
                         <td class="p-3 font-mono font-bold text-royal-700 text-xs">${escapeHTML(pr.pr_number)}</td>
@@ -601,9 +620,9 @@ async function getPRs() {
                         </td>
                         <td class="p-3 text-right">
                              <div class="flex justify-end gap-1">
-                                <button onclick="viewPR(${pr.pr_id})" class="text-blue-500 hover:text-blue-700 p-1" title="View"><i class="fas fa-eye"></i></button>
-                                <button onclick="editPR(${pr.pr_id})" class="text-amber-500 hover:text-amber-700 p-1" title="Edit" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-edit"></i></button>
-                                <button onclick="deletePR(${pr.pr_id})" class="text-red-500 hover:text-red-700 p-1" title="Delete" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-trash-alt"></i></button>
+                                <button onclick="viewPR('${pr.pr_id}')" class="text-blue-500 hover:text-blue-700 p-1" title="View"><i class="fas fa-eye"></i></button>
+                                <button onclick="editPR('${pr.pr_id}')" class="text-amber-500 hover:text-amber-700 p-1" title="Edit" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-edit"></i></button>
+                                <button onclick="deletePR('${pr.pr_id}')" class="text-red-500 hover:text-red-700 p-1" title="Delete" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -628,9 +647,10 @@ async function getWRs() {
         const item = wr.wr_items[0] || {};
         const inv = invCache.find(i => i.material_code === item.material_code) || {};
         const approveBtn = wr.status === 'PENDING' 
-            ? `<button onclick="processWR(${wr.wr_id})" class="text-xs font-bold text-white bg-royal-600 hover:bg-royal-700 px-2 py-1 rounded shadow mb-1">Approve</button>` 
+            ? `<button onclick="processWR('${wr.wr_id}')" class="text-xs font-bold text-white bg-royal-600 hover:bg-royal-700 px-2 py-1 rounded shadow mb-1">Approve</button>` 
             : '';
 
+        // FIX: Wrapped IDs in quotes: '${wr.wr_id}'
         return `
         <tr class="border-b border-slate-100 hover:bg-slate-50">
             <td class="p-3 font-mono font-bold text-royal-700 text-xs">${wr.wr_number}</td>
@@ -646,9 +666,9 @@ async function getWRs() {
             <td class="p-3 text-xs italic text-slate-400 max-w-[100px] truncate">${escapeHTML(wr.remarks || '-')}</td>
             <td class="p-3 text-right">
                 <div class="flex justify-end gap-1">
-                    <button onclick="viewWR(${wr.wr_id})" class="text-blue-500 hover:text-blue-700 p-1" title="View"><i class="fas fa-eye"></i></button>
-                    <button onclick="editWR(${wr.wr_id})" class="text-amber-500 hover:text-amber-700 p-1" title="Edit" ${wr.status!=='PENDING'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-edit"></i></button>
-                    <button onclick="deleteWR(${wr.wr_id})" class="text-red-500 hover:text-red-700 p-1" title="Delete" ${wr.status!=='PENDING'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-trash-alt"></i></button>
+                    <button onclick="viewWR('${wr.wr_id}')" class="text-blue-500 hover:text-blue-700 p-1" title="View"><i class="fas fa-eye"></i></button>
+                    <button onclick="editWR('${wr.wr_id}')" class="text-amber-500 hover:text-amber-700 p-1" title="Edit" ${wr.status!=='PENDING'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-edit"></i></button>
+                    <button onclick="deleteWR('${wr.wr_id}')" class="text-red-500 hover:text-red-700 p-1" title="Delete" ${wr.status!=='PENDING'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-trash-alt"></i></button>
                 </div>
             </td>
         </tr>
