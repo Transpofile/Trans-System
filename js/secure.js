@@ -5,7 +5,8 @@
  * Features:
  * 1. Blocks UI until logged in.
  * 2. Auto-fills Name/Dept from Supabase metadata.
- * 3. Handles Login/Register with auto-reload to prevent hanging on "Verifying".
+ * 3. Handles Login/Register with auto-reload.
+ * 4. Only locks Name field; Department remains unlocked but auto-selected.
  */
 
 class AuthExtension {
@@ -67,13 +68,40 @@ class AuthExtension {
         const nameInput = $('#w-name');
         const deptSelect = $('#w-dept');
 
-        if (name) nameInput.val(name);
-        // Set dropdown value if it matches an option, otherwise it stays default
-        if (department) deptSelect.val(department);
+        // --- HANDLE NAME (Keep Locked) ---
+        if (name) {
+            nameInput.val(name);
+            // Lock name only if we have a value
+            nameInput.prop('readonly', true).addClass('bg-slate-200 text-slate-500 cursor-not-allowed focus:ring-0 focus:border-slate-300');
+        } else {
+            // Ensure it is editable if no name is found
+            nameInput.prop('readonly', false).removeClass('bg-slate-200 text-slate-500 cursor-not-allowed focus:ring-0 focus:border-slate-300');
+        }
 
-        // Lock these fields so users cannot impersonate others
-        nameInput.prop('readonly', true).addClass('bg-slate-200 text-slate-500 cursor-not-allowed focus:ring-0 focus:border-slate-300');
-        deptSelect.prop('disabled', true).addClass('bg-slate-200 text-slate-500 cursor-not-allowed');
+        // --- HANDLE DEPARTMENT (Unlocked) ---
+        // We still auto-select it if available, but we DO NOT lock it.
+        if (department) {
+            // 1. Try to set the value immediately
+            deptSelect.val(department);
+
+            // 2. RETRY LOGIC: 
+            // Because the options load asynchronously in your main HTML (loadData function),
+            // the <option> tags might not exist yet. We poll briefly to ensure the value is selected.
+            let attempts = 0;
+            const interval = setInterval(() => {
+                attempts++;
+                // Check if options have loaded (more than just the default "Loading...")
+                if (deptSelect.find('option').length > 1) {
+                    deptSelect.val(department); // Re-apply value now that options exist
+                    clearInterval(interval);
+                }
+                // Stop checking after 5 seconds to save resources
+                if (attempts > 50) clearInterval(interval);
+            }, 100);
+        }
+
+        // ALWAYS ensure Department is ENABLED and clean of disabled styles
+        deptSelect.prop('disabled', false).removeClass('bg-slate-200 text-slate-500 cursor-not-allowed');
     }
 
     // --- LOGIC METHODS ---
@@ -141,7 +169,6 @@ class AuthExtension {
         } else {
             // SUCCESS
             // We force a reload here to ensure the session is picked up cleanly
-            // and the "Verifying..." spinner is removed.
             Swal.fire({
                 title: 'Registration Successful!',
                 text: 'Account created. Logging you in...',
