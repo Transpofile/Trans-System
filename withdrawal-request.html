@@ -34,30 +34,25 @@
     <style>
         body { background-color: #f1f5f9; color: #1e293b; -webkit-tap-highlight-color: transparent; }
         
-        /* Custom Scrollbar */
         .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         
         @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
         .skeleton { animation: shimmer 2s infinite linear; background: linear-gradient(to right, #f1f5f9 4%, #e2e8f0 25%, #f1f5f9 36%); background-size: 1000px 100%; }
 
-        /* Item Card Interactions */
         .item-card { transition: all 0.2s ease; border: 1px solid transparent; }
         .item-card:hover { transform: translateY(-2px); border-color: #e0e7ff; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
         .item-card.active { border-color: #4f46e5; background-color: #f5f7ff; ring: 2px solid #4f46e5; }
 
-        /* Mobile Drawer Transition */
         #detail-panel { transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
         .drawer-closed { transform: translateY(110%); }
         .drawer-open { transform: translateY(0); }
 
-        /* Disable input outline but keep functionality */
         input:focus, select:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
     </style>
 </head>
@@ -86,9 +81,8 @@
                 <span id="clock" class="font-mono font-bold text-slate-700 text-sm">--:--:--</span>
                 <span id="date-display" class="text-[10px] text-slate-400 font-bold uppercase">...</span>
             </div>
-            <!-- Settings / User Profile Placeholder -->
-            <button class="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 transition-colors">
-                <i class="fas fa-user-cog"></i>
+            <button onclick="initSystem()" class="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 transition-colors flex items-center justify-center">
+                <i class="fas fa-sync-alt"></i>
             </button>
         </div>
     </nav>
@@ -112,10 +106,10 @@
                 
                 <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
                     <button onclick="setFilter('all')" data-filter="all" class="filter-btn active whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-bold transition-all bg-brand-50 text-brand-700 border border-brand-200 shadow-sm">
-                        <i class="fas fa-th-large mr-1"></i> All Items
+                        All Items
                     </button>
                     <button onclick="setFilter('low')" data-filter="low" class="filter-btn whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:bg-slate-50">
-                        <i class="fas fa-exclamation-triangle mr-1 text-amber-500"></i> Low Stock
+                        Low Stock
                     </button>
                 </div>
             </div>
@@ -125,9 +119,8 @@
                 
                 <!-- Item List (Grid) -->
                 <div class="w-full h-full overflow-y-auto custom-scroll p-4">
-                    <div id="item-loader" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                        <!-- Skeletons generated via JS -->
-                    </div>
+                    <div id="item-loader" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+                    
                     <div id="item-list-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 pb-20 lg:pb-0">
                         <!-- Items injected here -->
                     </div>
@@ -138,11 +131,11 @@
                             <i class="fas fa-search text-4xl"></i>
                         </div>
                         <h3 class="text-lg font-bold text-slate-800">No items found</h3>
-                        <p class="text-sm text-slate-400">Try adjusting your search terms or filters.</p>
+                        <p class="text-sm text-slate-400">Try adjusting your search terms.</p>
                     </div>
                 </div>
 
-                <!-- Detail Panel (Overlay on Mobile, Side Panel on Desktop if needed, currently Overlay logic used for improved UX) -->
+                <!-- Detail Panel (Overlay) -->
                 <div id="detail-panel" class="absolute inset-0 z-30 pointer-events-none flex items-end justify-center lg:items-center lg:justify-end lg:p-4 drawer-closed">
                     
                     <!-- Backdrop (Mobile only) -->
@@ -165,8 +158,11 @@
 
                         <!-- Panel Body -->
                         <div class="flex-1 overflow-y-auto custom-scroll p-6">
+                            
+                            <!-- Image Container -->
                             <div class="flex justify-center mb-6">
-                                <div id="dt-image-box" class="w-48 h-48 bg-white rounded-2xl border border-slate-100 shadow-md flex items-center justify-center p-4">
+                                <div id="dt-image-box" class="w-full h-56 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-center overflow-hidden relative">
+                                    <!-- Image or Icon will be injected here -->
                                     <i class="fas fa-box text-6xl text-slate-200"></i>
                                 </div>
                             </div>
@@ -233,7 +229,6 @@
                 </div>
 
                 <div id="cart-container" class="flex-1 overflow-y-auto custom-scroll p-3 space-y-2">
-                    <!-- Cart Empty -->
                     <div id="cart-empty-msg" class="h-full flex flex-col items-center justify-center opacity-40">
                         <i class="fas fa-clipboard-list text-4xl mb-2"></i>
                         <span class="text-xs font-bold">List is empty</span>
@@ -253,8 +248,6 @@
 
     <!-- JS Logic -->
     <script>
-        // CONFIGURATION
-        // NOTE: In a production environment, use Row Level Security (RLS) on Supabase.
         const CONFIG = {
             url: 'https://agggkqvbnotpborqcitx.supabase.co',
             key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZ2drcXZibm90cGJvcnFjaXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwODYxNjgsImV4cCI6MjA4MTY2MjE2OH0.XJHmLfRRJHVhsrImqnRpdwt7eN4eiO1VGk6B68uG5oo'
@@ -262,7 +255,6 @@
 
         const sb = supabase.createClient(CONFIG.url, CONFIG.key);
         
-        // APP STATE
         let state = {
             inventory: [],
             cart: [],
@@ -272,7 +264,6 @@
             txRef: ''
         };
 
-        // --- INITIALIZATION ---
         $(document).ready(() => {
             initSystem();
             setupEventListeners();
@@ -303,12 +294,10 @@
             $('#tx-ref').text(state.txRef);
         }
 
-        // --- DATA FETCHING & REALTIME ---
         async function fetchDepartments() {
             const { data } = await sb.from('departments').select('name').order('name');
             if(data) {
-                const opts = data.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
-                $('#inp-dept').append(opts);
+                $('#inp-dept').html('<option value="">Select Department...</option>' + data.map(d => `<option value="${d.name}">${d.name}</option>`).join(''));
             }
         }
 
@@ -329,13 +318,10 @@
 
         function handleInventoryUpdate(payload) {
             if (payload.eventType === 'UPDATE') {
-                // Update local state
                 const idx = state.inventory.findIndex(i => i.id === payload.new.id);
                 if(idx !== -1) {
                     state.inventory[idx] = payload.new;
                     renderInventory();
-                    
-                    // If this item is open in detail view, update it
                     if(state.selectedItem && state.selectedItem.id === payload.new.id) {
                         openDetail(payload.new); 
                     }
@@ -346,7 +332,6 @@
             }
         }
 
-        // --- RENDERING ---
         function showLoader(show) {
             if(show) {
                 $('#item-loader').removeClass('hidden').html(Array(6).fill('<div class="h-24 bg-white rounded-2xl p-4 border border-slate-200"><div class="h-4 w-1/3 bg-slate-100 skeleton rounded mb-2"></div><div class="h-3 w-3/4 bg-slate-100 skeleton rounded"></div></div>').join(''));
@@ -357,6 +342,7 @@
             }
         }
 
+        // --- UPDATED RENDER FUNCTION WITH IMAGE SUPPORT ---
         function renderInventory() {
             const container = $('#item-list-container');
             container.empty();
@@ -378,28 +364,30 @@
                     let statusColor = isLow ? 'bg-amber-500' : 'bg-brand-500';
                     if(noStock) statusColor = 'bg-red-500';
 
+                    // IMAGE LOGIC: Check for link, otherwise use icon
+                    let imageHTML;
+                    if (item.image_link && item.image_link.trim() !== "") {
+                        imageHTML = `<img src="${item.image_link}" class="w-16 h-16 rounded-xl object-cover bg-white border border-slate-100 flex-none" alt="item">`;
+                    } else {
+                        imageHTML = `<div class="w-16 h-16 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 border border-slate-100 flex-none"><i class="fas fa-box text-2xl"></i></div>`;
+                    }
+
                     const html = `
-                        <div onclick="selectItem('${item.material_code}')" class="item-card bg-white p-4 rounded-2xl cursor-pointer group relative overflow-hidden">
-                            <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <i class="fas fa-cube text-4xl text-slate-800"></i>
-                            </div>
-                            <div class="relative z-10">
-                                <div class="flex justify-between items-start mb-2">
-                                    <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${item.material_code}</span>
-                                    ${noStock ? '<i class="fas fa-ban text-red-500"></i>' : ''}
+                        <div onclick="selectItem('${item.material_code}')" class="item-card bg-white p-3 rounded-2xl cursor-pointer group flex gap-3 items-center">
+                            ${imageHTML}
+                            
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${item.material_code}</span>
+                                    ${noStock ? '<i class="fas fa-ban text-red-500 text-xs"></i>' : ''}
                                 </div>
-                                <h4 class="font-bold text-slate-700 text-sm line-clamp-2 h-10 leading-tight mb-3 group-hover:text-brand-600 transition-colors">${item.description}</h4>
+                                <h4 class="font-bold text-slate-700 text-xs line-clamp-2 leading-tight mb-2 group-hover:text-brand-600 transition-colors">${item.description}</h4>
                                 
-                                <div class="flex items-end justify-between">
-                                    <div>
-                                        <div class="text-[10px] text-slate-400 font-bold uppercase">In Stock</div>
-                                        <div class="text-lg font-black ${noStock ? 'text-red-500' : 'text-slate-800'}">
-                                            ${item.current_stock} <span class="text-[10px] text-slate-400 font-medium">${item.uom}</span>
-                                        </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden flex-1">
+                                        <div class="h-full ${statusColor}" style="width: ${Math.min(100, (item.current_stock/50)*100)}%"></div>
                                     </div>
-                                    <div class="w-1.5 h-8 rounded-full bg-slate-100 overflow-hidden flex flex-col-reverse">
-                                        <div class="w-full ${statusColor}" style="height: ${Math.min(100, (item.current_stock/50)*100)}%"></div>
-                                    </div>
+                                    <span class="text-xs font-black ${noStock ? 'text-red-500' : 'text-slate-800'}">${item.current_stock}</span>
                                 </div>
                             </div>
                         </div>
@@ -409,7 +397,6 @@
             }
         }
 
-        // --- INTERACTIONS ---
         function setupEventListeners() {
             $('#item-search').on('input', function() {
                 state.search = $(this).val();
@@ -435,17 +422,24 @@
             if(item) openDetail(item);
         }
 
+        // --- UPDATED DETAIL PANEL WITH IMAGE SUPPORT ---
         function openDetail(item) {
             state.selectedItem = item;
             
-            // Populate Data
             $('#dt-name').text(item.description);
             $('#dt-code').text(item.material_code);
             $('#dt-stock').text(item.current_stock);
             $('#dt-uom').text(item.uom);
             $('#dt-qty-input').val(1);
 
-            // Logic for Button/Badge
+            // IMAGE LOGIC FOR DETAIL PANEL
+            const imgBox = $('#dt-image-box');
+            if(item.image_link && item.image_link.trim() !== "") {
+                imgBox.html(`<img src="${item.image_link}" class="w-full h-full object-contain" alt="Product Image">`);
+            } else {
+                imgBox.html(`<i class="fas fa-box text-6xl text-slate-200"></i>`);
+            }
+
             const btn = $('#btn-add-cart');
             const badge = $('#dt-status');
             
@@ -460,7 +454,6 @@
                 btn.html('<i class="fas fa-plus-circle"></i> <span>Add to List</span>');
             }
 
-            // Show Panel
             $('#detail-backdrop').removeClass('hidden').css('opacity', '1');
             $('#detail-panel').removeClass('drawer-closed').addClass('drawer-open');
         }
@@ -481,13 +474,11 @@
             }
         }
 
-        // --- CART LOGIC ---
         function addToCart() {
             if(!state.selectedItem) return;
             const qty = parseInt($('#dt-qty-input').val());
             const item = state.selectedItem;
 
-            // Check if already in cart
             const existing = state.cart.find(c => c.code === item.material_code);
             
             if(existing) {
@@ -508,8 +499,6 @@
 
             renderCart();
             closeDetail();
-            
-            // Success feedback
             Swal.fire({ icon:'success', title:'Added', text:`${qty} ${item.uom} added to list`, toast:true, position:'top-end', showConfirmButton:false, timer:1500 });
         }
 
@@ -554,7 +543,6 @@
             renderCart();
         }
 
-        // --- CHECKOUT PROCESS ---
         async function processCheckout() {
             const dept = $('#inp-dept').val();
             const name = $('#inp-name').val();
@@ -578,7 +566,6 @@
             Swal.fire({ title: 'Processing...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
-                // 1. Create Request Header
                 const { data: wrData, error: wrError } = await sb.from('withdrawal_requests').insert([{
                     wr_number: state.txRef,
                     requester_name: name,
@@ -590,25 +577,20 @@
                 if(wrError) throw wrError;
                 const wrId = wrData[0].wr_id;
 
-                // 2. Process Items Sequentially
                 for (const item of state.cart) {
-                    // Re-check stock immediately before deducting to prevent negative stock (Race Condition Check)
                     const { data: freshStock } = await sb.from('inventory').select('current_stock, total_withdrawn').eq('material_code', item.code).single();
                     
                     if(!freshStock || freshStock.current_stock < item.qty) {
                         throw new Error(`Insufficient stock for ${item.name}. Update detected.`);
                     }
 
-                    // Record Item
                     await sb.from('wr_items').insert({ wr_id: wrId, material_code: item.code, quantity_requested: item.qty });
                     
-                    // Update Inventory
                     await sb.from('inventory').update({ 
                         current_stock: freshStock.current_stock - item.qty,
                         total_withdrawn: (freshStock.total_withdrawn || 0) + item.qty
                     }).eq('material_code', item.code);
 
-                    // Log Movement
                     await sb.from('stock_movements').insert({
                         material_code: item.code,
                         change_amount: -item.qty,
@@ -632,7 +614,6 @@
             generateRef();
         }
     </script>
-
     <script src="js/secure.js"></script>
 </body>
 </html>
