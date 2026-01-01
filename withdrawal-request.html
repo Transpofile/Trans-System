@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TRANSYSTEM</title>
+    <title>TRANSYSTEM | Live Monitor</title>
     
+    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -12,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
@@ -21,8 +23,8 @@
                         brand: { 50:'#f5f7ff', 100:'#ebf0fe', 500:'#4f46e5', 600:'#4338ca', 700:'#3730a3', 900:'#1e1b4b' },
                     },
                     boxShadow: {
-                        'card': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                        'indigo': '0 10px 15px -3px rgba(79, 70, 229, 0.3)'
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 4px 20px 0px rgba(79, 70, 229, 0.4)'
                     }
                 }
             }
@@ -30,558 +32,607 @@
     </script>
 
     <style>
-        body { background-color: #f8fafc; color: #1e293b; }
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        body { background-color: #f1f5f9; color: #1e293b; -webkit-tap-highlight-color: transparent; }
         
-        .item-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .item-card:hover { transform: translateY(-2px); }
-        .item-card.active { border-color: #4f46e5; background-color: #f5f7ff; }
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+        .skeleton { animation: shimmer 2s infinite linear; background: linear-gradient(to right, #f1f5f9 4%, #e2e8f0 25%, #f1f5f9 36%); background-size: 1000px 100%; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
+        /* Item Card Interactions */
+        .item-card { transition: all 0.2s ease; border: 1px solid transparent; }
+        .item-card:hover { transform: translateY(-2px); border-color: #e0e7ff; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        .item-card.active { border-color: #4f46e5; background-color: #f5f7ff; ring: 2px solid #4f46e5; }
 
-        input:focus, select:focus { outline: none; border-color: #4f46e5 !important; ring: 2px rgba(79, 70, 229, 0.1); }
+        /* Mobile Drawer Transition */
+        #detail-panel { transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+        .drawer-closed { transform: translateY(110%); }
+        .drawer-open { transform: translateY(0); }
 
-        /* Mobile specific fixes for Detail Panel */
-        @media (max-width: 768px) {
-            #detail-panel {
-                position: fixed;
-                inset: 0;
-                z-index: 50;
-                background: white;
-                width: 100%;
-                height: 100%;
-                overflow-y: auto;
-                display: none; /* Hidden by default on mobile */
-            }
-            #detail-panel.active-mobile {
-                display: flex; /* Show when active */
-                animation: slideUp 0.3s ease-out forwards;
-            }
-        }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        /* Disable input outline but keep functionality */
+        input:focus, select:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
     </style>
 </head>
-<!-- Changed body to min-h-screen and removed overflow-hidden for mobile to allow scrolling -->
-<body class="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden bg-slate-50">
+
+<body class="h-screen flex flex-col overflow-hidden bg-slate-100">
 
     <!-- Navbar -->
-    <nav class="bg-white border-b border-slate-200 h-16 flex-none z-30 px-4 md:px-6 flex justify-between items-center sticky top-0">
-        <div class="flex items-center gap-3 md:gap-4">
-            <div class="bg-brand-600 p-2 rounded-xl shadow-indigo">
-                <i class="fas fa-layer-group text-white text-lg"></i>
+    <nav class="bg-white border-b border-slate-200 h-16 flex-none z-40 px-4 md:px-6 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-br from-brand-500 to-brand-700 p-2.5 rounded-xl shadow-lg shadow-brand-500/30">
+                <i class="fas fa-boxes-stacked text-white text-lg"></i>
             </div>
             <div>
-                <h1 class="font-extrabold text-slate-900 tracking-tight leading-none text-sm md:text-base">TRANS<span class="text-brand-600">YSTEM</span></h1>
-                <p class="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">TRANSPORTATION RECORD MONITORING SYSTEM</p>
+                <h1 class="font-black text-slate-800 tracking-tight leading-none text-base md:text-lg">TRANS<span class="text-brand-600">YSTEM</span></h1>
+                <div class="flex items-center gap-2">
+                    <span class="text-[9px] bg-slate-100 text-slate-500 px-1.5 rounded font-bold uppercase tracking-wider border border-slate-200">Inventory</span>
+                    <span class="flex items-center gap-1 text-[9px] text-emerald-600 font-bold uppercase animate-pulse">
+                        <i class="fas fa-circle text-[6px]"></i> Live
+                    </span>
+                </div>
             </div>
         </div>
 
         <div class="flex items-center gap-4">
             <div class="hidden md:flex flex-col items-end">
-                <span id="clock" class="font-mono font-bold text-slate-700">00:00:00</span>
-                <span class="text-[10px] text-emerald-500 font-bold uppercase"><i class="fas fa-circle text-[6px] mr-1"></i> Live System</span>
+                <span id="clock" class="font-mono font-bold text-slate-700 text-sm">--:--:--</span>
+                <span id="date-display" class="text-[10px] text-slate-400 font-bold uppercase">...</span>
             </div>
-            <button onclick="loadData()" id="refresh-btn" class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors text-slate-500">
-                <i class="fas fa-sync-alt"></i>
+            <!-- Settings / User Profile Placeholder -->
+            <button class="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 transition-colors">
+                <i class="fas fa-user-cog"></i>
             </button>
         </div>
     </nav>
 
     <!-- Main Workspace -->
-    <!-- Changed grid behavior for mobile: Stack columns vertically -->
-    <main class="flex-1 lg:overflow-hidden p-3 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 max-w-[1800px] mx-auto w-full">
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-3 md:p-5 gap-4 md:gap-6 max-w-[1920px] mx-auto w-full">
         
-        <!-- Selection Area -->
-        <div class="col-span-1 lg:col-span-8 flex flex-col gap-4 md:gap-6 lg:overflow-hidden">
+        <!-- LEFT COLUMN: Inventory Browser -->
+        <div class="flex-1 flex flex-col gap-4 overflow-hidden min-w-0">
             
-            <!-- Recipient Header -->
-            <div class="bg-white p-4 md:p-5 rounded-2xl shadow-card border border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                <div>
-                    <label class="text-[11px] font-bold text-slate-400 uppercase ml-1">DESIGNATION</label>
-                    <select id="w-dept" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700">
-                        <option value="">Loading...</option>
-                    </select>
+            <!-- Header: Filters & Search -->
+            <div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-200 flex flex-col md:flex-row gap-3 justify-between items-center z-20">
+                <div class="relative w-full md:max-w-md">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="item-search" placeholder="Search item name or code..." 
+                           class="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold transition-all">
+                    <button id="clear-search" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
                 </div>
-                <div>
-                    <label class="text-[11px] font-bold text-slate-400 uppercase ml-1">Requesting Personnel</label>
-                    <input type="text" id="w-name" placeholder="Full Name" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold">
-                </div>
-                <div>
-                    <label class="text-[11px] font-bold text-slate-400 uppercase ml-1">Transaction Code</label>
-                    <div id="w-ref" class="mt-1 px-3 py-2.5 bg-slate-100 border border-transparent rounded-xl text-sm font-mono font-bold text-slate-500 flex justify-between items-center">
-                        <span>---</span>
-                        <i class="fas fa-lock text-[10px]"></i>
-                    </div>
+                
+                <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                    <button onclick="setFilter('all')" data-filter="all" class="filter-btn active whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-bold transition-all bg-brand-50 text-brand-700 border border-brand-200 shadow-sm">
+                        <i class="fas fa-th-large mr-1"></i> All Items
+                    </button>
+                    <button onclick="setFilter('low')" data-filter="low" class="filter-btn whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-slate-500 border border-slate-200 hover:bg-slate-50">
+                        <i class="fas fa-exclamation-triangle mr-1 text-amber-500"></i> Low Stock
+                    </button>
                 </div>
             </div>
 
-            <!-- Browser Area -->
-            <!-- Adjusted height for mobile to be fixed allowing internal scroll, or auto -->
-            <div class="flex-1 bg-white rounded-2xl shadow-card border border-slate-100 flex flex-col lg:overflow-hidden min-h-[500px] lg:min-h-0 relative">
-                <div class="p-3 md:p-4 border-b border-slate-50 bg-slate-50/30 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-                    <div class="relative flex-1">
-                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input type="text" id="item-search" placeholder="Search description..." 
-                               class="w-full pl-11 pr-4 py-2.5 md:py-3 bg-white border border-slate-200 rounded-xl md:rounded-2xl text-sm shadow-sm transition-all">
+            <!-- Content Area: List + Detail Overlay -->
+            <div class="flex-1 relative bg-white rounded-2xl shadow-soft border border-slate-200 overflow-hidden flex">
+                
+                <!-- Item List (Grid) -->
+                <div class="w-full h-full overflow-y-auto custom-scroll p-4">
+                    <div id="item-loader" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        <!-- Skeletons generated via JS -->
                     </div>
-                    <div class="flex p-1 bg-slate-200/50 rounded-xl self-start md:self-auto">
-                        <button onclick="setFilter('all')" data-filter="all" class="filter-btn active px-3 md:px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-800 shadow-sm">All</button>
-                        <button onclick="setFilter('low')" data-filter="low" class="filter-btn px-3 md:px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-700">Low Stock</button>
+                    <div id="item-list-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 pb-20 lg:pb-0">
+                        <!-- Items injected here -->
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="empty-state" class="hidden h-full flex flex-col items-center justify-center text-center p-8">
+                        <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-300">
+                            <i class="fas fa-search text-4xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-800">No items found</h3>
+                        <p class="text-sm text-slate-400">Try adjusting your search terms or filters.</p>
                     </div>
                 </div>
 
-                <div class="flex-1 flex lg:overflow-hidden relative">
-                    <!-- Item List -->
-                    <div class="w-full md:w-5/12 lg:border-r lg:border-slate-100 flex flex-col h-full">
-                        <div id="item-list-container" class="flex-1 overflow-y-auto custom-scroll p-2 md:p-3 space-y-2 bg-slate-50/30">
-                            <!-- Items injected here -->
-                        </div>
-                    </div>
+                <!-- Detail Panel (Overlay on Mobile, Side Panel on Desktop if needed, currently Overlay logic used for improved UX) -->
+                <div id="detail-panel" class="absolute inset-0 z-30 pointer-events-none flex items-end justify-center lg:items-center lg:justify-end lg:p-4 drawer-closed">
+                    
+                    <!-- Backdrop (Mobile only) -->
+                    <div onclick="closeDetail()" class="absolute inset-0 bg-slate-900/20 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 opacity-0 lg:hidden" id="detail-backdrop"></div>
 
-                    <!-- Detailed Selection (Becomes Overlay on Mobile) -->
-                    <!-- Changed: Removed 'hidden', handled via CSS logic for mobile -->
-                    <div class="md:flex md:w-7/12 flex-col items-center justify-center p-6 md:p-8 text-center" id="detail-panel">
+                    <!-- Panel Card -->
+                    <div class="bg-white w-full lg:w-[400px] h-[85%] lg:h-full lg:max-h-[600px] rounded-t-3xl lg:rounded-3xl shadow-2xl pointer-events-auto flex flex-col overflow-hidden transform transition-all duration-300 border border-slate-100">
                         
-                        <!-- Mobile Close Button -->
-                        <button onclick="closeMobileDetail()" class="md:hidden absolute top-4 right-4 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 shadow-sm z-20">
-                            <i class="fas fa-times text-lg"></i>
-                        </button>
-
-                        <div id="detail-empty" class="animate-fade hidden md:block">
-                            <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
-                                <i class="fas fa-hand-pointer text-3xl"></i>
+                        <!-- Panel Header -->
+                        <div class="p-5 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
+                            <div>
+                                <span id="dt-status" class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">Available</span>
+                                <h2 id="dt-name" class="mt-2 text-xl font-extrabold text-slate-800 leading-tight line-clamp-2">Product Name</h2>
+                                <p id="dt-code" class="text-xs font-mono text-slate-400 mt-1 font-semibold">CODE-001</p>
                             </div>
-                            <h3 class="font-bold text-slate-800">No Item Selected</h3>
-                            <p class="text-sm text-slate-400 max-w-[200px] mx-auto">Choose an item from the list to begin withdrawal.</p>
+                            <button onclick="closeDetail()" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors shadow-sm">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
 
-                        <div id="detail-content" class="hidden w-full max-w-sm animate-fade pt-8 md:pt-0">
-                            <div class="relative mb-6">
-                                <div id="detail-img-box" class="w-40 h-40 md:w-48 md:h-48 mx-auto bg-white rounded-3xl border border-slate-100 shadow-xl flex items-center justify-center overflow-hidden">
-                                    <!-- Img -->
-                                </div>
-                                <div id="detail-badge" class="absolute bottom-2 right-1/2 translate-x-1/2 translate-y-1/2 px-4 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest shadow-lg border-2 border-white">
-                                    AVAILABLE
+                        <!-- Panel Body -->
+                        <div class="flex-1 overflow-y-auto custom-scroll p-6">
+                            <div class="flex justify-center mb-6">
+                                <div id="dt-image-box" class="w-48 h-48 bg-white rounded-2xl border border-slate-100 shadow-md flex items-center justify-center p-4">
+                                    <i class="fas fa-box text-6xl text-slate-200"></i>
                                 </div>
                             </div>
 
-                            <h2 id="detail-name" class="text-lg md:text-xl font-extrabold text-slate-800 line-clamp-2 mb-1 px-4">Product Description</h2>
-                            <span id="detail-code" class="text-[11px] font-mono bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-bold">CODE123</span>
-
-                            <div class="grid grid-cols-2 gap-3 md:gap-4 mt-6 md:mt-8 w-full">
-                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">On Hand</p>
-                                    <p class="text-2xl font-black text-slate-700" id="detail-stock">0</p>
-                                    <p class="text-[10px] text-slate-400 font-bold" id="detail-uom">UNITS</p>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase">Current Stock</label>
+                                    <div class="text-2xl font-black text-slate-800 mt-1" id="dt-stock">0</div>
+                                    <div class="text-[10px] font-bold text-brand-600" id="dt-uom">UNIT</div>
                                 </div>
-                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Withdraw Qty</p>
-                                    <div class="flex items-center justify-between mt-1">
-                                        <button onclick="adjustInput(-1)" class="w-8 h-8 rounded-lg hover:bg-white text-slate-400 shadow-sm transition"><i class="fas fa-minus"></i></button>
-                                        <input type="number" id="input-qty" value="1" class="w-12 text-center bg-transparent font-bold text-lg text-brand-600 focus:outline-none">
-                                        <button onclick="adjustInput(1)" class="w-8 h-8 rounded-lg hover:bg-white text-slate-400 shadow-sm transition"><i class="fas fa-plus"></i></button>
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase">Withdraw Qty</label>
+                                    <div class="flex items-center justify-between mt-2">
+                                        <button onclick="adjustQty(-1)" class="w-8 h-8 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-100"><i class="fas fa-minus text-xs"></i></button>
+                                        <input type="number" id="dt-qty-input" value="1" class="w-10 bg-transparent text-center font-bold text-lg focus:outline-none" readonly>
+                                        <button onclick="adjustQty(1)" class="w-8 h-8 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-100"><i class="fas fa-plus text-xs"></i></button>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <button onclick="addToCart()" id="btn-add" class="w-full mt-6 md:mt-8 bg-slate-900 hover:bg-brand-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:shadow-brand-500/30 transition-all flex items-center justify-center gap-3">
-                                <span>Add to List</span>
-                                <i class="fas fa-plus-circle"></i>
+                        <!-- Panel Footer -->
+                        <div class="p-5 border-t border-slate-100 bg-white">
+                            <button onclick="addToCart()" id="btn-add-cart" class="w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-brand-600 hover:shadow-brand-500/30 transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                                <i class="fas fa-plus-circle"></i> <span>Add to List</span>
                             </button>
-                            <p id="error-msg" class="text-red-500 text-xs font-bold mt-3 h-4"></p>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
 
-        <!-- Cart Column -->
-        <div class="col-span-1 lg:col-span-4 flex flex-col h-auto lg:h-full lg:overflow-hidden">
-            <div class="bg-white rounded-3xl shadow-card border border-slate-100 flex flex-col h-[500px] lg:h-full overflow-hidden">
-                <div class="p-4 md:p-6 border-b border-slate-50 flex justify-between items-center">
+        <!-- RIGHT COLUMN: Transaction Cart -->
+        <div class="w-full lg:w-[400px] flex flex-col gap-4 flex-none h-[400px] lg:h-auto">
+            
+            <!-- User Input Form -->
+            <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide">Request Details</h3>
+                    <div id="tx-ref" class="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded text-slate-500 font-bold">LOADING...</div>
+                </div>
+                
+                <div class="space-y-3">
                     <div>
-                        <h3 class="font-extrabold text-slate-800 text-lg">Withdrawal List</h3>
-                        <p class="text-xs text-slate-400">Total items: <span id="cart-count">0</span></p>
+                        <select id="inp-dept" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:bg-white transition-colors">
+                            <option value="">Select Department...</option>
+                        </select>
                     </div>
-                    <button onclick="clearCart()" class="text-slate-300 hover:text-red-500 transition-colors">
-                        <i class="fas fa-trash-can"></i>
-                    </button>
-                </div>
-
-                <div class="flex-1 overflow-y-auto custom-scroll p-3 md:p-4 space-y-3 bg-slate-50/30" id="cart-list">
-                    <!-- Cart Empty State -->
-                    <div id="cart-empty" class="h-full flex flex-col items-center justify-center text-center opacity-40 py-10">
-                        <i class="fas fa-shopping-basket text-4xl md:text-5xl mb-4"></i>
-                        <p class="text-sm font-bold">List is empty</p>
+                    <div>
+                        <input type="text" id="inp-name" placeholder="Requesting Personnel Name" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white transition-colors">
                     </div>
                 </div>
+            </div>
 
-                <div class="p-4 md:p-6 bg-white border-t border-slate-100">
-                    <div class="flex justify-between items-center mb-4 md:mb-6">
-                        <span class="text-sm font-bold text-slate-400 uppercase tracking-widest">Total Withdrawal</span>
-                        <span class="text-3xl font-black text-slate-800" id="total-qty">0</span>
+            <!-- Cart Items -->
+            <div class="flex-1 bg-white rounded-2xl shadow-soft border border-slate-200 flex flex-col overflow-hidden">
+                <div class="p-4 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                    <div class="flex items-center gap-2">
+                        <div class="bg-brand-100 text-brand-600 w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold" id="cart-badge">0</div>
+                        <span class="text-sm font-bold text-slate-700">Withdrawal List</span>
                     </div>
-                    <button onclick="processTransaction()" id="btn-process" disabled class="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-extrabold text-lg transition-all cursor-not-allowed uppercase tracking-wider shadow-sm">
-                        Confirm & Issue
+                    <button onclick="clearCart()" class="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors">Clear</button>
+                </div>
+
+                <div id="cart-container" class="flex-1 overflow-y-auto custom-scroll p-3 space-y-2">
+                    <!-- Cart Empty -->
+                    <div id="cart-empty-msg" class="h-full flex flex-col items-center justify-center opacity-40">
+                        <i class="fas fa-clipboard-list text-4xl mb-2"></i>
+                        <span class="text-xs font-bold">List is empty</span>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-50 border-t border-slate-100">
+                    <button onclick="processCheckout()" id="btn-checkout" disabled class="group w-full py-3.5 bg-slate-200 text-slate-400 rounded-xl font-bold transition-all flex items-center justify-between px-6 cursor-not-allowed">
+                        <span class="text-sm">CONFIRM ISSUE</span>
+                        <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                     </button>
                 </div>
             </div>
+
         </div>
     </main>
 
+    <!-- JS Logic -->
     <script>
-        // --- CORE CONFIG ---
-        const SB_URL = 'https://agggkqvbnotpborqcitx.supabase.co';
-        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZ2drcXZibm90cGJvcnFjaXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwODYxNjgsImV4cCI6MjA4MTY2MjE2OH0.XJHmLfRRJHVhsrImqnRpdwt7eN4eiO1VGk6B68uG5oo';
-        const sb = supabase.createClient(SB_URL, SB_KEY);
+        // CONFIGURATION
+        // NOTE: In a production environment, use Row Level Security (RLS) on Supabase.
+        const CONFIG = {
+            url: 'https://agggkqvbnotpborqcitx.supabase.co',
+            key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZ2drcXZibm90cGJvcnFjaXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwODYxNjgsImV4cCI6MjA4MTY2MjE2OH0.XJHmLfRRJHVhsrImqnRpdwt7eN4eiO1VGk6B68uG5oo'
+        };
 
-        let inventory = [];
-        let cart = [];
-        let selectedItem = null;
-        let activeFilter = 'all';
-        let searchTimeout = null;
+        const sb = supabase.createClient(CONFIG.url, CONFIG.key);
+        
+        // APP STATE
+        let state = {
+            inventory: [],
+            cart: [],
+            filter: 'all',
+            search: '',
+            selectedItem: null,
+            txRef: ''
+        };
 
         // --- INITIALIZATION ---
-        $(document).ready(async () => {
-            setInterval(() => $('#clock').text(new Date().toLocaleTimeString()), 1000);
-            generateRef();
-            await loadData();
-            
-            // Debounced Search
-            $('#item-search').on('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => renderItemList(), 300);
-            });
+        $(document).ready(() => {
+            initSystem();
+            setupEventListeners();
+            startClock();
         });
 
-        function generateRef() {
-            const id = 'WR' + Math.random().toString(36).substr(2, 6).toUpperCase();
-            $('#w-ref span').text(id);
+        async function initSystem() {
+            generateRef();
+            showLoader(true);
+            await fetchDepartments();
+            await fetchInventory();
+            subscribeToRealtime();
+            showLoader(false);
         }
 
-        async function loadData() {
-            $('#refresh-btn i').addClass('fa-spin text-brand-500');
-            try {
-                // Departments
-                const { data: depts } = await sb.from('departments').select('*').order('name');
-                if(depts) {
-                    $('#w-dept').html('<option value="">Select Designation</option>' + 
-                        depts.map(d => `<option value="${d.name}">${d.name}</option>`).join(''));
-                }
+        function startClock() {
+            const updateTime = () => {
+                const now = new Date();
+                $('#clock').text(now.toLocaleTimeString('en-US', {hour12: false}));
+                $('#date-display').text(now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' }));
+            };
+            updateTime();
+            setInterval(updateTime, 1000);
+        }
 
-                // Inventory
-                const { data: inv, error } = await sb.from('inventory').select('*').neq('status', 'ARCHIVED').order('description');
-                if(error) throw error;
-                inventory = inv || [];
-                renderItemList();
+        function generateRef() {
+            state.txRef = 'WR-' + Date.now().toString().slice(-6) + '-' + Math.floor(Math.random() * 100);
+            $('#tx-ref').text(state.txRef);
+        }
 
-                if(selectedItem) {
-                    const updated = inventory.find(i => i.material_code === selectedItem.material_code);
-                    if(updated) selectItem(updated);
-                }
-            } catch (err) {
-                console.error(err);
-                notify('System Error', 'Could not refresh inventory', 'error');
-            } finally {
-                setTimeout(() => $('#refresh-btn i').removeClass('fa-spin text-brand-500'), 500);
+        // --- DATA FETCHING & REALTIME ---
+        async function fetchDepartments() {
+            const { data } = await sb.from('departments').select('name').order('name');
+            if(data) {
+                const opts = data.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+                $('#inp-dept').append(opts);
             }
         }
 
-        // --- UI RENDERING ---
-        function renderItemList() {
+        async function fetchInventory() {
+            const { data, error } = await sb.from('inventory').select('*').neq('status', 'ARCHIVED').order('description');
+            if(error) return console.error(error);
+            state.inventory = data;
+            renderInventory();
+        }
+
+        function subscribeToRealtime() {
+            sb.channel('public:inventory')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, payload => {
+                    handleInventoryUpdate(payload);
+                })
+                .subscribe();
+        }
+
+        function handleInventoryUpdate(payload) {
+            if (payload.eventType === 'UPDATE') {
+                // Update local state
+                const idx = state.inventory.findIndex(i => i.id === payload.new.id);
+                if(idx !== -1) {
+                    state.inventory[idx] = payload.new;
+                    renderInventory();
+                    
+                    // If this item is open in detail view, update it
+                    if(state.selectedItem && state.selectedItem.id === payload.new.id) {
+                        openDetail(payload.new); 
+                    }
+                }
+            } else if (payload.eventType === 'INSERT') {
+                state.inventory.push(payload.new);
+                renderInventory();
+            }
+        }
+
+        // --- RENDERING ---
+        function showLoader(show) {
+            if(show) {
+                $('#item-loader').removeClass('hidden').html(Array(6).fill('<div class="h-24 bg-white rounded-2xl p-4 border border-slate-200"><div class="h-4 w-1/3 bg-slate-100 skeleton rounded mb-2"></div><div class="h-3 w-3/4 bg-slate-100 skeleton rounded"></div></div>').join(''));
+                $('#item-list-container').addClass('hidden');
+            } else {
+                $('#item-loader').addClass('hidden');
+                $('#item-list-container').removeClass('hidden');
+            }
+        }
+
+        function renderInventory() {
             const container = $('#item-list-container');
             container.empty();
-            
-            const term = $('#item-search').val().toLowerCase();
-            const filtered = inventory.filter(item => {
-                const matchesSearch = item.description.toLowerCase().includes(term) || item.material_code.toLowerCase().includes(term);
-                let matchesFilter = activeFilter === 'all' || (activeFilter === 'low' && item.current_stock <= item.low_stock_threshold);
-                return matchesSearch && matchesFilter;
+
+            const filtered = state.inventory.filter(item => {
+                const matchSearch = (item.description + item.material_code).toLowerCase().includes(state.search.toLowerCase());
+                const matchFilter = state.filter === 'all' || (state.filter === 'low' && item.current_stock <= item.low_stock_threshold);
+                return matchSearch && matchFilter;
             });
 
             if(filtered.length === 0) {
-                container.html(`<div class="p-10 text-center text-slate-300 font-bold text-sm">No items match filters</div>`);
-                return;
+                $('#empty-state').removeClass('hidden');
+            } else {
+                $('#empty-state').addClass('hidden');
+                filtered.forEach(item => {
+                    const isLow = item.current_stock <= item.low_stock_threshold;
+                    const noStock = item.current_stock <= 0;
+                    
+                    let statusColor = isLow ? 'bg-amber-500' : 'bg-brand-500';
+                    if(noStock) statusColor = 'bg-red-500';
+
+                    const html = `
+                        <div onclick="selectItem('${item.material_code}')" class="item-card bg-white p-4 rounded-2xl cursor-pointer group relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <i class="fas fa-cube text-4xl text-slate-800"></i>
+                            </div>
+                            <div class="relative z-10">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${item.material_code}</span>
+                                    ${noStock ? '<i class="fas fa-ban text-red-500"></i>' : ''}
+                                </div>
+                                <h4 class="font-bold text-slate-700 text-sm line-clamp-2 h-10 leading-tight mb-3 group-hover:text-brand-600 transition-colors">${item.description}</h4>
+                                
+                                <div class="flex items-end justify-between">
+                                    <div>
+                                        <div class="text-[10px] text-slate-400 font-bold uppercase">In Stock</div>
+                                        <div class="text-lg font-black ${noStock ? 'text-red-500' : 'text-slate-800'}">
+                                            ${item.current_stock} <span class="text-[10px] text-slate-400 font-medium">${item.uom}</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-1.5 h-8 rounded-full bg-slate-100 overflow-hidden flex flex-col-reverse">
+                                        <div class="w-full ${statusColor}" style="height: ${Math.min(100, (item.current_stock/50)*100)}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.append(html);
+                });
             }
+        }
 
-            filtered.forEach(item => {
-                const isSelected = selectedItem?.material_code === item.material_code;
-                const pct = Math.min(100, (item.current_stock / (item.low_stock_threshold * 2)) * 100);
-                let colorClass = 'bg-emerald-500';
-                if(item.current_stock <= 0) colorClass = 'bg-red-500';
-                else if(item.current_stock <= item.low_stock_threshold) colorClass = 'bg-amber-500';
+        // --- INTERACTIONS ---
+        function setupEventListeners() {
+            $('#item-search').on('input', function() {
+                state.search = $(this).val();
+                if(state.search) $('#clear-search').removeClass('hidden'); 
+                else $('#clear-search').addClass('hidden');
+                renderInventory();
+            });
 
-                container.append(`
-                    <div onclick="selectItemByCode('${item.material_code}')" 
-                         class="item-card bg-white p-3 md:p-4 rounded-xl md:rounded-2xl border-2 ${isSelected ? 'border-brand-500 shadow-md ring-2 md:ring-4 ring-brand-50' : 'border-transparent shadow-sm'} cursor-pointer group">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-[10px] font-mono font-bold text-slate-400">${item.material_code}</span>
-                            <span class="text-[10px] font-black ${item.current_stock > 0 ? 'text-slate-700' : 'text-red-500'} uppercase">
-                                ${item.current_stock} ${item.uom}
-                            </span>
-                        </div>
-                        <h4 class="text-xs font-bold text-slate-800 line-clamp-1 mb-3 group-hover:text-brand-600 transition-colors">${item.description}</h4>
-                        <div class="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full ${colorClass}" style="width: ${pct}%"></div>
-                        </div>
-                    </div>
-                `);
+            $('#clear-search').click(() => {
+                $('#item-search').val('').trigger('input');
             });
         }
 
         function setFilter(type) {
-            activeFilter = type;
-            $('.filter-btn').removeClass('active bg-white text-slate-800 shadow-sm').addClass('text-slate-500');
-            $(`.filter-btn[data-filter="${type}"]`).addClass('active bg-white text-slate-800 shadow-sm').removeClass('text-slate-500');
-            renderItemList();
+            state.filter = type;
+            $('.filter-btn').removeClass('active bg-brand-50 text-brand-700 border-brand-200 shadow-sm').addClass('bg-white text-slate-500 border-slate-200');
+            $(`.filter-btn[data-filter="${type}"]`).addClass('active bg-brand-50 text-brand-700 border-brand-200 shadow-sm').removeClass('bg-white text-slate-500 border-slate-200');
+            renderInventory();
         }
 
-        function selectItemByCode(code) {
-            const item = inventory.find(i => i.material_code === code);
-            if(item) selectItem(item);
+        function selectItem(code) {
+            const item = state.inventory.find(i => i.material_code === code);
+            if(item) openDetail(item);
         }
 
-        function selectItem(item) {
-            selectedItem = item;
-            renderItemList(); // Re-render to highlight selection
-
-            // Show mobile overlay
-            $('#detail-panel').addClass('active-mobile');
+        function openDetail(item) {
+            state.selectedItem = item;
             
-            $('#detail-empty').addClass('hidden');
-            $('#detail-content').removeClass('hidden');
+            // Populate Data
+            $('#dt-name').text(item.description);
+            $('#dt-code').text(item.material_code);
+            $('#dt-stock').text(item.current_stock);
+            $('#dt-uom').text(item.uom);
+            $('#dt-qty-input').val(1);
 
-            $('#detail-name').text(item.description);
-            $('#detail-code').text(item.material_code);
-            $('#detail-stock').text(item.current_stock);
-            $('#detail-uom').text(item.uom);
-            
-            const imgHTML = item.image_link 
-                ? `<img src="${item.image_link}" class="w-full h-full object-cover">` 
-                : `<i class="fas fa-box-open text-5xl text-slate-100"></i>`;
-            $('#detail-img-box').html(imgHTML);
-
-            const badge = $('#detail-badge');
-            const btn = $('#btn-add');
-            $('#input-qty').val(1);
+            // Logic for Button/Badge
+            const btn = $('#btn-add-cart');
+            const badge = $('#dt-status');
             
             if(item.current_stock <= 0) {
-                badge.attr('class', 'absolute bottom-2 right-1/2 translate-x-1/2 translate-y-1/2 px-4 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest shadow-lg border-2 border-white bg-red-500 text-white').text('OUT OF STOCK');
-                btn.prop('disabled', true).addClass('opacity-50 grayscale').text('Unavailable');
+                badge.text('Out of Stock').removeClass().addClass('px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-600');
+                btn.prop('disabled', true).addClass('bg-slate-300 cursor-not-allowed').removeClass('bg-slate-900 hover:bg-brand-600 shadow-lg');
+                btn.html('Unavailable');
             } else {
                 const isLow = item.current_stock <= item.low_stock_threshold;
-                badge.attr('class', `absolute bottom-2 right-1/2 translate-x-1/2 translate-y-1/2 px-4 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest shadow-lg border-2 border-white ${isLow ? 'bg-amber-500' : 'bg-emerald-500'} text-white`).text(isLow ? 'LOW STOCK' : 'AVAILABLE');
-                btn.prop('disabled', false).removeClass('opacity-50 grayscale').html('<span>Add to List</span> <i class="fas fa-plus-circle"></i>');
+                badge.text(isLow ? 'Low Stock' : 'Available').removeClass().addClass(`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${isLow ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`);
+                btn.prop('disabled', false).removeClass('bg-slate-300 cursor-not-allowed').addClass('bg-slate-900 hover:bg-brand-600 shadow-lg');
+                btn.html('<i class="fas fa-plus-circle"></i> <span>Add to List</span>');
             }
+
+            // Show Panel
+            $('#detail-backdrop').removeClass('hidden').css('opacity', '1');
+            $('#detail-panel').removeClass('drawer-closed').addClass('drawer-open');
         }
 
-        function closeMobileDetail() {
-            $('#detail-panel').removeClass('active-mobile');
+        function closeDetail() {
+            $('#detail-panel').removeClass('drawer-open').addClass('drawer-closed');
+            $('#detail-backdrop').css('opacity', '0');
+            setTimeout(() => $('#detail-backdrop').addClass('hidden'), 300);
+            state.selectedItem = null;
         }
 
-        function adjustInput(delta) {
-            if(!selectedItem) return;
-            const input = $('#input-qty');
+        function adjustQty(delta) {
+            if(!state.selectedItem) return;
+            const input = $('#dt-qty-input');
             let val = parseInt(input.val()) + delta;
-            val = Math.max(1, Math.min(val, selectedItem.current_stock));
-            input.val(val);
+            if(val >= 1 && val <= state.selectedItem.current_stock) {
+                input.val(val);
+            }
         }
 
         // --- CART LOGIC ---
         function addToCart() {
-            if(!selectedItem) return;
-            const qty = parseInt($('#input-qty').val());
+            if(!state.selectedItem) return;
+            const qty = parseInt($('#dt-qty-input').val());
+            const item = state.selectedItem;
+
+            // Check if already in cart
+            const existing = state.cart.find(c => c.code === item.material_code);
             
-            const existing = cart.find(c => c.code === selectedItem.material_code);
             if(existing) {
-                if(existing.qty + qty > selectedItem.current_stock) {
-                    return notify('Limit Reached', `Only ${selectedItem.current_stock} available in total`, 'warning');
+                if(existing.qty + qty > item.current_stock) {
+                    Swal.fire({ icon:'warning', title:'Stock Limit', text:'Total quantity exceeds available stock.', toast:true, position:'top-end', showConfirmButton:false, timer:2000 });
+                    return;
                 }
                 existing.qty += qty;
             } else {
-                cart.push({
-                    code: selectedItem.material_code,
-                    name: selectedItem.description,
+                state.cart.push({
+                    code: item.material_code,
+                    name: item.description,
                     qty: qty,
-                    uom: selectedItem.uom,
-                    max: selectedItem.current_stock
+                    uom: item.uom,
+                    max: item.current_stock
                 });
             }
 
             renderCart();
-            closeMobileDetail(); // Close the modal on mobile after adding
+            closeDetail();
             
-            // Desktop visual feedback
-            const btn = $('#btn-add');
-            const old = btn.html();
-            btn.addClass('bg-emerald-600').html('<i class="fas fa-check"></i> Added');
-            setTimeout(() => btn.removeClass('bg-emerald-600').html(old), 800);
-            
-            // If on mobile, scroll to cart area gently
-            if(window.innerWidth < 1024) {
-                 $('html, body').animate({
-                    scrollTop: $("#cart-list").offset().top - 100
-                }, 500);
-            }
+            // Success feedback
+            Swal.fire({ icon:'success', title:'Added', text:`${qty} ${item.uom} added to list`, toast:true, position:'top-end', showConfirmButton:false, timer:1500 });
         }
 
         function renderCart() {
-            const container = $('#cart-list');
-            container.find('.cart-item').remove();
-            
-            if(cart.length === 0) {
-                $('#cart-empty').show();
-                updateCartTotals(0);
-                return;
-            }
+            const container = $('#cart-container');
+            container.empty();
 
-            $('#cart-empty').hide();
-            let totalQty = 0;
+            if(state.cart.length === 0) {
+                $('#cart-empty-msg').removeClass('hidden');
+                $('#cart-badge').text('0');
+                $('#btn-checkout').prop('disabled', true).removeClass('bg-brand-600 text-white shadow-glow').addClass('bg-slate-200 text-slate-400 cursor-not-allowed');
+            } else {
+                $('#cart-empty-msg').addClass('hidden');
+                $('#cart-badge').text(state.cart.length);
+                $('#btn-checkout').prop('disabled', false).addClass('bg-brand-600 text-white shadow-glow').removeClass('bg-slate-200 text-slate-400 cursor-not-allowed');
 
-            cart.forEach((item, idx) => {
-                totalQty += item.qty;
-                container.append(`
-                    <div class="cart-item bg-white p-3 md:p-4 rounded-xl md:rounded-2xl border border-slate-100 shadow-sm animate-fade flex items-center justify-between">
-                        <div class="min-w-0 pr-4">
-                            <h5 class="text-xs font-bold text-slate-800 truncate">${item.name}</h5>
-                            <p class="text-[10px] font-mono text-slate-400">${item.code}</p>
-                        </div>
-                        <div class="flex items-center gap-2 md:gap-3">
-                            <div class="flex items-center bg-slate-50 rounded-lg px-2 py-1 border border-slate-100">
-                                <button onclick="updateCartQty(${idx}, -1)" class="text-slate-400 hover:text-brand-600 w-5 text-[10px]"><i class="fas fa-minus"></i></button>
-                                <span class="text-xs font-black text-slate-700 w-6 text-center">${item.qty}</span>
-                                <button onclick="updateCartQty(${idx}, 1)" class="text-slate-400 hover:text-brand-600 w-5 text-[10px]"><i class="fas fa-plus"></i></button>
+                state.cart.forEach((item, idx) => {
+                    container.append(`
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center group animate-fade">
+                            <div class="min-w-0 pr-2">
+                                <div class="text-xs font-bold text-slate-800 truncate">${item.name}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">${item.code}</div>
                             </div>
-                            <button onclick="removeCartItem(${idx})" class="text-slate-200 hover:text-red-500 transition-colors"><i class="fas fa-times-circle"></i></button>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-black text-brand-600">${item.qty}<span class="text-[9px] ml-0.5 text-slate-400">${item.uom}</span></span>
+                                <button onclick="removeFromCart(${idx})" class="w-6 h-6 rounded bg-white text-slate-300 hover:text-red-500 border border-slate-200 flex items-center justify-center transition-colors"><i class="fas fa-times text-xs"></i></button>
+                            </div>
                         </div>
-                    </div>
-                `);
-            });
-
-            updateCartTotals(totalQty);
+                    `);
+                });
+            }
         }
 
-        function updateCartQty(idx, delta) {
-            const item = cart[idx];
-            const newQty = item.qty + delta;
-            if(newQty <= 0) return removeCartItem(idx);
-            if(newQty > item.max) return notify('Max Stock', 'Cannot exceed available quantity', 'warning');
-            item.qty = newQty;
-            renderCart();
-        }
-
-        function removeCartItem(idx) {
-            cart.splice(idx, 1);
+        function removeFromCart(idx) {
+            state.cart.splice(idx, 1);
             renderCart();
         }
 
         function clearCart() {
-            cart = [];
+            if(state.cart.length === 0) return;
+            state.cart = [];
             renderCart();
         }
 
-        function updateCartTotals(total) {
-            $('#total-qty').text(total);
-            $('#cart-count').text(cart.length);
-            
-            const btn = $('#btn-process');
-            if(cart.length > 0) {
-                btn.prop('disabled', false).removeClass('bg-slate-100 text-slate-400 cursor-not-allowed').addClass('bg-brand-600 text-white shadow-lg hover:shadow-brand-500/40 hover:-translate-y-0.5');
-            } else {
-                btn.prop('disabled', true).addClass('bg-slate-100 text-slate-400 cursor-not-allowed').removeClass('bg-brand-600 text-white shadow-lg shadow-brand-500/40');
+        // --- CHECKOUT PROCESS ---
+        async function processCheckout() {
+            const dept = $('#inp-dept').val();
+            const name = $('#inp-name').val();
+
+            if(!dept || !name) {
+                Swal.fire('Missing Info', 'Please provide Department and Requesting Personnel name.', 'warning');
+                return;
             }
-        }
 
-        // --- SUBMISSION ---
-        async function processTransaction() {
-            const dept = $('#w-dept').val();
-            const name = $('#w-name').val();
-            const ref = $('#w-ref span').text();
-
-            if(!dept || !name) return notify('Required Info', 'Please fill in Department and Requester Name', 'error');
-
-            const result = await Swal.fire({
+            const confirm = await Swal.fire({
                 title: 'Confirm Transaction?',
-                text: `Issuing ${cart.length} items to ${name} (${dept})`,
+                text: `Issuing ${state.cart.length} items to ${dept}`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#4f46e5',
-                confirmButtonText: 'Yes, Issue Now'
+                confirmButtonText: 'Yes, Issue Stock'
             });
 
-            if(!result.isConfirmed) return;
+            if(!confirm.isConfirmed) return;
 
             Swal.fire({ title: 'Processing...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
-                // 1. Create Withdrawal Record
+                // 1. Create Request Header
                 const { data: wrData, error: wrError } = await sb.from('withdrawal_requests').insert([{
-                    wr_number: ref,
+                    wr_number: state.txRef,
                     requester_name: name,
                     department: dept,
                     status: 'APPROVED',
-                    remarks: 'Portal Direct Issue'
+                    remarks: 'Direct Issue via Portal'
                 }]).select();
 
                 if(wrError) throw wrError;
                 const wrId = wrData[0].wr_id;
 
-                // 2. Process Items (One by one for stock verification)
-                for(const item of cart) {
-                    const { data: currentItem } = await sb.from('inventory').select('current_stock, total_withdrawn').eq('material_code', item.code).single();
+                // 2. Process Items Sequentially
+                for (const item of state.cart) {
+                    // Re-check stock immediately before deducting to prevent negative stock (Race Condition Check)
+                    const { data: freshStock } = await sb.from('inventory').select('current_stock, total_withdrawn').eq('material_code', item.code).single();
                     
-                    if(currentItem.current_stock < item.qty) {
-                        throw new Error(`Insufficient stock for ${item.name}. Available: ${currentItem.current_stock}`);
+                    if(!freshStock || freshStock.current_stock < item.qty) {
+                        throw new Error(`Insufficient stock for ${item.name}. Update detected.`);
                     }
 
-                    // Log Item
-                    await sb.from('wr_items').insert([{ wr_id: wrId, material_code: item.code, quantity_requested: item.qty }]);
-
+                    // Record Item
+                    await sb.from('wr_items').insert({ wr_id: wrId, material_code: item.code, quantity_requested: item.qty });
+                    
                     // Update Inventory
                     await sb.from('inventory').update({ 
-                        current_stock: currentItem.current_stock - item.qty,
-                        total_withdrawn: (currentItem.total_withdrawn || 0) + item.qty
+                        current_stock: freshStock.current_stock - item.qty,
+                        total_withdrawn: (freshStock.total_withdrawn || 0) + item.qty
                     }).eq('material_code', item.code);
 
-                    // Stock Movement
-                    await sb.from('stock_movements').insert([{
+                    // Log Movement
+                    await sb.from('stock_movements').insert({
                         material_code: item.code,
                         change_amount: -item.qty,
-                        reason: `Withdrawal: ${ref}`
-                    }]);
+                        reason: `Issued: ${state.txRef}`
+                    });
                 }
 
-                await Swal.fire('Success!', 'Items have been successfully issued.', 'success');
-                
-                // Cleanup
-                cart = [];
-                $('#w-name').val('');
-                generateRef();
-                renderCart();
-                selectedItem = null;
-                $('#detail-content').addClass('hidden');
-                $('#detail-empty').removeClass('hidden');
-                loadData();
+                await Swal.fire('Success', 'Items successfully issued.', 'success');
+                resetSystem();
 
             } catch (err) {
                 console.error(err);
-                Swal.fire('Transaction Failed', err.message, 'error');
+                Swal.fire('Error', err.message || 'Transaction failed', 'error');
             }
         }
 
-        function notify(title, msg, icon) {
-            Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
-            }).fire({ icon: icon, title: title, text: msg });
+        function resetSystem() {
+            state.cart = [];
+            $('#inp-name').val('');
+            renderCart();
+            generateRef();
         }
     </script>
 
-<script src="js/secure.js"></script>
+    <script src="js/secure.js"></script>
 </body>
 </html>
