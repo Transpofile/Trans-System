@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Updated Viewport for better mobile scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>TRANSYSTEM | Live Monitor</title>
     
     <!-- External Libraries -->
@@ -32,6 +33,7 @@
     </script>
 
     <style>
+        /* Only hide overflow on Large screens (Desktop) */
         body { background-color: #f1f5f9; color: #1e293b; -webkit-tap-highlight-color: transparent; }
         
         .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -49,7 +51,8 @@
         .item-card:hover { transform: translateY(-2px); border-color: #e0e7ff; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
         .item-card.active { border-color: #4f46e5; background-color: #f5f7ff; ring: 2px solid #4f46e5; }
 
-        #detail-panel { transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+        /* Updated Detail Panel Transitions */
+        #detail-panel { transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); z-index: 9999; }
         .drawer-closed { transform: translateY(110%); }
         .drawer-open { transform: translateY(0); }
 
@@ -57,10 +60,12 @@
     </style>
 </head>
 
-<body class="h-screen flex flex-col overflow-hidden bg-slate-100">
+<!-- UPDATED BODY: Removed generic h-screen/overflow-hidden. Added specific LG classes -->
+<!-- This allows the page to scroll on mobile so buttons are reachable -->
+<body class="flex flex-col min-h-screen bg-slate-100 lg:h-screen lg:overflow-hidden overflow-y-auto">
 
     <!-- Navbar -->
-    <nav class="bg-white border-b border-slate-200 h-16 flex-none z-40 px-4 md:px-6 flex justify-between items-center shadow-sm">
+    <nav class="bg-white border-b border-slate-200 h-16 flex-none sticky top-0 z-40 px-4 md:px-6 flex justify-between items-center shadow-sm">
         <div class="flex items-center gap-3">
             <div class="bg-gradient-to-br from-brand-500 to-brand-700 p-2.5 rounded-xl shadow-lg shadow-brand-500/30">
                 <i class="fas fa-boxes-stacked text-white text-lg"></i>
@@ -88,10 +93,11 @@
     </nav>
 
     <!-- Main Workspace -->
-    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-3 md:p-5 gap-4 md:gap-6 max-w-[1920px] mx-auto w-full">
+    <!-- UPDATED: Flex-col on mobile (stacking), Flex-row on desktop. -->
+    <main class="flex-1 flex flex-col lg:flex-row p-3 md:p-5 gap-4 md:gap-6 max-w-[1920px] mx-auto w-full">
         
         <!-- LEFT COLUMN: Inventory Browser -->
-        <div class="flex-1 flex flex-col gap-4 overflow-hidden min-w-0">
+        <div class="flex-1 flex flex-col gap-4 min-w-0 lg:h-full lg:overflow-hidden">
             
             <!-- Header: Filters & Search -->
             <div class="bg-white p-4 rounded-2xl shadow-soft border border-slate-200 flex flex-col md:flex-row gap-3 justify-between items-center z-20">
@@ -114,14 +120,16 @@
                 </div>
             </div>
 
-            <!-- Content Area: List + Detail Overlay -->
-            <div class="flex-1 relative bg-white rounded-2xl shadow-soft border border-slate-200 overflow-hidden flex">
+            <!-- Content Area: List -->
+            <!-- UPDATED: Removed relative absolute positioning for drawer. Drawer is now fixed to body. -->
+            <div class="flex-1 bg-white rounded-2xl shadow-soft border border-slate-200 flex flex-col lg:overflow-hidden min-h-[400px]">
                 
                 <!-- Item List (Grid) -->
-                <div class="w-full h-full overflow-y-auto custom-scroll p-4">
+                <!-- UPDATED: overflow-y-auto only for large screens, otherwise auto height -->
+                <div class="w-full lg:h-full lg:overflow-y-auto custom-scroll p-4">
                     <div id="item-loader" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"></div>
                     
-                    <div id="item-list-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 pb-20 lg:pb-0">
+                    <div id="item-list-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                         <!-- Items injected here -->
                     </div>
                     
@@ -135,69 +143,12 @@
                     </div>
                 </div>
 
-                <!-- Detail Panel (Overlay) -->
-                <div id="detail-panel" class="absolute inset-0 z-30 pointer-events-none flex items-end justify-center lg:items-center lg:justify-end lg:p-4 drawer-closed">
-                    
-                    <!-- Backdrop (Mobile only) -->
-                    <div onclick="closeDetail()" class="absolute inset-0 bg-slate-900/20 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 opacity-0 lg:hidden" id="detail-backdrop"></div>
-
-                    <!-- Panel Card -->
-                    <div class="bg-white w-full lg:w-[400px] h-[85%] lg:h-full lg:max-h-[600px] rounded-t-3xl lg:rounded-3xl shadow-2xl pointer-events-auto flex flex-col overflow-hidden transform transition-all duration-300 border border-slate-100">
-                        
-                        <!-- Panel Header -->
-                        <div class="p-5 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
-                            <div>
-                                <span id="dt-status" class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">Available</span>
-                                <h2 id="dt-name" class="mt-2 text-xl font-extrabold text-slate-800 leading-tight line-clamp-2">Product Name</h2>
-                                <p id="dt-code" class="text-xs font-mono text-slate-400 mt-1 font-semibold">CODE-001</p>
-                            </div>
-                            <button onclick="closeDetail()" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors shadow-sm">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-
-                        <!-- Panel Body -->
-                        <div class="flex-1 overflow-y-auto custom-scroll p-6">
-                            
-                            <!-- Image Container -->
-                            <div class="flex justify-center mb-6">
-                                <div id="dt-image-box" class="w-full h-56 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-center overflow-hidden relative">
-                                    <!-- Image or Icon will be injected here -->
-                                    <i class="fas fa-box text-6xl text-slate-200"></i>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
-                                    <label class="text-[10px] font-bold text-slate-400 uppercase">Current Stock</label>
-                                    <div class="text-2xl font-black text-slate-800 mt-1" id="dt-stock">0</div>
-                                    <div class="text-[10px] font-bold text-brand-600" id="dt-uom">UNIT</div>
-                                </div>
-                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
-                                    <label class="text-[10px] font-bold text-slate-400 uppercase">Withdraw Qty</label>
-                                    <div class="flex items-center justify-between mt-2">
-                                        <button onclick="adjustQty(-1)" class="w-8 h-8 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-100"><i class="fas fa-minus text-xs"></i></button>
-                                        <input type="number" id="dt-qty-input" value="1" class="w-10 bg-transparent text-center font-bold text-lg focus:outline-none" readonly>
-                                        <button onclick="adjustQty(1)" class="w-8 h-8 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-100"><i class="fas fa-plus text-xs"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Panel Footer -->
-                        <div class="p-5 border-t border-slate-100 bg-white">
-                            <button onclick="addToCart()" id="btn-add-cart" class="w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-brand-600 hover:shadow-brand-500/30 transition-all flex items-center justify-center gap-2 transform active:scale-95">
-                                <i class="fas fa-plus-circle"></i> <span>Add to List</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
 
         <!-- RIGHT COLUMN: Transaction Cart -->
-        <div class="w-full lg:w-[400px] flex flex-col gap-4 flex-none h-[400px] lg:h-auto">
+        <!-- UPDATED: height is auto on mobile (grows with content), fixed on desktop -->
+        <div class="w-full lg:w-[400px] flex flex-col gap-4 flex-none lg:h-full">
             
             <!-- User Input Form -->
             <div class="bg-white p-5 rounded-2xl shadow-soft border border-slate-200">
@@ -219,7 +170,7 @@
             </div>
 
             <!-- Cart Items -->
-            <div class="flex-1 bg-white rounded-2xl shadow-soft border border-slate-200 flex flex-col overflow-hidden">
+            <div class="flex-1 bg-white rounded-2xl shadow-soft border border-slate-200 flex flex-col overflow-hidden min-h-[300px]">
                 <div class="p-4 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                     <div class="flex items-center gap-2">
                         <div class="bg-brand-100 text-brand-600 w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold" id="cart-badge">0</div>
@@ -245,6 +196,65 @@
 
         </div>
     </main>
+
+    <!-- DETAIL PANEL (Moved outside Main to be Fixed) -->
+    <!-- UPDATED: class 'fixed' instead of absolute, z-50 to ensure it is on top -->
+    <div id="detail-panel" class="fixed inset-0 pointer-events-none flex items-end justify-center lg:items-center lg:justify-end lg:p-4 drawer-closed">
+                    
+        <!-- Backdrop -->
+        <div onclick="closeDetail()" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm pointer-events-auto transition-opacity duration-300 opacity-0 lg:hidden" id="detail-backdrop"></div>
+
+        <!-- Panel Card -->
+        <div class="bg-white w-full lg:w-[400px] h-[85vh] lg:h-full lg:max-h-[600px] rounded-t-3xl lg:rounded-3xl shadow-2xl pointer-events-auto flex flex-col overflow-hidden transform transition-all duration-300 border border-slate-100 relative z-50">
+            
+            <!-- Panel Header -->
+            <div class="p-5 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
+                <div>
+                    <span id="dt-status" class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">Available</span>
+                    <h2 id="dt-name" class="mt-2 text-xl font-extrabold text-slate-800 leading-tight line-clamp-2">Product Name</h2>
+                    <p id="dt-code" class="text-xs font-mono text-slate-400 mt-1 font-semibold">CODE-001</p>
+                </div>
+                <button onclick="closeDetail()" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors shadow-sm">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Panel Body -->
+            <div class="flex-1 overflow-y-auto custom-scroll p-6">
+                
+                <!-- Image Container -->
+                <div class="flex justify-center mb-6">
+                    <div id="dt-image-box" class="w-full h-56 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-center overflow-hidden relative">
+                        <!-- Image or Icon will be injected here -->
+                        <i class="fas fa-box text-6xl text-slate-200"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Current Stock</label>
+                        <div class="text-2xl font-black text-slate-800 mt-1" id="dt-stock">0</div>
+                        <div class="text-[10px] font-bold text-brand-600" id="dt-uom">UNIT</div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Withdraw Qty</label>
+                        <div class="flex items-center justify-between mt-2">
+                            <button onclick="adjustQty(-1)" class="w-8 h-8 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-100"><i class="fas fa-minus text-xs"></i></button>
+                            <input type="number" id="dt-qty-input" value="1" class="w-10 bg-transparent text-center font-bold text-lg focus:outline-none" readonly>
+                            <button onclick="adjustQty(1)" class="w-8 h-8 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-100"><i class="fas fa-plus text-xs"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Footer -->
+            <div class="p-5 border-t border-slate-100 bg-white">
+                <button onclick="addToCart()" id="btn-add-cart" class="w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-brand-600 hover:shadow-brand-500/30 transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                    <i class="fas fa-plus-circle"></i> <span>Add to List</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- JS Logic -->
     <script>
@@ -342,7 +352,6 @@
             }
         }
 
-        // --- UPDATED RENDER FUNCTION WITH IMAGE SUPPORT ---
         function renderInventory() {
             const container = $('#item-list-container');
             container.empty();
@@ -364,7 +373,7 @@
                     let statusColor = isLow ? 'bg-amber-500' : 'bg-brand-500';
                     if(noStock) statusColor = 'bg-red-500';
 
-                    // IMAGE LOGIC: Check for link, otherwise use icon
+                    // Use Image if available, else Icon
                     let imageHTML;
                     if (item.image_link && item.image_link.trim() !== "") {
                         imageHTML = `<img src="${item.image_link}" class="w-16 h-16 rounded-xl object-cover bg-white border border-slate-100 flex-none" alt="item">`;
@@ -422,7 +431,6 @@
             if(item) openDetail(item);
         }
 
-        // --- UPDATED DETAIL PANEL WITH IMAGE SUPPORT ---
         function openDetail(item) {
             state.selectedItem = item;
             
@@ -432,7 +440,7 @@
             $('#dt-uom').text(item.uom);
             $('#dt-qty-input').val(1);
 
-            // IMAGE LOGIC FOR DETAIL PANEL
+            // Handle Detail Image
             const imgBox = $('#dt-image-box');
             if(item.image_link && item.image_link.trim() !== "") {
                 imgBox.html(`<img src="${item.image_link}" class="w-full h-full object-contain" alt="Product Image">`);
