@@ -395,8 +395,8 @@
 
             resetIdleTimer() {
                 if(this.idleTimeout) clearTimeout(this.idleTimeout);
-                // 10 Minutes = 600,000 ms
-                this.idleTimeout = setTimeout(this.handleAutoLogout, 600000); 
+                // CHANGED: 10000 ms = 10 Seconds
+                this.idleTimeout = setTimeout(this.handleAutoLogout, 10000); 
             }
 
             async handleAutoLogout() {
@@ -404,7 +404,7 @@
                 await Swal.fire({
                     icon: 'warning',
                     title: 'Session Expired',
-                    text: 'You have been logged out due to inactivity (10 mins).',
+                    text: 'You have been logged out due to inactivity (10 seconds).',
                     timer: 5000,
                     timerProgressBar: true,
                     confirmButtonText: 'Log In Again',
