@@ -115,7 +115,7 @@
                 <span id="date-display" class="text-[10px] text-slate-400 font-bold uppercase">Loading...</span>
             </div>
             
-            <!-- LOGOUT BUTTON (Controlled by AuthExtension) -->
+            <!-- LOGOUT BUTTON -->
             <button id="logout-btn" class="hidden items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all text-xs font-bold shadow-sm">
                 <span>Log Out</span>
                 <i class="fas fa-sign-out-alt"></i>
@@ -331,15 +331,20 @@
             txRef: ''
         };
 
-        // --- AUTH EXTENSION CLASS ---
+        // --- AUTH EXTENSION CLASS WITH IDLE TIMER ---
         class AuthExtension {
             constructor() {
                 this.state = { user: null, view: 'LOGIN', error: null };
+                this.idleTimeout = null;
+                
+                // Bind methods
                 this.init = this.init.bind(this);
                 this.render = this.render.bind(this);
                 this.handleLogin = this.handleLogin.bind(this);
                 this.handleRegister = this.handleRegister.bind(this);
                 this.handleLogout = this.handleLogout.bind(this);
+                this.handleAutoLogout = this.handleAutoLogout.bind(this);
+                this.resetIdleTimer = this.resetIdleTimer.bind(this);
             }
 
             async init() {
@@ -350,11 +355,13 @@
                     this.lockInterface();
                     this.render();
                 }
+
                 sb.auth.onAuthStateChange(async (_event, session) => {
                     if (session) {
                         this.handleSessionSuccess(session.user);
                     } else {
                         this.state.user = null;
+                        this.stopIdleTimer(); // Stop timer on logout
                         this.lockInterface();
                         this.setState({ view: 'LOGIN', error: null });
                         $('#logout-btn').addClass('hidden').off('click');
@@ -367,18 +374,55 @@
                 const meta = user.user_metadata || {};
                 this.fillFormFields(meta.full_name, meta.department);
                 this.unlockInterface();
+                this.startIdleTimer(); // Start tracking inactivity
             }
 
+            // --- IDLE TIMER LOGIC ---
+            startIdleTimer() {
+                // Attach events
+                ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
+                    $(document).on(evt, this.resetIdleTimer);
+                });
+                this.resetIdleTimer(); // Start initial countdown
+            }
+
+            stopIdleTimer() {
+                if(this.idleTimeout) clearTimeout(this.idleTimeout);
+                ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
+                    $(document).off(evt, this.resetIdleTimer);
+                });
+            }
+
+            resetIdleTimer() {
+                if(this.idleTimeout) clearTimeout(this.idleTimeout);
+                // 10 Minutes = 600,000 ms
+                this.idleTimeout = setTimeout(this.handleAutoLogout, 600000); 
+            }
+
+            async handleAutoLogout() {
+                this.stopIdleTimer(); // Stop listening
+                await Swal.fire({
+                    icon: 'warning',
+                    title: 'Session Expired',
+                    text: 'You have been logged out due to inactivity (10 mins).',
+                    timer: 5000,
+                    timerProgressBar: true,
+                    confirmButtonText: 'Log In Again',
+                    confirmButtonColor: '#334155'
+                });
+                await sb.auth.signOut();
+                location.reload();
+            }
+
+            // --- UI & AUTH HELPERS ---
             fillFormFields(name, department) {
                 const nameInput = $('#inp-name');
                 const deptSelect = $('#inp-dept');
                 
-                // 1. Auto-fill Name and Lock
                 if (name) {
                     nameInput.val(name).prop('readonly', true).addClass('bg-slate-100 text-slate-500 cursor-not-allowed').removeClass('focus:bg-white');
                 }
 
-                // 2. Auto-Select Department (Using Observer to wait for API data)
                 if (department) {
                     if (deptSelect.find('option').length > 1) {
                         deptSelect.val(department);
@@ -408,7 +452,7 @@
                 const email = $('#reg-email').val();
                 const password = $('#reg-pass').val();
                 const fullName = $('#reg-name').val();
-                const department = $('#reg-dept').val(); // Capture Department
+                const department = $('#reg-dept').val();
                 
                 if(!email || !password || !fullName || !department) return this.setState({ view: 'REGISTER', error: "All fields are required" });
                 if(password.length < 6) return this.setState({ view: 'REGISTER', error: "Password must be 6+ chars" });
@@ -422,12 +466,11 @@
                     this.setState({ view: 'REGISTER', error: error.message });
                 } else {
                     Swal.fire({ icon: 'success', title: 'Account Created', text: 'Logging in...', timer: 1500, showConfirmButton: false });
-                    // Auth state change will handle unlocking
                 }
             }
 
             async handleLogout() {
-                // Logout Confirmation with Loading State
+                this.stopIdleTimer(); // Stop timer before manual logout
                 Swal.fire({
                     title: 'Logging out...',
                     timer: 800,
@@ -451,8 +494,6 @@
             unlockInterface() {
                 $('#auth-root').empty();
                 $('body').removeClass('auth-locked');
-                
-                // --- UNHIDE AND BIND LOGOUT BUTTON ---
                 $('#logout-btn').removeClass('hidden').addClass('flex').off('click').on('click', this.handleLogout);
             }
 
