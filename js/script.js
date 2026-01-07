@@ -1,4 +1,5 @@
-// --- CONFIGURATION ---
+
+
 const SB_URL = 'https://agggkqvbnotpborqcitx.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZ2drcXZibm90cGJvcnFjaXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwODYxNjgsImV4cCI6MjA4MTY2MjE2OH0.XJHmLfRRJHVhsrImqnRpdwt7eN4eiO1VGk6B68uG5oo';
 
@@ -16,7 +17,7 @@ let wrCart = [];
 // Utilities
 const escapeHTML = (str) => String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
 const formatNum = (num) => new Intl.NumberFormat('en-US').format(num);
-const formatMoney = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+const formatMoney = (num) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(num);
 const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString() : '-';
 
 // --- INITIALIZATION ---
@@ -525,11 +526,23 @@ async function getPRs() {
     const { data } = await supabaseClient.from('purchase_requests').select(`*, pr_items(*)`).order('created_at', {ascending:false}).limit(50);
     prCache = data || [];
     let rowsHtml = '';
+    
+    // Yearly Total Calculation
+    const currentYear = new Date().getFullYear();
+    let yearTotal = 0;
 
     if(!prCache.length) rowsHtml = '<tr><td colspan="16" class="p-4 text-center text-slate-400">No records found.</td></tr>';
     else {
         // Flat map: One row per item to show images clearly
         prCache.forEach(pr => {
+            // Logic for yearly total: Check year and exclude Cancelled
+            const prYear = new Date(pr.created_at).getFullYear();
+            if(prYear === currentYear && pr.status !== 'Cancel' && pr.pr_items) {
+                 pr.pr_items.forEach(item => {
+                     yearTotal += (item.quantity_requested || 0) * (item.unit_price || 0);
+                 });
+            }
+
             if (pr.pr_items && pr.pr_items.length > 0) {
                 pr.pr_items.forEach((item, idx) => {
                     const invItem = invCache.find(i => i.material_code === item.material_code) || {};
@@ -581,6 +594,7 @@ async function getPRs() {
                              <div class="flex flex-col items-end gap-1">
                                 ${['Received','Cancel'].includes(pr.status) === false ? actionStatus : ''}
                                 <div class="flex gap-1">
+                                    <button onclick="viewPRDetails('${pr.pr_id}')" class="text-royal-600 hover:text-royal-800 p-1" title="View Details"><i class="fas fa-eye"></i></button>
                                     <button onclick="editPR('${pr.pr_id}')" class="text-amber-500 hover:text-amber-700 p-1" title="Edit" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-edit"></i></button>
                                     <button onclick="deletePR('${pr.pr_id}')" class="text-red-500 hover:text-red-700 p-1" title="Delete" ${pr.status!=='Pending'?'disabled class="opacity-30 cursor-not-allowed"':''}><i class="fas fa-trash-alt"></i></button>
                                 </div>
@@ -593,6 +607,8 @@ async function getPRs() {
         });
     }
     $('#tbl-pr').html(rowsHtml);
+    // Update Total Value Display
+    $('#pr-total-value').text(formatMoney(yearTotal));
 }
 
 async function getWRs() {
@@ -670,6 +686,122 @@ async function getWRs() {
 }
 
 // --- HELPER ACTIONS ---
+
+function viewPRDetails(id) {
+    const pr = prCache.find(p => p.pr_id == id);
+    if(!pr) return Swal.fire('Error', 'Record missing', 'error');
+
+    let badgeClass = 'bg-slate-100 text-slate-700'; 
+    if(pr.status === 'Processing') badgeClass = 'bg-blue-100 text-blue-700';
+    if(pr.status === 'For Withdrawal') badgeClass = 'bg-purple-100 text-purple-700';
+    if(pr.status === 'Withdrawn') badgeClass = 'bg-orange-100 text-orange-700';
+    if(pr.status === 'Received') badgeClass = 'bg-emerald-100 text-emerald-700';
+    if(pr.status === 'Cancel') badgeClass = 'bg-red-100 text-red-700';
+
+    let totalPrValue = 0;
+    
+    // Build Item Table
+    let itemsRows = pr.pr_items.map(item => {
+        const invItem = invCache.find(i => i.material_code === item.material_code) || {};
+        const lineTotal = (item.quantity_requested || 0) * (item.unit_price || 0);
+        totalPrValue += lineTotal;
+
+        // Render Image with Lightbox
+        const imgDisplay = (invItem.image_link) 
+            ? `<img src="${invItem.image_link}" class="w-10 h-10 object-cover rounded border border-slate-200 cursor-pointer hover:scale-110 transition" onclick="openLightbox('${invItem.image_link}')">`
+            : `<div class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center text-slate-300 border border-slate-200"><i class="fas fa-cube"></i></div>`;
+
+        return `
+            <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <td class="p-2 text-center">${imgDisplay}</td>
+                <td class="p-2 text-xs font-mono font-bold text-royal-700">${escapeHTML(item.material_code)}</td>
+                <td class="p-2 text-xs text-left">${escapeHTML(invItem.description || '-')}</td>
+                <td class="p-2 text-xs font-mono">${escapeHTML(item.part_number || '-')}</td>
+                <td class="p-2 text-xs font-bold text-center">${formatNum(item.quantity_requested)}</td>
+                <td class="p-2 text-xs text-right text-slate-500">${formatMoney(item.unit_price)}</td>
+                <td class="p-2 text-xs text-right font-bold text-slate-700">${formatMoney(lineTotal)}</td>
+            </tr>
+        `;
+    }).join('');
+
+    // Modal Content HTML
+    const content = `
+        <div class="text-left">
+            <div class="grid grid-cols-2 gap-4 mb-4 bg-slate-50 p-3 rounded border border-slate-200 text-sm">
+                <div><span class="text-slate-500 block text-xs">PR Number</span><span class="font-mono font-bold text-lg text-royal-700">${escapeHTML(pr.pr_number)}</span></div>
+                <div class="text-right"><span class="text-slate-500 block text-xs">Current Status</span><span class="px-2 py-1 rounded text-xs uppercase font-bold ${badgeClass}">${pr.status}</span></div>
+                
+                <div><span class="text-slate-500 block text-xs">Requester</span><span class="font-medium">${escapeHTML(pr.requester_name)}</span></div>
+                <div><span class="text-slate-500 block text-xs">Purchaser</span><span class="font-medium">${escapeHTML(pr.purchaser || '-')}</span></div>
+
+                <div><span class="text-slate-500 block text-xs">ARF Number</span><span class="font-mono">${escapeHTML(pr.arf_number || '-')}</span></div>
+                <div><span class="text-slate-500 block text-xs">GL Account</span><span class="font-mono">${escapeHTML(pr.gl_account || '-')}</span></div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 mb-4 text-xs text-center">
+                <div class="bg-white border border-slate-200 p-2 rounded">
+                    <span class="block text-slate-400 mb-1">Created</span>
+                    <span class="font-bold text-slate-700">${formatDate(pr.created_at)}</span>
+                </div>
+                <div class="bg-white border border-slate-200 p-2 rounded">
+                    <span class="block text-amber-500 mb-1">Expected</span>
+                    <span class="font-bold text-slate-700">${formatDate(pr.expected_date)}</span>
+                </div>
+                <div class="bg-white border border-slate-200 p-2 rounded">
+                    <span class="block text-blue-500 mb-1">Processed</span>
+                    <span class="font-bold text-slate-700">${formatDate(pr.date_processed)}</span>
+                </div>
+                <div class="bg-white border border-slate-200 p-2 rounded">
+                    <span class="block text-emerald-500 mb-1">Received</span>
+                    <span class="font-bold text-slate-700">${formatDate(pr.date_received)}</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <span class="text-slate-500 text-xs font-bold uppercase tracking-wider block mb-1">Remarks</span>
+                <div class="p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-slate-700 italic min-h-[40px]">
+                    ${escapeHTML(pr.remarks || 'No remarks provided.')}
+                </div>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-200 rounded">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-100 text-xs font-bold text-slate-500 uppercase border-b border-slate-200">
+                        <tr>
+                            <th class="p-2 text-center w-12">Img</th>
+                            <th class="p-2">Material</th>
+                            <th class="p-2">Description</th>
+                            <th class="p-2">Part No</th>
+                            <th class="p-2 text-center">Qty</th>
+                            <th class="p-2 text-right">Price</th>
+                            <th class="p-2 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsRows}
+                    </tbody>
+                    <tfoot class="bg-slate-50 border-t border-slate-200">
+                        <tr>
+                            <td colspan="6" class="p-2 text-right text-xs font-bold text-slate-500 uppercase">Grand Total</td>
+                            <td class="p-2 text-right text-sm font-bold text-royal-700">${formatMoney(totalPrValue)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    `;
+
+    Swal.fire({
+        title: '',
+        html: content,
+        width: '800px',
+        showConfirmButton: false,
+        showCloseButton: true,
+        customClass: {
+            popup: 'rounded-lg shadow-xl'
+        }
+    });
+}
 
 async function editPR(id) {
     const pr = prCache.find(p => p.pr_id == id);
