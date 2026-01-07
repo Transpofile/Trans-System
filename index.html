@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -94,7 +96,9 @@
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded bg-royal-700 flex items-center justify-center text-white font-bold">A</div>
                 <div class="text-sm">
-                    <div class="text-white font-medium">Admin User</div>
+                    <div class="text-white font-medium"><a href="#" id="logoutBtn" class="nav-link">
+    <span>Sign Out</span>
+</a></div>
                     <div class="text-xs text-emerald-500">● Online</div>
                 </div>
             </div>
@@ -193,11 +197,20 @@
 
             <!-- PURCHASE PAGE -->
             <div id="purchase" class="page-section hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="page-title">Stock Inbound (PR)</h1>
-                    <button onclick="openModal('m-create-pr')" class="btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-700">
-                        <i class="fas fa-plus mr-2"></i> Create PR
-                    </button>
+                <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
+                    <div>
+                        <h1 class="page-title">Stock Inbound (PR)</h1>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <!-- YTD Total Value Display -->
+                        <div class="bg-white p-3 rounded shadow-sm border-l-4 border-emerald-500 flex flex-col items-end min-w-[150px]">
+                            <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">2026 Total Value</span>
+                            <span class="text-xl font-bold text-emerald-700" id="pr-total-value">₱0.00</span>
+                        </div>
+                        <button onclick="openModal('m-create-pr')" class="btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-700 h-10">
+                            <i class="fas fa-plus mr-2"></i> Create PR
+                        </button>
+                    </div>
                 </div>
                 <div class="card overflow-hidden">
                     <div class="overflow-x-auto">
@@ -659,9 +672,9 @@
     </div>
 
     <!-- External Script Reference -->
-	<script src="js/auth.js"></script>
 	<script src="js/inventorymanagement.js"></script>
     <script src="js/script.js"></script>
+	<script src="js/auth.js"></script>
     <script src="js/disposal.js"></script>
 </body>
 </html>
