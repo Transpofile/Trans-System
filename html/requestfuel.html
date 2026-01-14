@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Request System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        .modal-open { overflow: hidden; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-20">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <span class="font-bold text-xl text-slate-900 tracking-tight hidden sm:block">Fuel<span class="text-indigo-600">Master</span></span>
+                </div>
+                <div class="flex items-center">
+                    <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-200 flex items-center gap-2 transform active:scale-95">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        New Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase">Requests</p>
+                    <p class="text-2xl font-bold text-slate-800" id="statCount">0</p>
+                </div>
+            </div>
+            
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="p-3 bg-indigo-50 text-indigo-600 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase">Total Fuel Distributed</p>
+                    <p class="text-2xl font-bold text-indigo-600" id="statFuel">0 L</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-full">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase">Est. Cost</p>
+                    <p class="text-2xl font-bold text-emerald-600" id="statCost">$0.00</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+            <div class="relative w-full md:w-80">
+                <input type="text" id="searchInput" onkeyup="renderContent()" placeholder="Search Plate, Driver, Code..." class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-sm">
+                <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+
+            <div class="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                <button onclick="setView('grid')" id="btnGrid" class="px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    Grid
+                </button>
+                <button onclick="setView('list')" id="btnList" class="px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    List
+                </button>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="contentContainer" class="fade-in min-h-[300px]"></div>
+
+    </main>
+
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all">
+                <div class="flex justify-between items-center p-6 border-b border-slate-100">
+                    <h3 class="text-xl font-bold text-slate-800" id="modalTitle">New Fuel Request</h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <form id="fuelForm" onsubmit="handleSubmit(event)" class="p-6">
+                    <input type="hidden" id="requestId">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- Vehicle ID Section -->
+                        <div class="col-span-full bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v3.283a2 2 0 00.18.94l0.5.833m4.444-4.526a2.3 2.3 0 00-2.722 0M21 16v-2.571a2.3 2.3 0 00-.663-1.615l-3.328-3.329A2.3 2.3 0 0015.393 7.5H15M9 17l1 1h4l1-1"></path></svg>
+                                Vehicle Identification
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Plate Number <span class="text-red-500">*</span></label>
+                                    <input type="text" id="plateNumber" required onkeyup="calculateAccumulated()" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none uppercase" placeholder="ABC-1234">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Vehicle Code</label>
+                                    <input type="text" id="vehicleCode" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="V-01">
+                                </div>
+                                <div class="col-span-full">
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Vehicle Model/Name</label>
+                                    <input type="text" id="vehicleName" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Toyota Hilux">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fuel Calculation Section (The core requirement) -->
+                        <div class="col-span-full bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                            <h4 class="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                                Fuel Calculation (Automatic)
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Current Request (L) <span class="text-red-500">*</span></label>
+                                    <input type="number" id="liters" required step="0.1" min="0" oninput="calculateAccumulated()" class="w-full px-3 py-2 rounded-lg border border-indigo-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-indigo-900 font-bold" placeholder="0.0">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Previous Total (L)</label>
+                                    <input type="text" id="previousLiters" readonly class="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-500 cursor-not-allowed" value="0">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-indigo-600 mb-1">New Lifetime Total (L)</label>
+                                    <input type="text" id="accumulatedLiters" readonly class="w-full px-3 py-2 rounded-lg bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold cursor-not-allowed" value="0">
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-indigo-500 mt-2">* System automatically adds current request to vehicle's history.</p>
+                        </div>
+
+                        <!-- Driver & Cost Info -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Driver Name</label>
+                            <input type="text" id="driverName" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Est. Total Cost ($)</label>
+                            <input type="number" id="totalCost" required step="0.01" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="0.00">
+                        </div>
+                        <div class="col-span-full">
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Date & Time</label>
+                            <input type="datetime-local" id="dateRequested" required class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Image Upload -->
+                        <div class="col-span-full border-t border-slate-100 pt-4">
+                            <label class="block text-xs font-semibold text-slate-500 mb-2">Vehicle/Receipt Image</label>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="imgType" value="url" checked onclick="toggleImg('url')" class="text-indigo-600">
+                                    <span class="text-sm">Link</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="imgType" value="file" onclick="toggleImg('file')" class="text-indigo-600">
+                                    <span class="text-sm">Upload</span>
+                                </label>
+                            </div>
+                            <div class="mt-2">
+                                <input type="url" id="imgUrl" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none text-sm" placeholder="https://...">
+                                <input type="file" id="imgFile" class="hidden w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept="image/*" onchange="handleFile(this)">
+                            </div>
+                            <div id="previewBox" class="mt-3 hidden">
+                                <img id="previewImg" src="" class="h-20 w-auto rounded border border-slate-200">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium">Cancel</button>
+                        <button type="submit" class="px-6 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-md text-sm font-medium">Save Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-4 right-4 translate-y-24 opacity-0 transition-all duration-300 z-50 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+        <span id="toastMsg" class="font-medium text-sm">Notification</span>
+    </div>
+
+    <script>
+        // --- Configuration & State ---
+        const STORAGE_KEY = 'fuel_system_db';
+        const VIEW_KEY = 'fuel_view_pref';
+        const PRICE_PER_LITER = 1.50; // Base price for auto calculation
+
+        let requests = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        let viewMode = localStorage.getItem(VIEW_KEY) || 'grid';
+        let tempBase64 = null;
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setView(viewMode);
+            updateStats();
+        });
+
+        // --- Core Logic: The Automatic Fuel Accumulation ---
+        function calculateAccumulated() {
+            const plate = document.getElementById('plateNumber').value.trim().toUpperCase();
+            const currentReqLiters = parseFloat(document.getElementById('liters').value) || 0;
+            const currentReqId = document.getElementById('requestId').value;
+
+            // 1. Calculate Cost based on current request
+            const cost = currentReqLiters * PRICE_PER_LITER;
+            document.getElementById('totalCost').value = cost.toFixed(2);
+
+            // 2. Find History for this vehicle
+            // Filter out the current request ID (in case we are editing) to avoid double counting
+            const history = requests.filter(r => 
+                r.plateNumber.toUpperCase() === plate && r.id !== currentReqId
+            );
+
+            // 3. Sum previous liters
+            const previousTotal = history.reduce((sum, r) => sum + parseFloat(r.liters), 0);
+
+            // 4. Calculate New Lifetime Total
+            const newTotal = previousTotal + currentReqLiters;
+
+            // 5. Update UI
+            document.getElementById('previousLiters').value = previousTotal.toFixed(1);
+            document.getElementById('accumulatedLiters').value = newTotal.toFixed(1);
+        }
+
+        // --- CRUD Operations ---
+        function handleSubmit(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('requestId').value;
+            const imgType = document.querySelector('input[name="imgType"]:checked').value;
+            
+            // Determine Image
+            let finalImg = '';
+            if(imgType === 'url') finalImg = document.getElementById('imgUrl').value;
+            else if(tempBase64) finalImg = tempBase64;
+            else if(id) {
+                const existing = requests.find(r => r.id === id);
+                if(existing) finalImg = existing.image;
+            }
+
+            const newRequest = {
+                id: id || Date.now().toString(),
+                plateNumber: document.getElementById('plateNumber').value.toUpperCase(),
+                vehicleCode: document.getElementById('vehicleCode').value,
+                vehicleName: document.getElementById('vehicleName').value,
+                driverName: document.getElementById('driverName').value,
+                liters: parseFloat(document.getElementById('liters').value),
+                // We store the vehicle accumulated total at this moment in time for record keeping
+                accumulatedAtTime: parseFloat(document.getElementById('accumulatedLiters').value),
+                totalCost: parseFloat(document.getElementById('totalCost').value),
+                dateRequested: document.getElementById('dateRequested').value,
+                image: finalImg
+            };
+
+            if(id) {
+                const index = requests.findIndex(r => r.id === id);
+                requests[index] = newRequest;
+                showToast('Request Updated');
+            } else {
+                requests.push(newRequest);
+                showToast('Request Added');
+            }
+
+            save();
+            closeModal();
+            renderContent();
+            updateStats();
+        }
+
+        function deleteItem(id) {
+            if(confirm('Are you sure? This will affect vehicle history calculations.')) {
+                requests = requests.filter(r => r.id !== id);
+                save();
+                renderContent();
+                updateStats();
+                showToast('Deleted');
+            }
+        }
+
+        function editItem(id) {
+            const r = requests.find(item => item.id === id);
+            if(!r) return;
+
+            document.getElementById('requestId').value = r.id;
+            document.getElementById('plateNumber').value = r.plateNumber;
+            document.getElementById('vehicleCode').value = r.vehicleCode;
+            document.getElementById('vehicleName').value = r.vehicleName;
+            document.getElementById('driverName').value = r.driverName;
+            document.getElementById('liters').value = r.liters;
+            document.getElementById('totalCost').value = r.totalCost;
+            document.getElementById('dateRequested').value = r.dateRequested;
+
+            // Trigger calculation to populate previous/accumulated fields
+            calculateAccumulated();
+
+            if(r.image && r.image.startsWith('data:')) {
+                document.querySelector('input[name="imgType"][value="file"]').click();
+                tempBase64 = r.image;
+                document.getElementById('previewImg').src = r.image;
+                document.getElementById('previewBox').classList.remove('hidden');
+            } else {
+                document.querySelector('input[name="imgType"][value="url"]').click();
+                document.getElementById('imgUrl').value = r.image;
+            }
+
+            document.getElementById('modalTitle').innerText = 'Edit Request';
+            openModal();
+        }
+
+        // --- UI & Rendering ---
+        function renderContent() {
+            const container = document.getElementById('contentContainer');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            // Filter and Sort (Newest first)
+            const filtered = requests.filter(r => 
+                r.plateNumber.toLowerCase().includes(search) || 
+                r.driverName.toLowerCase().includes(search) ||
+                r.vehicleCode.toLowerCase().includes(search)
+            ).sort((a,b) => new Date(b.dateRequested) - new Date(a.dateRequested));
+
+            container.innerHTML = '';
+
+            if(filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-20 text-slate-400">No records found.</div>`;
+                return;
+            }
+
+            if(viewMode === 'grid') {
+                renderGrid(filtered, container);
+            } else {
+                renderList(filtered, container);
+            }
+        }
+
+        function renderGrid(data, container) {
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+            
+            data.forEach(r => {
+                const img = r.image || 'https://via.placeholder.com/400x200?text=No+Image';
+                // Calculate historical total dynamically for display if not stored, 
+                // but we prefer stored 'accumulatedAtTime' if available, otherwise calc on fly
+                const displayTotal = r.accumulatedAtTime ? r.accumulatedAtTime.toFixed(1) : 'N/A';
+
+                grid.innerHTML += `
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                        <div class="h-40 bg-slate-100 relative">
+                            <img src="${img}" class="w-full h-full object-cover">
+                            <div class="absolute top-2 right-2 bg-slate-900/80 text-white text-xs font-bold px-2 py-1 rounded backdrop-blur">
+                                ${r.plateNumber}
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-bold text-slate-800">${r.vehicleName}</h3>
+                                    <p class="text-xs text-slate-500">${r.vehicleCode}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-indigo-600">+${r.liters} L</p>
+                                    <p class="text-[10px] text-slate-400">Current Req</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-3 border-t border-slate-50 space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-500">Driver:</span>
+                                    <span class="font-medium text-slate-700">${r.driverName}</span>
+                                </div>
+                                <div class="flex justify-between text-sm bg-indigo-50 p-2 rounded">
+                                    <span class="text-indigo-600 font-medium">Vehicle Lifetime:</span>
+                                    <span class="font-bold text-indigo-700">${displayTotal} L</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-slate-400 mt-2">
+                                    <span>${new Date(r.dateRequested).toLocaleDateString()}</span>
+                                    <span>$${r.totalCost.toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 flex gap-2">
+                                <button onclick="editItem('${r.id}')" class="flex-1 py-1.5 text-xs font-medium bg-slate-50 hover:bg-slate-100 text-slate-600 rounded border border-slate-200">Edit</button>
+                                <button onclick="deleteItem('${r.id}')" class="flex-1 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded border border-red-100">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.appendChild(grid);
+        }
+
+        function renderList(data, container) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden overflow-x-auto';
+            
+            let rows = '';
+            data.forEach(r => {
+                const img = r.image || 'https://via.placeholder.com/100?text=IMG';
+                const displayTotal = r.accumulatedAtTime ? r.accumulatedAtTime.toFixed(1) : '-';
+
+                rows += `
+                    <tr class="hover:bg-slate-50 border-b border-slate-50 last:border-0">
+                        <td class="p-4 w-16"><img src="${img}" class="w-10 h-10 rounded object-cover border"></td>
+                        <td class="p-4 whitespace-nowrap">
+                            <div class="font-bold text-sm text-slate-800">${r.plateNumber}</div>
+                            <div class="text-xs text-slate-500">${r.vehicleName}</div>
+                        </td>
+                        <td class="p-4 text-sm text-slate-600 whitespace-nowrap">${r.driverName}</td>
+                        <td class="p-4 whitespace-nowrap">
+                            <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">+${r.liters} L</span>
+                        </td>
+                        <td class="p-4 whitespace-nowrap">
+                            <div class="flex items-center gap-1 text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded w-fit">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                Total: ${displayTotal} L
+                            </div>
+                        </td>
+                        <td class="p-4 text-sm text-slate-600 whitespace-nowrap">$${r.totalCost.toFixed(2)}</td>
+                        <td class="p-4 text-xs text-slate-400 whitespace-nowrap">${new Date(r.dateRequested).toLocaleDateString()}</td>
+                        <td class="p-4 text-right whitespace-nowrap">
+                            <button onclick="editItem('${r.id}')" class="text-blue-600 hover:underline text-xs mr-3">Edit</button>
+                            <button onclick="deleteItem('${r.id}')" class="text-red-500 hover:underline text-xs">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            wrapper.innerHTML = `
+                <table class="w-full text-left min-w-[800px]">
+                    <thead class="bg-slate-50 text-xs uppercase text-slate-400 font-semibold">
+                        <tr>
+                            <th class="p-4">Img</th>
+                            <th class="p-4">Vehicle</th>
+                            <th class="p-4">Driver</th>
+                            <th class="p-4">Request</th>
+                            <th class="p-4">Lifetime Fuel</th>
+                            <th class="p-4">Cost</th>
+                            <th class="p-4">Date</th>
+                            <th class="p-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+            container.appendChild(wrapper);
+        }
+
+        // --- Helpers ---
+        function updateStats() {
+            const totalFuel = requests.reduce((sum, r) => sum + parseFloat(r.liters), 0);
+            const totalCost = requests.reduce((sum, r) => sum + parseFloat(r.totalCost), 0);
+            
+            animateValue('statCount', parseInt(document.getElementById('statCount').innerText), requests.length, 500);
+            document.getElementById('statFuel').innerText = totalFuel.toFixed(1) + ' L';
+            document.getElementById('statCost').innerText = '$' + totalCost.toFixed(2);
+        }
+
+        function setView(mode) {
+            viewMode = mode;
+            localStorage.setItem(VIEW_KEY, mode);
+            
+            const active = 'bg-indigo-100 text-indigo-700';
+            const inactive = 'text-slate-600 hover:bg-slate-50';
+            
+            document.getElementById('btnGrid').className = `px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2 ${mode === 'grid' ? active : inactive}`;
+            document.getElementById('btnList').className = `px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2 ${mode === 'list' ? active : inactive}`;
+            
+            renderContent();
+        }
+
+        function openModal() {
+            document.getElementById('modal').classList.remove('hidden');
+            document.body.classList.add('modal-open');
+            // Default Date
+            if(!document.getElementById('requestId').value) {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                document.getElementById('dateRequested').value = now.toISOString().slice(0,16);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            document.body.classList.remove('modal-open');
+            document.getElementById('fuelForm').reset();
+            document.getElementById('requestId').value = '';
+            document.getElementById('modalTitle').innerText = 'New Fuel Request';
+            document.getElementById('previewBox').classList.add('hidden');
+            tempBase64 = null;
+            document.querySelector('input[name="imgType"][value="url"]').click();
+            // Reset readonly fields
+            document.getElementById('previousLiters').value = '0';
+            document.getElementById('accumulatedLiters').value = '0';
+        }
+
+        function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(requests)); }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            t.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-y-24', 'opacity-0'), 3000);
+        }
+
+        // --- Image Handling ---
+        function toggleImg(type) {
+            if(type === 'url') {
+                document.getElementById('imgUrl').classList.remove('hidden');
+                document.getElementById('imgFile').classList.add('hidden');
+            } else {
+                document.getElementById('imgUrl').classList.add('hidden');
+                document.getElementById('imgFile').classList.remove('hidden');
+            }
+        }
+
+        function handleFile(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    tempBase64 = e.target.result;
+                    document.getElementById('previewImg').src = tempBase64;
+                    document.getElementById('previewBox').classList.remove('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function animateValue(id, start, end, duration) {
+            if (start === end) return;
+            const range = end - start;
+            let current = start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            const obj = document.getElementById(id);
+            const timer = setInterval(function() {
+                current += increment;
+                obj.innerHTML = current;
+                if (current == end) clearInterval(timer);
+            }, stepTime > 0 ? stepTime : 10);
+        }
+
+        // Close modal on outside click
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modal')) closeModal();
+        });
+    </script>
+</body>
+</html>
