@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,6 +63,12 @@
 
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+
+            <div class="px-3 mb-2 mt-6 text-[10px] font-bold uppercase tracking-wider text-slate-500">Main Page</div>
+            <a href="../../Trans-System.html" onclick="nav('settings')" class="nav-link"  style="background:red; padding:1%;color:black;">
+              <span>⬅ Back to Mainpage</span>
+            </a>
+
             <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Overview</div>
             <a href="#" onclick="nav('dashboard')" class="nav-link active">
                 <i class="fas fa-chart-pie w-6"></i> <span>Dashboard</span>
@@ -89,6 +94,19 @@
             <a href="#" onclick="nav('settings')" class="nav-link">
                 <i class="fas fa-database w-6"></i> <span>Master Data</span>
             </a>
+            <div class="px-3 mb-2 mt-6 text-[10px] font-bold uppercase tracking-wider text-slate-500">Maintenance Order</div>
+            <a href="joborders.html" onclick="nav('settings')" class="nav-link">
+                <i class="fas fa-database w-6"></i> <span>Job Orders</span>
+            </a>
+
+            
+            <!-- NEW SIDEBAR LINK -->
+            <a href="#" onclick="nav('material-exit-logs'); loadExitLogs();" class="nav-link">
+                <i class="fas fa-print w-6 text-purple-500"></i> <span>Material Exit Logs</span>
+            </a>
+            
+
+
         </nav>
 
         <!-- User Profile Stub -->
@@ -131,7 +149,7 @@
                         <div class="text-2xl font-bold text-red-600" id="d-low">0</div>
                     </div>
                     <div class="card p-5 border-l-4 border-amber-500">
-                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Departments</div>
+                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Designation</div>
                         <div class="text-2xl font-bold text-slate-800" id="d-depts">0</div>
                     </div>
                 </div>
@@ -296,12 +314,12 @@
                                 <div>
                                     <label class="label">Waste Type</label>
                                     <select id="disp-type" class="form-select w-full">
-                                        <option value="Biodegradable Waste">Biodegradable Waste</option>
-                                        <option value="Non-Biodegradable Waste">Non-Biodegradable Waste</option>
+                                        <option value="Recyclable Waste">Recyclable Waste</option>
+                                        <option value="Residual Waste">Residual Waste</option>
                                         <option value="Hazardous Waste">Hazardous Waste</option>
-                                        <option value="Non-Hazardous Waste">Non-Hazardous Waste</option>
-                                        <option value="Combustible Waste">Combustible Waste</option>
-                                        <option value="Non-Combustible Waste">Non-Combustible Waste</option>
+                                        <option value="Compostable Waste">Compostable Waste</option>
+                                        <option value="Food Waste">Food Waste</option>
+                                        <option value="Others">Others</option>
                                         <option value="Biomedical/Healthcare Waste">Biomedical/Healthcare Waste</option>
                                         <option value="Construction & Demolition (C&D) Waste">Construction & Demolition (C&D) Waste</option>
                                     </select>
@@ -359,7 +377,7 @@
                     <div class="flex border-b border-slate-200 mb-6">
                         <button onclick="switchTab('tab-cat')" class="px-6 py-3 font-medium text-slate-500 hover:text-royal-600 border-b-2 border-transparent hover:border-royal-300 focus:outline-none active-tab">Categories</button>
                         <button onclick="switchTab('tab-uom')" class="px-6 py-3 font-medium text-slate-500 hover:text-royal-600 border-b-2 border-transparent hover:border-royal-300 focus:outline-none">Units (UoM)</button>
-                        <button onclick="switchTab('tab-dept')" class="px-6 py-3 font-medium text-slate-500 hover:text-royal-600 border-b-2 border-transparent hover:border-royal-300 focus:outline-none">Departments</button>
+                        <button onclick="switchTab('tab-dept')" class="px-6 py-3 font-medium text-slate-500 hover:text-royal-600 border-b-2 border-transparent hover:border-royal-300 focus:outline-none">Designations</button>
                     </div>
 
                     <div id="tab-cat" class="tab-content">
@@ -379,7 +397,7 @@
                     </div>
                     <div id="tab-dept" class="tab-content hidden">
                         <div class="flex gap-2 mb-4 bg-slate-50 p-4 rounded border border-slate-200">
-                            <input id="new-dept-name" placeholder="Department Name" class="form-input flex-1">
+                            <input id="new-dept-name" placeholder="Designation" class="form-input flex-1">
                             <button onclick="addMaster('departments', 'new-dept-name')" class="btn-primary">Add</button>
                         </div>
                         <ul id="list-departments" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></ul>
@@ -522,12 +540,18 @@
                         <label class="label">Purchaser</label>
                         <input id="pr-purchaser" class="form-input w-full">
                     </div>
+                    <!-- UPDATED: Created Date Field Added -->
                     <div class="col-span-1">
+                        <label class="label">Created Date</label>
+                        <input type="date" id="pr-created" class="form-input w-full">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                     <div class="col-span-1">
                         <label class="label">Expected Date</label>
                         <input type="date" id="pr-expected" class="form-input w-full">
                     </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3 mb-4">
                     <div>
                         <label class="label">A.R.F Number</label>
                         <input id="pr-arf" class="form-input w-full">
@@ -672,9 +696,17 @@
     </div>
 
     <!-- External Script Reference -->
-	<script src="js/inventorymanagement.js"></script>
-    <script src="js/script.js"></script>
-	<script src="js/auth.js"></script>
-    <script src="js/disposal.js"></script>
+<script src="js/inventorymanagement.js"></script>
+<script src="js/script.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/disposal.js"></script>
+<script src="js/materialexit.js"></script>
+<script src="js/materialexitlogs.js"></script>
+<script src="js/design.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/security.js"></script>
+<script src="js/assistant.js"></script>
+<script src="js/withdraw.js"></script>
+
 </body>
 </html>
