@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Maintenance System Pro</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS Frameworks -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #06d6a0;
+            --warning-color: #f72585;
+            --info-color: #4cc9f0;
+            --bg-light: #f8f9fa;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+       body { font-family: 'Inter', sans-serif; background-color: var(--bg-light); transition: background-color 0.3s; padding-top: 70px; }
+        
+        /* Card Styling */
+        .card { border: none; border-radius: 12px; box-shadow: var(--card-shadow); transition: transform 0.2s; }
+        .stat-card { transition: all 0.3s ease; border-left: 5px solid transparent; }
+        .stat-card:hover { transform: translateY(-3px); }
+
+       .card-total { border-left-color: var(--secondary-color); }
+        .card-general { border-left-color: var(--primary-color); }
+        .card-oil { border-left-color: #ffb703; }
+        .card-aircon { border-left-color: #4cc9f0; }
+
+       /* Table Styling */
+        .table-container { border-radius: 12px; overflow: hidden; background: white; box-shadow: var(--card-shadow); }
+        .table th { background-color: #f1f5f9; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; white-space: nowrap; }
+        .table-hover tbody tr:hover { background-color: rgba(67, 97, 238, 0.05); }
+
+       /* Status Badges */
+        .badge-soft { padding: 6px 12px; border-radius: 20px; font-weight: 500; }
+        .bg-soft-warning { background-color: rgba(255, 193, 7, 0.15); color: #856404; }
+        .bg-soft-info { background-color: rgba(23, 162, 184, 0.15); color: #0c5460; }
+        .bg-soft-success { background-color: rgba(40, 167, 69, 0.15); color: #155724; }
+
+       /* Navbar */
+        .navbar { box-shadow: 0 2px 10px rgba(0,0,0,0.1); background: linear-gradient(135deg, #2b3035 0%, #1a1d20 100%); }
+        .clock-display { font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+
+       /* Loading Overlay */
+        #loadingOverlay { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: rgba(255,255,255,0.95); z-index:9999; 
+            display:flex; justify-content:center; align-items:center; flex-direction: column;
+            transition: opacity 0.5s ease;
+        }
+
+       /* Tabs */
+        .nav-tabs { border-bottom: 2px solid #e9ecef; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; }
+        .nav-tabs .nav-link { border: none; color: #6c757d; font-weight: 500; padding: 10px 20px; transition: all 0.3s; white-space: nowrap; }
+        .nav-tabs .nav-link.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); background: transparent; }
+        .nav-tabs .nav-link:hover { color: var(--primary-color); }
+
+       /* Dark Mode Overrides */
+        [data-bs-theme="dark"] body { background-color: #121212; }
+        [data-bs-theme="dark"] .table-container { background-color: #212529; }
+        [data-bs-theme="dark"] .table th { background-color: #2c3034; color: #fff; }
+        [data-bs-theme="dark"] #loadingOverlay { background: rgba(0,0,0,0.9); color: white; }
+
+       @media print {
+            .no-print { display: none !important; }
+            .card { box-shadow: none; border: 1px solid #ddd; }
+            .table-container { box-shadow: none; }
+            body { padding-top: 0; }
+            .modal-content { border: none; box-shadow: none; }
+        }
+
+       @media (max-width: 768px) {
+            .navbar-brand { font-size: 1.1rem; }
+            .stat-card { margin-bottom: 10px; }
+            .nav-tabs { -webkit-overflow-scrolling: touch; }
+            .nav-tabs::-webkit-scrollbar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+   <!-- Loading Screen -->
+    <div id="loadingOverlay">
+        <div class="spinner-grow text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h5 class="mt-3 fw-light animate-pulse">Connecting to Database...</h5>
+    </div>
+
+   <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top no-print">
+    
+    <div class="container-fluid px-3 px-md-4">
+    <a href="Trans-System.html" title="go to Trans-System Inventory" style="text-decoration:none;font-size:30px;color:red; margin-right: 15px;"><b>⬅ </b></a>
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="bi bi-speedometer2 text-primary"></i> TRANS-SYSTEM <span class="fw-light opacity-75">Maintenance</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+           <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="bi bi-house-door"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="openVehicleMaster()"><i class="bi bi-car-front"></i> Vehicles</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showLogs()"><i class="bi bi-terminal"></i> Logs</a>
+                    </li>
+                </ul>
+                <button id="logoutBtn" style="background-color:red; color:#fff; border:none; padding:8px 20px; border-radius: 5px; font-weight:600; cursor:pointer; margin-right:10px;">
+                    Logout
+                </button> 
+
+               <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center">
+                    <div class="text-white small fw-bold clock-display d-none d-md-block" id="headerClock">--:--:--</div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary btn-sm rounded-circle" onclick="toggleTheme()" title="Toggle Dark Mode">
+                            <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+   <div class="container-fluid px-3 px-md-4 py-2">
+        
+        <div class="d-md-none text-center text-muted small mb-3 fw-bold" id="mobileClock"></div>
+
+       <!-- Dashboard Stats Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card stat-card card-total p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">Total Orders</p>
+                            <h2 class="mb-0 fw-bold" id="totalCount">0</h2>
+                        </div>
+                        <div class="icon-shape bg-light text-secondary rounded-3 p-2">
+                            <i class="bi bi-receipt h4 mb-0"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card stat-card card-general p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">General</p>
+                            <h2 class="mb-0 fw-bold text-primary" id="totalGeneralYear">₱0.00</h2>
+                        </div>
+                        <div class="icon-shape bg-soft-primary text-primary rounded-3 p-2">
+                            <i class="bi bi-tools h4 mb-0"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card stat-card card-oil p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">Change Oil</p>
+                            <h2 class="mb-0 fw-bold" style="color: #ffb703;" id="totalOilYear">₱0.00</h2>
+                        </div>
+                        <div class="icon-shape bg-light text-warning rounded-3 p-2">
+                            <i class="bi bi-fuel-pump h4 mb-0 text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card stat-card card-aircon p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small text-uppercase fw-bold">Aircon Maintenance</p>
+                            <h2 class="mb-0 fw-bold text-info" id="totalAirconYear">₱0.00</h2>
+                        </div>
+                        <div class="icon-shape bg-soft-info text-info rounded-3 p-2">
+                            <i class="bi bi-snow h4 mb-0"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+       <!-- Trend Chart -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card p-3 h-100">
+                    <h6 class="text-muted small fw-bold text-uppercase mb-3">Expense Trends</h6>
+                    <div style="height: 250px; width: 100%;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+       <!-- Main Content -->
+        <div class="card p-0 mb-5">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <ul class="nav nav-tabs border-0 w-100 w-md-auto" id="maintenanceTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" onclick="switchTab(event, 'General')" href="#">General</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" onclick="switchTab(event, 'PMS Change Oil')" href="#">PMS Change Oil</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" onclick="switchTab(event, 'PMS Aircon')" href="#">PMS Aircon</a>
+                        </li>
+                    </ul>
+                    <div class="input-group no-print w-100" style="max-width: 300px;">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Search vehicle, plate, item..." onkeyup="renderTable()">
+                    </div>
+                </div>
+            </div>
+
+           <div class="card-body px-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between mb-3 no-print gap-2">
+                    <button class="btn btn-primary w-100 w-md-auto" onclick="openModal()">
+                        <i class="bi bi-plus-lg"></i> New Order
+                    </button>
+                    
+                    <div class="dropdown w-100 w-md-auto">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-cloud-download"></i> Export
+                        </button>
+                        <ul class="dropdown-menu w-100">
+                            <li><a class="dropdown-item" href="#" onclick="exportExcel()"><i class="bi bi-file-earmark-excel text-success"></i> Excel</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportPDF()"><i class="bi bi-file-earmark-pdf text-danger"></i> PDF</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportWord()"><i class="bi bi-file-earmark-word text-primary"></i> Word</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+               <div class="table-responsive table-container">
+                    <table class="table table-hover align-middle mb-0" id="mainTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Vehicle</th>
+                                <th>Plate #</th>
+                                <th style="min-width: 200px;">Particulars Summary</th>
+                                <th class="text-end">Total Amount</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-end no-print" style="min-width: 120px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <!-- ADD/EDIT ORDER MODAL (UPDATED FOR MULTI-ROW) -->
+    <div class="modal fade" id="orderModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modalTitle">Create Order</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="orderForm" class="needs-validation" novalidate>
+                        <input type="hidden" id="orderId">
+                        
+                        <!-- Header Details -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted fw-bold">Order Number</label>
+                                <input type="text" class="form-control" id="orderNumber" required placeholder="e.g. OR-1001">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted fw-bold">Category</label>
+                                <select class="form-select" id="category" required onchange="toggleOdometerFields()">
+                                    <option value="General">General</option>
+                                    <option value="PMS Change Oil">PMS Change Oil</option>
+                                    <option value="PMS Aircon">PMS Aircon</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted fw-bold">Date Created</label>
+                                <input type="date" class="form-control" id="dateCreated" required>
+                            </div>
+
+                           <!-- Odometer Section -->
+                            <div class="col-12" id="odometerSection" style="display: none;">
+                                <div class="card bg-light border-0">
+                                    <div class="card-body p-3">
+                                        <h6 class="text-primary mb-3"><i class="bi bi-speedometer"></i> Change Oil Details</h6>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label small text-muted fw-bold">Current Odometer (km)</label>
+                                                <input type="number" class="form-control" id="odometerCurrent" placeholder="Enter current reading">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label small text-muted fw-bold">Next Change Oil (+5,000 km)</label>
+                                                <input type="number" class="form-control bg-white" id="odometerNext" readonly>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                           <!-- Vehicle Details -->
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted fw-bold">Select Vehicle</label>
+                                <div class="input-group">
+                                    <select class="form-select" id="vehicleSelect" required onchange="onVehicleSelect()">
+                                        <option value="">-- Choose Vehicle --</option>
+                                    </select>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="openVehicleMaster()" title="Manage Vehicles"><i class="bi bi-gear"></i></button>
+                                </div>
+                                <input type="hidden" id="vehicleName"> 
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted fw-bold">Plate Number</label>
+                                <input type="text" class="form-control bg-light" id="plateNumber" readonly placeholder="Auto-filled">
+                            </div>
+                        </div>
+
+                       <!-- MULTI-ROW ITEMS SECTION -->
+                        <h6 class="fw-bold text-primary mb-2">Order Particulars</h6>
+                        <div class="table-responsive mb-3 border rounded">
+                            <table class="table table-sm table-striped mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 45%;">Description / Particulars</th>
+                                        <th style="width: 15%;">Qty</th>
+                                        <th style="width: 20%;">Unit Cost (₱)</th>
+                                        <th style="width: 15%;" class="text-end">Subtotal</th>
+                                        <th style="width: 5%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orderItemsBody">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addOrderItem()"><i class="bi bi-plus-circle"></i> Add Item Row</button>
+                            <h5 class="mb-0 fw-bold">Total: <span class="text-primary" id="modalGrandTotal">₱0.00</span></h5>
+                        </div>
+
+                       <!-- Status -->
+                        <div class="row">
+                            <div class="col-md-4 ms-auto">
+                                <label class="form-label small text-muted fw-bold">Order Status</label>
+                                <select class="form-select" id="status">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Ongoing">Ongoing</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                        </div>
+
+                   </form>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary px-4" id="btnSave" onclick="saveOrder()">
+                        <span id="btnSaveText">Save Order</span>
+                        <div id="btnSaveSpinner" class="spinner-border spinner-border-sm d-none"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <!-- VEHICLE MASTER DATA MODAL -->
+    <div class="modal fade" id="vehicleModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title"><i class="bi bi-database-fill-gear"></i> Vehicle Master Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card bg-soft-info border-0 mb-3">
+                        <div class="card-body p-3">
+                            <h6 class="fw-bold mb-2 text-primary">Add/Edit Vehicle</h6>
+                            <form id="vehicleForm">
+                                <input type="hidden" id="vm_id">
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <input type="text" class="form-control form-control-sm" id="vm_name" placeholder="Vehicle Name (e.g. Toyota Innova)" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="text" class="form-control form-control-sm" id="vm_type" placeholder="Type (e.g. Van, SUV)">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="text" class="form-control form-control-sm" id="vm_plate" placeholder="Plate #" required>
+                                    </div>
+                                    <div class="col-12 text-end">
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="resetVehicleForm()">Clear</button>
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="saveVehicle()">Save Vehicle</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="table-responsive" style="max-height: 300px;">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Vehicle Name</th>
+                                    <th>Plate</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vehicleTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <!-- View Details Modal (Enhanced) -->
+    <div class="modal fade" id="viewModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title"><i class="bi bi-receipt"></i> Order Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4 pb-3 border-bottom">
+                        <h2 class="text-primary fw-bold" id="viewAmount"></h2>
+                        <span class="badge rounded-pill" id="viewStatusBadge"></span>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted d-block">Order Number</small>
+                            <strong id="viewOrderNum" class="fs-6"></strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            <small class="text-muted d-block">Date Created</small>
+                            <strong id="viewDate" class="fs-6"></strong>
+                        </div>
+                    </div>
+
+                    <div class="card bg-light border-0 mb-3">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <small class="text-muted d-block">Vehicle</small>
+                                    <strong id="viewVehicle"></strong>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">Plate Number</small>
+                                    <strong id="viewPlate"></strong>
+                                </div>
+                            </div>
+                            
+                            <!-- Odometer Row (Dynamic) -->
+                            <div id="viewOdometerRow" class="d-none justify-content-between mt-2 pt-2 border-top">
+                                <div>
+                                    <small class="text-muted d-block">Current Odo</small>
+                                    <span id="viewOdoCurrent" class="fw-bold"></span>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">Next Due</small>
+                                    <span id="viewOdoNext" class="fw-bold text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="small fw-bold text-uppercase mt-4 mb-2 text-secondary">Breakdown</h6>
+                    <div class="table-responsive border rounded">
+                        <table class="table table-sm table-striped mb-0 small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th class="text-end">Qty</th>
+                                    <th class="text-end">Cost</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="viewItemsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button class="btn btn-outline-dark btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+                    <button class="btn btn-primary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <!-- Logs Modal -->
+    <div class="modal fade" id="logsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">System Audit Logs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <ul class="list-group list-group-flush" id="logsList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Auth Script -->
+    <script src="js/auth.js"></script>
+    
+    <!-- Main Application Script -->
+    <script src="js/joborders.js"></script>
+   <script src="js/joborderextension.js"></script>
+   <script src="js/drivers.js"></script>
+   <script src="js/drivers_extension.js"></script>
+
+
+
+
+</body>
+</html>
